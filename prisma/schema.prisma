@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  password      String
+  image         String?
+  age           Int?
+  weight        Float?
+  height        Float?
+  goal          String?
+  activityLevel String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  meals        Meal[]
+  waterLogs    WaterLog[]
+  exerciseLogs ExerciseLog[]
+  groupMembers GroupMember[]
+  reactions    Reaction[]
+  comments     Comment[]
+  sentInvites  GroupInvite[] @relation("InviteSender")
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  code        String   @unique
+  createdAt   DateTime @default(now())
+
+  members GroupMember[]
+  invites GroupInvite[]
+}
+
+model GroupMember {
+  id       String   @id @default(cuid())
+  userId   String
+  groupId  String
+  role     String   @default("member")
+  joinedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+}
+
+model GroupInvite {
+  id        String   @id @default(cuid())
+  groupId   String
+  senderId  String
+  email     String
+  createdAt DateTime @default(now())
+
+  group  Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sender User  @relation("InviteSender", fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model Meal {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  imageUrl    String?
+  mealType    String
+  calories    Float    @default(0)
+  protein     Float    @default(0)
+  carbs       Float    @default(0)
+  fat         Float    @default(0)
+  fiber       Float    @default(0)
+  sugar       Float    @default(0)
+  aiAnalysis  String?
+  isPublic    Boolean  @default(true)
+  loggedAt    DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactions Reaction[]
+  comments  Comment[]
+}
+
+model WaterLog {
+  id       String   @id @default(cuid())
+  userId   String
+  amount   Float
+  loggedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ExerciseLog {
+  id       String   @id @default(cuid())
+  userId   String
+  name     String
+  category String
+  duration Int
+  calories Float?
+  notes    String?
+  isPublic Boolean  @default(true)
+  loggedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactions Reaction[]
+  comments  Comment[]
+}
+
+model Reaction {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String
+  mealId     String?
+  exerciseId String?
+  createdAt  DateTime @default(now())
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meal     Meal?        @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  exercise ExerciseLog? @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  userId     String
+  text       String
+  mealId     String?
+  exerciseId String?
+  createdAt  DateTime @default(now())
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meal     Meal?        @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  exercise ExerciseLog? @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+}
