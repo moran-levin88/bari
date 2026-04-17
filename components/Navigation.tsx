@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { logout } from '@/lib/auth'
 
 const navItems = [
@@ -16,6 +16,12 @@ const navItems = [
 
 export default function Navigation({ userName }: { userName: string }) {
   const pathname = usePathname()
+  const router = useRouter()
+
+  async function handleLogout() {
+    await logout()
+    router.push('/login')
+  }
 
   return (
     <nav className="bg-white border-b border-blue-100 px-4 py-3 sticky top-0 z-10 shadow-sm">
@@ -39,11 +45,9 @@ export default function Navigation({ userName }: { userName: string }) {
 
         <div className="flex items-center gap-3">
           <span className="text-sm text-slate-500">שלום, {userName}</span>
-          <form action={logout}>
-            <button type="submit" className="btn-secondary text-sm py-2 px-4">
-              יציאה
-            </button>
-          </form>
+          <button onClick={handleLogout} className="btn-secondary text-sm py-2 px-4">
+            יציאה
+          </button>
         </div>
       </div>
 

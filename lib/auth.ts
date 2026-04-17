@@ -1,26 +1,21 @@
 'use server'
 
 import bcrypt from 'bcryptjs'
-import { redirect } from 'next/navigation'
 import { prisma } from './prisma'
 import { createSession, deleteSession, getSession } from './session'
 
-export async function signup(_state: { error: string } | undefined, formData: FormData) {
+type AuthState = { error?: string; success?: boolean } | undefined
+
+export async function signup(_state: AuthState, formData: FormData): Promise<AuthState> {
   const name = formData.get('name') as string
   const email = formData.get('email') as string
   const password = formData.get('password') as string
 
-  if (!name || !email || !password) {
-    return { error: 'כל השדות נדרשים' }
-  }
-  if (password.length < 6) {
-    return { error: 'הסיסמה חייבת להכיל לפחות 6 תווים' }
-  }
+  if (!name || !email || !password) return { error: 'כל השדות נדרשים' }
+  if (password.length < 6) return { error: 'הסיסמה חייבת להכיל לפחות 6 תווים' }
 
   const existing = await prisma.user.findUnique({ where: { email } })
-  if (existing) {
-    return { error: 'המשתמש כבר קיים עם כתובת האימייל הזו' }
-  }
+  if (existing) return { error: 'המשתמש כבר קיים עם כתובת האימייל הזו' }
 
   const hashed = await bcrypt.hash(password, 10)
   const user = await prisma.user.create({
@@ -28,34 +23,27 @@ export async function signup(_state: { error: string } | undefined, formData: Fo
   })
 
   await createSession({ userId: user.id, email: user.email, name: user.name })
-  redirect('/dashboard')
+  return { success: true }
 }
 
-export async function login(_state: { error: string } | undefined, formData: FormData) {
+export async function login(_state: AuthState, formData: FormData): Promise<AuthState> {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
 
-  if (!email || !password) {
-    return { error: 'אימייל וסיסמה נדרשים' }
-  }
+  if (!email || !password) return { error: 'אימייל וסיסמה נדרשים' }
 
   const user = await prisma.user.findUnique({ where: { email } })
-  if (!user) {
-    return { error: 'אימייל או סיסמה שגויים' }
-  }
+  if (!user) return { error: 'אימייל או סיסמה שגויים' }
 
   const valid = await bcrypt.compare(password, user.password)
-  if (!valid) {
-    return { error: 'אימייל או סיסמה שגויים' }
-  }
+  if (!valid) return { error: 'אימייל או סיסמה שגויים' }
 
   await createSession({ userId: user.id, email: user.email, name: user.name })
-  redirect('/dashboard')
+  return { success: true }
 }
 
 export async function logout() {
   await deleteSession()
-  redirect('/login')
 }
 
 export async function getCurrentUser() {

@@ -1,17 +1,23 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { signup } from '@/lib/auth'
 
 export default function RegisterPage() {
+  const router = useRouter()
   const [state, action, pending] = useActionState(signup, undefined)
+
+  useEffect(() => {
+    if (state?.success) router.push('/dashboard')
+  }, [state, router])
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
       <div className="card w-full max-w-md">
         <div className="text-center mb-6">
-          <div className="text-4xl mb-2">🥗</div>
+          <div className="text-4xl mb-2">🌿</div>
           <h1 className="text-2xl font-bold text-blue-700">הצטרפי ל-Bari</h1>
           <p className="text-slate-500 text-sm mt-1">צרי חשבון חדש ותתחילי את המסע</p>
         </div>
