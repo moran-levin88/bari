@@ -12,13 +12,17 @@ export type SessionPayload = {
   expiresAt: Date
 }
 
-export async function createSession(payload: Omit<SessionPayload, 'expiresAt'>) {
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+export async function createSession(
+  payload: Omit<SessionPayload, 'expiresAt'>,
+  rememberMe = false
+) {
+  const days = rememberMe ? 30 : 1
+  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
 
   const session = await new SignJWT({ ...payload, expiresAt })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('7d')
+    .setExpirationTime(`${days}d`)
     .sign(encodedKey)
 
   const cookieStore = await cookies()

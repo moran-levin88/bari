@@ -29,6 +29,7 @@ export async function signup(_state: AuthState, formData: FormData): Promise<Aut
 export async function login(_state: AuthState, formData: FormData): Promise<AuthState> {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
+  const rememberMe = formData.get('rememberMe') === 'on'
 
   if (!email || !password) return { error: 'אימייל וסיסמה נדרשים' }
 
@@ -38,7 +39,7 @@ export async function login(_state: AuthState, formData: FormData): Promise<Auth
   const valid = await bcrypt.compare(password, user.password)
   if (!valid) return { error: 'אימייל או סיסמה שגויים' }
 
-  await createSession({ userId: user.id, email: user.email, name: user.name })
+  await createSession({ userId: user.id, email: user.email, name: user.name }, rememberMe)
   return { success: true }
 }
 
