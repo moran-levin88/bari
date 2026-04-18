@@ -22,8 +22,6 @@ export default function ServiceWorkerRegistrar() {
         })
       })
 
-      // Check for updates every 5 minutes
-      setInterval(() => reg.update(), 5 * 60 * 1000)
     })
 
     // When SW takes over — reload to get fresh content
