@@ -7,10 +7,10 @@ export async function POST(request: NextRequest) {
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
-  const { amount } = body
+  const { amount, isPublic = true } = body
 
   const log = await prisma.waterLog.create({
-    data: { userId: session.userId, amount: amount || 250 },
+    data: { userId: session.userId, amount: amount || 250, isPublic },
   })
 
   return Response.json({ success: true, log })

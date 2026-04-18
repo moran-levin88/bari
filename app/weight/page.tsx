@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { he } from 'date-fns/locale'
+import ShareToggle from '@/components/ShareToggle'
 
 type WeightLog = { id: string; weight: number; loggedAt: string }
 
@@ -10,6 +11,7 @@ export default function WeightPage() {
   const [logs, setLogs] = useState<WeightLog[]>([])
   const [weight, setWeight] = useState('')
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [isPublic, setIsPublic] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -31,7 +33,7 @@ export default function WeightPage() {
     const res = await fetch('/api/weight', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ weight: val, date }),
+      body: JSON.stringify({ weight: val, date, isPublic }),
     })
     if (res.ok) {
       setWeight('')
@@ -109,6 +111,7 @@ export default function WeightPage() {
             </div>
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
+          <ShareToggle value={isPublic} onChange={setIsPublic} />
           <button type="submit" disabled={saving || !weight} className="btn-primary py-3 disabled:opacity-50">
             {saving ? 'שומרת...' : '+ הוסיפי רשומה'}
           </button>

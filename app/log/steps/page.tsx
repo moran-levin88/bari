@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import ShareToggle from '@/components/ShareToggle'
 
 const QUICK_OPTIONS = [5000, 7500, 8000, 10000, 12000, 15000]
 
 export default function LogStepsPage() {
   const router = useRouter()
   const [steps, setSteps] = useState('')
+  const [isPublic, setIsPublic] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -19,7 +21,7 @@ export default function LogStepsPage() {
       const res = await fetch('/api/steps', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ steps: val }),
+        body: JSON.stringify({ steps: val, isPublic }),
       })
       if (!res.ok) throw new Error()
       router.push('/dashboard')
@@ -94,10 +96,12 @@ export default function LogStepsPage() {
         {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
       </div>
 
+      <ShareToggle value={isPublic} onChange={setIsPublic} />
+
       <button
         onClick={save}
         disabled={saving || !steps}
-        className="btn-primary w-full py-3 text-base disabled:opacity-50"
+        className="btn-primary w-full py-3 text-base disabled:opacity-50 mt-4"
       >
         {saving ? 'שומרת...' : '✅ שמירת הצעדים'}
       </button>

@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import ShareToggle from '@/components/ShareToggle'
 
 const QUICK_AMOUNTS = [150, 250, 330, 500, 750]
 
 export default function LogWaterPage() {
   const router = useRouter()
   const [amount, setAmount] = useState(250)
+  const [isPublic, setIsPublic] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -17,7 +19,7 @@ export default function LogWaterPage() {
       await fetch('/api/water', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: ml }),
+        body: JSON.stringify({ amount: ml, isPublic }),
       })
       setSaved(true)
       setTimeout(() => router.push('/dashboard'), 1000)
@@ -56,9 +58,9 @@ export default function LogWaterPage() {
             value={amount}
             onChange={(e) => setAmount(Number(e.target.value))}
             className="input text-center text-xl font-bold"
-            min={50}
+            min={1}
             max={3000}
-            step={50}
+            step={1}
           />
         </div>
 
@@ -77,7 +79,9 @@ export default function LogWaterPage() {
         )}
       </div>
 
-      <div className="card">
+      <ShareToggle value={isPublic} onChange={setIsPublic} />
+
+      <div className="card mt-4">
         <h3 className="font-bold text-slate-700 mb-3">מדוע שתייה חשובה?</h3>
         <ul className="text-sm text-slate-500 flex flex-col gap-2">
           <li>✅ גוף הביולוגי שלנו מורכב מ-60% מים</li>
