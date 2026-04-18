@@ -13,39 +13,34 @@ export async function POST(request: NextRequest) {
     const imageFile = formData.get('image') as File | null
     const mealName = formData.get('name') as string | null
 
-    let imageUrl: string | null = null
     let base64Image: string | null = null
 
-    if (imageFile) {
+    if (imageFile && imageFile.size > 0) {
       const bytes = await imageFile.arrayBuffer()
       const buffer = Buffer.from(bytes)
       base64Image = buffer.toString('base64')
     }
 
-    const prompt = `You are a professional nutritionist. Analyze this food item and provide accurate nutritional information.
-${mealName ? `Food name provided: "${mealName}"` : ''}
-${base64Image ? 'I am providing an image of the food.' : 'No image provided, use the food name only.'}
+    const prompt = `You are a precise nutritionist database. The user describes a meal they ate. Calculate the TOTAL nutritional values for everything described.
 
-Return ONLY a valid JSON object with this exact structure (no markdown, no explanation):
-{
-  "name": "food name in Hebrew",
-  "description": "brief description in Hebrew (1 sentence)",
-  "servingSize": "serving size description",
-  "calories": number,
-  "protein": number (grams),
-  "carbs": number (grams),
-  "fat": number (grams),
-  "fiber": number (grams),
-  "sugar": number (grams),
-  "ingredients": ["ingredient 1", "ingredient 2", ...],
-  "tips": "one healthy eating tip in Hebrew"
-}`
+Rules:
+- If multiple foods are listed (separated by +, ו, עם, etc.), ADD their nutritional values together to get the total.
+- Use the exact quantities mentioned (e.g. "20" in a product name is the product's protein content, not grams eaten — use the full package serving).
+- For branded Israeli products (e.g. "יוגורט פרו 20 דנונה", "קוטג' 5%"), use their actual known nutritional label values.
+- For whole fruits/vegetables with no quantity specified, use 1 medium-sized piece.
+- Never reduce protein or calories when adding more foods — totals must always increase or stay the same.
+- Be consistent: the same input must always produce the same output.
+
+Meal: "${mealName || 'unknown food'}"
+
+Return ONLY valid JSON (no markdown, no explanation):
+{"name":"meal name in Hebrew","description":"תיאור קצר בעברית","servingSize":"תיאור הכמות הכוללת","calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0,"sugar":0,"ingredients":[],"tips":"טיפ תזונתי קצר בעברית"}`
 
     let response: OpenAI.Chat.ChatCompletion
 
-    if (base64Image) {
+    if (base64Image && imageFile) {
       response = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'user',
@@ -54,20 +49,20 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no expla
               {
                 type: 'image_url',
                 image_url: {
-                  url: `data:${imageFile!.type};base64,${base64Image}`,
-                  detail: 'high',
+                  url: `data:${imageFile.type};base64,${base64Image}`,
+                  detail: 'low',
                 },
               },
             ],
           },
         ],
-        max_tokens: 500,
+        max_tokens: 400,
       })
     } else {
       response = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 500,
+        max_tokens: 400,
       })
     }
 
@@ -77,10 +72,8 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no expla
 
     return Response.json({ success: true, nutrition })
   } catch (error) {
-    console.error('Food analysis error:', error)
-    return Response.json(
-      { error: 'שגיאה בניתוח האוכל. נסי שוב.' },
-      { status: 500 }
-    )
+    const message = error instanceof Error ? error.message : String(error)
+    console.error('Food analysis error:', message)
+    return Response.json({ error: message }, { status: 500 })
   }
 }
