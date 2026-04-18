@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import './globals.css'
 import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar'
+import PullToRefresh from '@/components/PullToRefresh'
 
 export const metadata: Metadata = {
   title: "Bari - בארי",
@@ -40,6 +41,7 @@ export default function RootLayout({
       <body className="min-h-full bg-blue-50">
         {children}
         <ServiceWorkerRegistrar />
+        <PullToRefresh />
       </body>
     </html>
   )
