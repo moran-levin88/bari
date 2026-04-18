@@ -46,6 +46,30 @@ export async function POST(request: NextRequest) {
     return Response.json({ success: true, group })
   }
 
+  if (action === 'leave') {
+    const { groupId } = body
+    const member = await prisma.groupMember.findUnique({
+      where: { userId_groupId: { userId: session.userId, groupId } },
+    })
+    if (!member) return Response.json({ error: 'לא חבר בקבוצה' }, { status: 404 })
+
+    // If admin and last member — delete the group entirely
+    const memberCount = await prisma.groupMember.count({ where: { groupId } })
+    if (memberCount === 1) {
+      await prisma.group.delete({ where: { id: groupId } })
+    } else {
+      await prisma.groupMember.delete({
+        where: { userId_groupId: { userId: session.userId, groupId } },
+      })
+      // If the leaving member was admin, promote the next member
+      if (member.role === 'admin') {
+        const next = await prisma.groupMember.findFirst({ where: { groupId } })
+        if (next) await prisma.groupMember.update({ where: { id: next.id }, data: { role: 'admin' } })
+      }
+    }
+    return Response.json({ success: true })
+  }
+
   return Response.json({ error: 'פעולה לא תקינה' }, { status: 400 })
 }
 

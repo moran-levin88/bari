@@ -20,6 +20,7 @@ export default function GroupsPage() {
   const [joinCode, setJoinCode] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [leavingId, setLeavingId] = useState<string | null>(null)
 
   async function loadGroups() {
     const res = await fetch('/api/groups')
@@ -72,6 +73,24 @@ export default function GroupsPage() {
 
   function copyCode(code: string) {
     navigator.clipboard.writeText(code)
+  }
+
+  async function leaveGroup(groupId: string, groupName: string) {
+    if (!confirm(`לצאת מהקבוצה "${groupName}"?`)) return
+    setLeavingId(groupId)
+    const res = await fetch('/api/groups', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'leave', groupId }),
+    })
+    const data = await res.json()
+    setLeavingId(null)
+    if (data.success) {
+      setSuccess(`יצאת מהקבוצה "${groupName}"`)
+      loadGroups()
+    } else {
+      setError(data.error || 'שגיאה ביציאה מהקבוצה')
+    }
   }
 
   return (
@@ -138,7 +157,16 @@ export default function GroupsPage() {
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-slate-400 mt-2">{g.members.length} חברים בקבוצה</p>
+                  <div className="flex items-center justify-between mt-3">
+                    <p className="text-xs text-slate-400">{g.members.length} חברים בקבוצה</p>
+                    <button
+                      onClick={() => leaveGroup(g.id, g.name)}
+                      disabled={leavingId === g.id}
+                      className="text-xs text-red-400 hover:text-red-600 hover:bg-red-50 px-3 py-1 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {leavingId === g.id ? '...' : '🚪 עזבי קבוצה'}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
