@@ -1,10 +1,33 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from "next";
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Bari - יחד לאורח חיים בריא',
-  description: 'פלטפורמה חברתית לניהול תזונה, שתייה ופעילות גופנית',
-}
+  title: "Bari - בארי",
+  description: "האפליקציה החכמה שלך לתזונה ובריאות",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Bari",
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1d4ed8",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export default function RootLayout({
   children,
