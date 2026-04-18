@@ -25,6 +25,7 @@ function MacroBar({ label, value, target, color }: { label: string; value: numbe
 export default async function DashboardPage() {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
+  if (!user.age || !user.weight || !user.height) redirect('/onboarding')
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
