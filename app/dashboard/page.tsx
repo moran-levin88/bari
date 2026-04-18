@@ -32,7 +32,7 @@ export default async function DashboardPage() {
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
 
-  const [todayMeals, todayWater, todayExercise] = await Promise.all([
+  const [todayMeals, todayWater, todayExercise, todaySteps] = await Promise.all([
     prisma.meal.findMany({
       where: { userId: user.id, loggedAt: { gte: today, lt: tomorrow } },
       orderBy: { loggedAt: 'desc' },
@@ -41,6 +41,10 @@ export default async function DashboardPage() {
       where: { userId: user.id, loggedAt: { gte: today, lt: tomorrow } },
     }),
     prisma.exerciseLog.findMany({
+      where: { userId: user.id, loggedAt: { gte: today, lt: tomorrow } },
+      orderBy: { loggedAt: 'desc' },
+    }),
+    prisma.stepLog.findMany({
       where: { userId: user.id, loggedAt: { gte: today, lt: tomorrow } },
       orderBy: { loggedAt: 'desc' },
     }),
@@ -63,6 +67,9 @@ export default async function DashboardPage() {
   const totalFat = todayMeals.reduce((s, m) => s + m.fat, 0)
   const totalWater = todayWater.reduce((s, w) => s + w.amount, 0)
   const totalExerciseMin = todayExercise.reduce((s, e) => s + e.duration, 0)
+  const totalSteps = todaySteps.reduce((s, l) => s + l.steps, 0)
+  const stepGoal = 10000
+  const stepPct = Math.min(100, Math.round((totalSteps / stepGoal) * 100))
 
   const caloriePct = Math.min(100, Math.round((totalCalories / targets.calories) * 100))
   const waterPct = Math.min(100, Math.round((totalWater / targets.water) * 100))
@@ -146,6 +153,33 @@ export default async function DashboardPage() {
               <p className="text-blue-700 font-bold mt-1">{totalExerciseMin} דקות סה"כ</p>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Steps */}
+      <div className="card mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-bold text-slate-700">👟 צעדים היום</h2>
+          <Link href="/log/steps" className="text-blue-600 text-sm hover:underline">+ עדכני</Link>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <div className="text-3xl font-bold text-blue-700 mb-1">
+              {totalSteps > 0 ? totalSteps.toLocaleString() : '—'}
+              <span className="text-base font-normal text-slate-400"> / {stepGoal.toLocaleString()}</span>
+            </div>
+            <div className="progress-bar mt-2">
+              <div className="progress-fill" style={{ width: `${stepPct}%`, background: '#6366f1' }} />
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              {totalSteps === 0
+                ? 'טרם עדכנת צעדים היום'
+                : stepPct >= 100
+                ? 'כל הכבוד! הגעת ליעד 🎉'
+                : `עוד ${(stepGoal - totalSteps).toLocaleString()} צעדים ליעד`}
+            </p>
+          </div>
+          <div className="text-4xl">{stepPct >= 100 ? '🏆' : totalSteps > 5000 ? '🚶' : '👟'}</div>
         </div>
       </div>
 

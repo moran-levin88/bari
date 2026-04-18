@@ -10,6 +10,7 @@ const navItems = [
   { href: '/log/meal', label: 'תיעוד ארוחה', icon: '🍽️' },
   { href: '/log/water', label: 'תיעוד מים', icon: '💧' },
   { href: '/log/exercise', label: 'תיעוד ספורט', icon: '🏃' },
+  { href: '/log/steps', label: 'צעדים', icon: '👟' },
   { href: '/groups', label: 'קבוצות', icon: '🤝' },
   { href: '/profile', label: 'פרופיל', icon: '👤' },
 ]

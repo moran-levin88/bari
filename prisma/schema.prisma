@@ -24,6 +24,7 @@ model User {
   meals        Meal[]
   waterLogs    WaterLog[]
   exerciseLogs ExerciseLog[]
+  stepLogs     StepLog[]
   groupMembers GroupMember[]
   reactions    Reaction[]
   comments     Comment[]
@@ -112,6 +113,15 @@ model ExerciseLog {
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   reactions Reaction[]
   comments  Comment[]
+}
+
+model StepLog {
+  id       String   @id @default(cuid())
+  userId   String
+  steps    Int
+  loggedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Reaction {
