@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { signup } from '@/lib/auth'
@@ -8,10 +8,26 @@ import { signup } from '@/lib/auth'
 export default function RegisterPage() {
   const router = useRouter()
   const [state, action, pending] = useActionState(signup, undefined)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [confirmError, setConfirmError] = useState('')
 
   useEffect(() => {
-    if (state?.success) router.push('/dashboard')
+    if (state?.success) router.push('/onboarding')
   }, [state, router])
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (password !== confirm) {
+      e.preventDefault()
+      setConfirmError('הסיסמאות אינן תואמות')
+      return
+    }
+    setConfirmError('')
+  }
+
+  const mismatch = confirm.length > 0 && password !== confirm
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
@@ -22,7 +38,7 @@ export default function RegisterPage() {
           <p className="text-slate-500 text-sm mt-1">צרי חשבון חדש ותתחילי את המסע</p>
         </div>
 
-        <form action={action} className="flex flex-col gap-4">
+        <form action={action} onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">שם מלא</label>
             <input name="name" type="text" required className="input" placeholder="השם שלך" />
@@ -33,7 +49,51 @@ export default function RegisterPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">סיסמה</label>
-            <input name="password" type="password" required className="input" placeholder="לפחות 6 תווים" />
+            <div className="relative">
+              <input
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                required
+                className="input pl-10"
+                placeholder="לפחות 6 תווים"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-lg leading-none"
+                tabIndex={-1}
+              >
+                {showPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">אימות סיסמה</label>
+            <div className="relative">
+              <input
+                type={showConfirm ? 'text' : 'password'}
+                required
+                className={`input pl-10 ${mismatch ? 'border-red-300 focus:ring-red-200' : ''}`}
+                placeholder="הזיני שוב את הסיסמה"
+                value={confirm}
+                onChange={(e) => { setConfirm(e.target.value); setConfirmError('') }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm((v) => !v)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-lg leading-none"
+                tabIndex={-1}
+              >
+                {showConfirm ? '🙈' : '👁️'}
+              </button>
+            </div>
+            {mismatch && <p className="text-red-500 text-xs mt-1">הסיסמאות אינן תואמות</p>}
+            {!mismatch && confirm.length > 0 && password === confirm && (
+              <p className="text-green-500 text-xs mt-1">✓ הסיסמאות תואמות</p>
+            )}
+            {confirmError && <p className="text-red-500 text-xs mt-1">{confirmError}</p>}
           </div>
 
           {state?.error && (
