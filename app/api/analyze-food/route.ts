@@ -56,22 +56,20 @@ Return ONLY valid JSON (no markdown, no explanation):
             ],
           },
         ],
+        response_format: { type: 'json_object' },
         max_tokens: 600,
       })
     } else {
       response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
         max_tokens: 600,
       })
     }
 
     const content = response.choices[0].message.content || '{}'
-
-    // Extract JSON robustly — find the first { ... } block
-    const jsonMatch = content.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) throw new Error('התשובה לא הכילה JSON תקין')
-    const nutrition = JSON.parse(jsonMatch[0])
+    const nutrition = JSON.parse(content)
 
     return Response.json({ success: true, nutrition })
   } catch (error) {
