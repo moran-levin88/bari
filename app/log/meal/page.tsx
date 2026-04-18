@@ -10,6 +10,8 @@ const MEAL_TYPES = [
   { value: 'snack', label: '🍎 חטיף' },
 ]
 
+type Ingredient = { name: string; grams: string }
+
 type NutritionData = {
   name: string
   description: string
@@ -24,14 +26,28 @@ type NutritionData = {
   tips: string
 }
 
+const emptyNutrition = (): NutritionData => ({
+  name: '', description: '', servingSize: '', calories: 0,
+  protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, ingredients: [], tips: '',
+})
+
+function buildMealDescription(ingredients: Ingredient[]): string {
+  return ingredients
+    .filter((i) => i.name.trim())
+    .map((i) => (i.grams.trim() ? `${i.name.trim()} ${i.grams.trim()}g` : i.name.trim()))
+    .join(', ')
+}
+
 export default function LogMealPage() {
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [mealName, setMealName] = useState('')
+  const [ingredients, setIngredients] = useState<Ingredient[]>([{ name: '', grams: '' }])
   const [mealType, setMealType] = useState('snack')
   const [nutrition, setNutrition] = useState<NutritionData | null>(null)
+  const [manualMode, setManualMode] = useState(false)
+  const [manualData, setManualData] = useState(emptyNutrition())
   const [analyzing, setAnalyzing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -44,9 +60,22 @@ export default function LogMealPage() {
     setImagePreview(URL.createObjectURL(file))
   }
 
+  function updateIngredient(index: number, field: keyof Ingredient, value: string) {
+    setIngredients((prev) => prev.map((item, i) => i === index ? { ...item, [field]: value } : item))
+  }
+
+  function addIngredient() {
+    setIngredients((prev) => [...prev, { name: '', grams: '' }])
+  }
+
+  function removeIngredient(index: number) {
+    setIngredients((prev) => prev.filter((_, i) => i !== index))
+  }
+
   async function analyzeFood() {
-    if (!imageFile && !mealName.trim()) {
-      setError('אנא העלי תמונה או הזיני שם ארוחה')
+    const mealDescription = buildMealDescription(ingredients)
+    if (!imageFile && !mealDescription) {
+      setError('אנא הזיני לפחות פריט אחד')
       return
     }
     setError('')
@@ -54,46 +83,47 @@ export default function LogMealPage() {
     try {
       const fd = new FormData()
       if (imageFile) fd.append('image', imageFile)
-      if (mealName) fd.append('name', mealName)
+      if (mealDescription) fd.append('name', mealDescription)
 
       const res = await fetch('/api/analyze-food', { method: 'POST', body: fd })
       const data = await res.json()
 
       if (!res.ok) throw new Error(data.error || 'שגיאה בניתוח')
       setNutrition(data.nutrition)
-      if (data.nutrition.name && !mealName) setMealName(data.nutrition.name)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'שגיאה בניתוח האוכל')
+      const msg = err instanceof Error ? err.message : 'שגיאה לא ידועה'
+      setError(`שגיאה בניתוח: ${msg}`)
+      setManualMode(true)
+      setManualData({ ...emptyNutrition(), name: mealDescription })
     } finally {
       setAnalyzing(false)
     }
   }
 
   async function saveMeal() {
-    if (!nutrition && !mealName) {
-      setError('אנא נתחי את האוכל קודם')
+    const data = manualMode ? manualData : nutrition
+    const mealDescription = buildMealDescription(ingredients)
+    const name = data?.name || mealDescription || 'ארוחה'
+
+    if (!name.trim()) {
+      setError('אנא הזיני לפחות פריט אחד')
       return
     }
+
     setSaving(true)
     try {
-      let imageUrl: string | undefined
-      if (imageFile) {
-        // For now, store as base64 data URL (in production, use S3/Cloudinary)
-        imageUrl = imagePreview || undefined
-      }
-
       const payload = {
-        name: mealName || nutrition?.name || 'ארוחה',
-        description: nutrition?.description,
-        imageUrl,
+        name,
+        description: data?.description,
+        imageUrl: imagePreview || undefined,
         mealType,
-        calories: nutrition?.calories || 0,
-        protein: nutrition?.protein || 0,
-        carbs: nutrition?.carbs || 0,
-        fat: nutrition?.fat || 0,
-        fiber: nutrition?.fiber || 0,
-        sugar: nutrition?.sugar || 0,
-        aiAnalysis: nutrition ? JSON.stringify(nutrition) : null,
+        calories: data?.calories || 0,
+        protein: data?.protein || 0,
+        carbs: data?.carbs || 0,
+        fat: data?.fat || 0,
+        fiber: data?.fiber || 0,
+        sugar: data?.sugar || 0,
+        aiAnalysis: data ? JSON.stringify(data) : null,
         isPublic,
       }
 
@@ -111,6 +141,9 @@ export default function LogMealPage() {
       setSaving(false)
     }
   }
+
+  const activeNutrition = manualMode ? manualData : nutrition
+  const hasIngredients = ingredients.some((i) => i.name.trim())
 
   return (
     <div>
@@ -134,121 +167,145 @@ export default function LogMealPage() {
       </div>
 
       <div className="card mb-4">
-        <h2 className="font-bold text-slate-700 mb-4">📸 צלמי את האוכל שלך</h2>
+        <h2 className="font-bold text-slate-700 mb-1">📸 צלמי את האוכל שלך</h2>
+        <p className="text-xs text-slate-400 mb-3">אפשרי לצרף תמונה במקום או בנוסף לרשימה</p>
 
         <div
           onClick={() => fileRef.current?.click()}
-          className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all mb-4 ${
+          className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all mb-4 ${
             imagePreview ? 'border-blue-400 bg-blue-50' : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50'
           }`}
         >
           {imagePreview ? (
-            <img src={imagePreview} alt="preview" className="max-h-48 mx-auto rounded-xl object-cover" />
+            <img src={imagePreview} alt="preview" className="max-h-40 mx-auto rounded-xl object-cover" />
           ) : (
             <>
-              <div className="text-4xl mb-2">📷</div>
-              <p className="text-slate-500 text-sm">לחצי כאן להעלאת תמונה</p>
-              <p className="text-slate-400 text-xs mt-1">JPG, PNG, HEIC</p>
+              <div className="text-3xl mb-1">📷</div>
+              <p className="text-slate-400 text-sm">לחצי להעלאת תמונה (לא חובה)</p>
             </>
           )}
         </div>
         <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageChange} />
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-slate-700 mb-1">או הזיני שם ארוחה ידנית</label>
-          <input
-            type="text"
-            value={mealName}
-            onChange={(e) => setMealName(e.target.value)}
-            className="input"
-            placeholder="לדוגמה: סלט עם גבינה וטונה"
-          />
+        {/* Ingredients list */}
+        <h2 className="font-bold text-slate-700 mb-1">🥗 מה אכלת?</h2>
+        <p className="text-xs text-slate-400 mb-3">הוסיפי פריט + כמות בגרמים לחישוב מדויק</p>
+
+        <div className="flex flex-col gap-2 mb-3">
+          {/* Header row */}
+          <div className="grid grid-cols-[1fr_90px_32px] gap-2 px-1">
+            <span className="text-xs text-slate-400 font-medium">פריט / מוצר</span>
+            <span className="text-xs text-slate-400 font-medium text-center">כמות (גרם)</span>
+            <span />
+          </div>
+
+          {ingredients.map((item, index) => (
+            <div key={index} className="grid grid-cols-[1fr_90px_32px] gap-2 items-center">
+              <input
+                type="text"
+                value={item.name}
+                onChange={(e) => updateIngredient(index, 'name', e.target.value)}
+                className="input text-sm py-2"
+                placeholder="יוגורט, עוף, אורז..."
+              />
+              <input
+                type="number"
+                value={item.grams}
+                onChange={(e) => updateIngredient(index, 'grams', e.target.value)}
+                className="input text-sm py-2 text-center"
+                placeholder="150"
+                min={0}
+              />
+              <button
+                onClick={() => removeIngredient(index)}
+                disabled={ingredients.length === 1}
+                className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-red-400 disabled:opacity-0 transition-colors rounded-lg hover:bg-red-50"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
         </div>
 
-        {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
-
         <button
-          onClick={analyzeFood}
-          disabled={analyzing}
-          className="btn-primary w-full py-3 text-base"
+          onClick={addIngredient}
+          className="w-full py-2 border-2 border-dashed border-blue-200 rounded-xl text-blue-500 text-sm hover:border-blue-400 hover:bg-blue-50 transition-all mb-4"
         >
-          {analyzing ? '🔍 מנתחת...' : '🔍 נתחי את הערכים התזונתיים'}
+          + הוסיפי פריט נוסף
         </button>
+
+        {error && <p className="text-orange-500 text-sm mb-3">{error}</p>}
+
+        {!manualMode && (
+          <button
+            onClick={analyzeFood}
+            disabled={analyzing || (!hasIngredients && !imageFile)}
+            className="btn-primary w-full py-3 text-base disabled:opacity-40"
+          >
+            {analyzing ? '🔍 מנתחת...' : '🔍 נתחי את הערכים התזונתיים'}
+          </button>
+        )}
       </div>
 
-      {nutrition && (
+      {!manualMode && !nutrition && (
+        <button onClick={() => setManualMode(true)} className="w-full text-blue-500 text-sm underline mb-4">
+          הזיני ערכים ידנית ללא ניתוח AI
+        </button>
+      )}
+
+      {(manualMode || nutrition) && (
         <div className="card mb-4 border-blue-400">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-2xl">✨</span>
-            <h2 className="font-bold text-blue-700 text-lg">תוצאות ניתוח: {nutrition.name}</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-bold text-blue-700 text-lg">
+              {nutrition && !manualMode ? '✨ תוצאות ניתוח' : '✏️ הזנה ידנית'}
+            </h2>
+            {nutrition && (
+              <button onClick={() => setManualMode(!manualMode)} className="text-sm text-blue-500 underline">
+                {manualMode ? 'חזרי לניתוח AI' : 'ערכי ידנית'}
+              </button>
+            )}
           </div>
 
-          {nutrition.description && (
-            <p className="text-slate-600 text-sm mb-4 bg-blue-50 p-3 rounded-xl">{nutrition.description}</p>
-          )}
-
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="text-center bg-blue-50 rounded-xl p-3">
-              <div className="text-2xl font-bold text-blue-700">{Math.round(nutrition.calories)}</div>
-              <div className="text-xs text-slate-500">קלוריות</div>
-            </div>
-            <div className="text-center bg-blue-50 rounded-xl p-3">
-              <div className="text-2xl font-bold text-blue-600">{Math.round(nutrition.protein)}g</div>
-              <div className="text-xs text-slate-500">חלבון</div>
-            </div>
-            <div className="text-center bg-amber-50 rounded-xl p-3">
-              <div className="text-2xl font-bold text-amber-600">{Math.round(nutrition.carbs)}g</div>
-              <div className="text-xs text-slate-500">פחמימות</div>
-            </div>
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            {[
+              { key: 'calories', label: 'קלוריות ⚡' },
+              { key: 'protein', label: 'חלבון (g) 💪' },
+              { key: 'carbs', label: 'פחמימות (g) 🌾' },
+              { key: 'fat', label: 'שומן (g) 🥑' },
+              { key: 'fiber', label: 'סיבים (g)' },
+              { key: 'sugar', label: 'סוכר (g)' },
+            ].map(({ key, label }) => (
+              <div key={key} className="bg-blue-50 rounded-xl p-3">
+                <label className="block text-xs text-slate-500 mb-1">{label}</label>
+                {manualMode ? (
+                  <input
+                    type="number"
+                    value={manualData[key as keyof NutritionData] as number}
+                    onChange={(e) => setManualData({ ...manualData, [key]: Number(e.target.value) })}
+                    className="w-full bg-white border border-blue-200 rounded-lg px-2 py-1 text-lg font-bold text-blue-700 text-center"
+                    min={0}
+                  />
+                ) : (
+                  <div className="text-xl font-bold text-blue-700 text-center">
+                    {Math.round((activeNutrition as NutritionData)[key as keyof NutritionData] as number)}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
 
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="text-center bg-green-50 rounded-xl p-3">
-              <div className="text-xl font-bold text-green-600">{Math.round(nutrition.fat)}g</div>
-              <div className="text-xs text-slate-500">שומן</div>
-            </div>
-            <div className="text-center bg-purple-50 rounded-xl p-3">
-              <div className="text-xl font-bold text-purple-600">{Math.round(nutrition.fiber)}g</div>
-              <div className="text-xs text-slate-500">סיבים</div>
-            </div>
-            <div className="text-center bg-pink-50 rounded-xl p-3">
-              <div className="text-xl font-bold text-pink-600">{Math.round(nutrition.sugar)}g</div>
-              <div className="text-xs text-slate-500">סוכר</div>
-            </div>
-          </div>
-
-          {nutrition.tips && (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4">
+          {nutrition?.tips && !manualMode && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-3">
               <p className="text-green-700 text-sm">💡 {nutrition.tips}</p>
             </div>
           )}
-
-          {/* Manual edit */}
-          <details className="mb-4">
-            <summary className="text-blue-600 text-sm cursor-pointer hover:underline">ערכי ידנית</summary>
-            <div className="grid grid-cols-2 gap-3 mt-3">
-              {(['calories', 'protein', 'carbs', 'fat'] as const).map((field) => (
-                <div key={field}>
-                  <label className="block text-xs text-slate-500 mb-1">
-                    {field === 'calories' ? 'קלוריות' : field === 'protein' ? 'חלבון (g)' : field === 'carbs' ? 'פחמימות (g)' : 'שומן (g)'}
-                  </label>
-                  <input
-                    type="number"
-                    value={nutrition[field]}
-                    onChange={(e) => setNutrition({ ...nutrition, [field]: Number(e.target.value) })}
-                    className="input text-sm"
-                  />
-                </div>
-              ))}
-            </div>
-          </details>
         </div>
       )}
 
       <div className="card mb-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-medium text-slate-700">שתף בפיד הקבוצה</p>
+            <p className="font-medium text-slate-700">שתפי בפיד הקבוצה</p>
             <p className="text-sm text-slate-400">חברי הקבוצה יוכלו לראות ולעודד אותך</p>
           </div>
           <button
@@ -262,8 +319,8 @@ export default function LogMealPage() {
 
       <button
         onClick={saveMeal}
-        disabled={saving}
-        className="btn-primary w-full py-3 text-base"
+        disabled={saving || (!activeNutrition && !hasIngredients)}
+        className="btn-primary w-full py-3 text-base disabled:opacity-50"
       >
         {saving ? 'שומרת...' : '✅ שמירת הארוחה'}
       </button>
