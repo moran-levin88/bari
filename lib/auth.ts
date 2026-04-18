@@ -60,6 +60,7 @@ export async function getCurrentUser() {
       age: true,
       weight: true,
       height: true,
+      gender: true,
       goal: true,
       activityLevel: true,
     },

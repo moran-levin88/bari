@@ -3,6 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+const GENDERS = [
+  { value: 'female', label: '👩 אישה' },
+  { value: 'male', label: '👨 גבר' },
+  { value: 'other', label: '🧑 אחר / מעדיף/ת לא לציין' },
+]
+
 const GOALS = [
   { value: 'lose_weight', label: '⬇️ ירידה במשקל', desc: 'אני רוצה לרדת במשקל' },
   { value: 'maintain', label: '⚖️ שמירה על משקל', desc: 'אני מרוצה מהמשקל הנוכחי' },
@@ -17,7 +23,7 @@ const ACTIVITY_LEVELS = [
   { value: 'very_active', label: '🔥 פעיל מאוד', desc: 'ספורטאי / עבודה פיזית' },
 ]
 
-const STEPS = ['ברוכה הבאה', 'פרטים אישיים', 'מטרה', 'רמת פעילות']
+const STEPS = ['ברוכה הבאה', 'פרטים אישיים', 'מין', 'מטרה', 'רמת פעילות']
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -27,6 +33,7 @@ export default function OnboardingPage() {
     age: '',
     weight: '',
     height: '',
+    gender: '',
     goal: '',
     activityLevel: '',
   })
@@ -121,8 +128,41 @@ export default function OnboardingPage() {
         </div>
       )}
 
-      {/* Step 2: Goal */}
+      {/* Step 2: Gender */}
       {step === 2 && (
+        <div>
+          <h2 className="text-xl font-bold text-blue-700 mb-1">מה המין שלך?</h2>
+          <p className="text-slate-400 text-sm mb-6">נוסחת חישוב הקלוריות משתנה בין נשים לגברים</p>
+
+          <div className="flex flex-col gap-3">
+            {GENDERS.map((g) => (
+              <button
+                key={g.value}
+                onClick={() => setForm({ ...form, gender: g.value })}
+                className={`text-right p-4 rounded-xl border-2 transition-all font-bold text-slate-800 ${
+                  form.gender === g.value ? 'border-blue-500 bg-blue-50' : 'border-blue-100 hover:border-blue-300 bg-white'
+                }`}
+              >
+                {g.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex gap-2 mt-6">
+            <button onClick={back} className="btn-secondary flex-1 py-3">חזרה</button>
+            <button
+              onClick={next}
+              disabled={!form.gender}
+              className="btn-primary flex-1 py-3 disabled:opacity-40"
+            >
+              המשך
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Goal */}
+      {step === 3 && (
         <div>
           <h2 className="text-xl font-bold text-blue-700 mb-1">מה המטרה שלך?</h2>
           <p className="text-slate-400 text-sm mb-6">נתאים לך את יעד הקלוריות בהתאם</p>
@@ -155,8 +195,8 @@ export default function OnboardingPage() {
         </div>
       )}
 
-      {/* Step 3: Activity */}
-      {step === 3 && (
+      {/* Step 4: Activity */}
+      {step === 4 && (
         <div>
           <h2 className="text-xl font-bold text-blue-700 mb-1">רמת הפעילות שלך</h2>
           <p className="text-slate-400 text-sm mb-6">בממוצע בשבוע</p>

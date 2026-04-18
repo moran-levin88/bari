@@ -16,6 +16,7 @@ model User {
   age           Int?
   weight        Float?
   height        Float?
+  gender        String?
   goal          String?
   activityLevel String?
   createdAt     DateTime @default(now())

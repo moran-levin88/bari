@@ -56,6 +56,7 @@ export default async function DashboardPage() {
           age: user.age,
           weight: user.weight,
           height: user.height,
+          gender: user.gender ?? 'other',
           goal: user.goal ?? 'maintain',
           activityLevel: user.activityLevel ?? 'moderate',
         })

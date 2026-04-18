@@ -3,6 +3,12 @@
 import { useState, useEffect } from 'react'
 import { calculateDailyTargets } from '@/lib/nutrition'
 
+const GENDERS = [
+  { value: 'female', label: '👩 אישה' },
+  { value: 'male', label: '👨 גבר' },
+  { value: 'other', label: '🧑 אחר' },
+]
+
 const GOALS = [
   { value: 'lose_weight', label: '⬇️ ירידה במשקל' },
   { value: 'maintain', label: '⚖️ שמירה על משקל' },
@@ -23,6 +29,7 @@ export default function ProfilePage() {
     age: '',
     weight: '',
     height: '',
+    gender: '',
     goal: 'maintain',
     activityLevel: 'moderate',
   })
@@ -39,6 +46,7 @@ export default function ProfilePage() {
             age: data.user.age?.toString() || '',
             weight: data.user.weight?.toString() || '',
             height: data.user.height?.toString() || '',
+            gender: data.user.gender || '',
             goal: data.user.goal || 'maintain',
             activityLevel: data.user.activityLevel || 'moderate',
           })
@@ -53,12 +61,13 @@ export default function ProfilePage() {
         age: Number(form.age),
         weight: Number(form.weight),
         height: Number(form.height),
+        gender: form.gender || 'other',
         goal: form.goal,
         activityLevel: form.activityLevel,
       })
       setTargets(t)
     }
-  }, [form.age, form.weight, form.height, form.goal, form.activityLevel])
+  }, [form.age, form.weight, form.height, form.gender, form.goal, form.activityLevel])
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
@@ -97,6 +106,23 @@ export default function ProfilePage() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">גובה (ס"מ)</label>
                 <input type="number" value={form.height} onChange={(e) => setForm({ ...form, height: e.target.value })} className="input" placeholder='ס"מ' min={100} max={250} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">מין</label>
+              <div className="flex gap-2">
+                {GENDERS.map((g) => (
+                  <button
+                    key={g.value}
+                    type="button"
+                    onClick={() => setForm({ ...form, gender: g.value })}
+                    className={`flex-1 py-2 px-3 rounded-xl border-2 text-sm font-medium transition-all ${
+                      form.gender === g.value ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-blue-100 bg-white text-slate-600 hover:border-blue-300'
+                    }`}
+                  >
+                    {g.label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
