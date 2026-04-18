@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import './globals.css'
+import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar'
 
 export const metadata: Metadata = {
   title: "Bari - בארי",
@@ -36,7 +37,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="he" dir="rtl" className="h-full">
-      <body className="min-h-full bg-blue-50">{children}</body>
+      <body className="min-h-full bg-blue-50">
+        {children}
+        <ServiceWorkerRegistrar />
+      </body>
     </html>
   )
 }
