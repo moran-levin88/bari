@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { calculateDailyTargets, DEFAULT_TARGETS } from '@/lib/nutrition'
 import { format } from 'date-fns'
 import { he } from 'date-fns/locale'
+import MealsList from '@/components/MealsList'
 
 function MacroBar({ label, value, target, color }: { label: string; value: number; target: number; color: string }) {
   const pct = Math.min(100, Math.round((value / target) * 100))
@@ -154,39 +155,7 @@ export default async function DashboardPage() {
           <Link href="/log/meal" className="btn-primary text-sm">+ הוסף ארוחה</Link>
         </div>
 
-        {todayMeals.length === 0 ? (
-          <div className="text-center py-8 text-slate-400">
-            <div className="text-4xl mb-2">🍽️</div>
-            <p>לא תועדו ארוחות היום עדיין</p>
-            <Link href="/log/meal" className="text-blue-600 text-sm hover:underline mt-1 inline-block">
-              הוסיפי את הארוחה הראשונה
-            </Link>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {todayMeals.map((meal) => (
-              <div key={meal.id} className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
-                {meal.imageUrl ? (
-                  <img src={meal.imageUrl} alt={meal.name} className="w-14 h-14 rounded-xl object-cover" />
-                ) : (
-                  <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center text-2xl">🍽️</div>
-                )}
-                <div className="flex-1">
-                  <div className="font-medium text-slate-800">{meal.name}</div>
-                  <div className="flex gap-2 mt-1 flex-wrap">
-                    <span className="macro-chip bg-blue-100 text-blue-700">⚡ {Math.round(meal.calories)} קל</span>
-                    <span className="macro-chip bg-blue-50 text-blue-600">💪 {Math.round(meal.protein)}g</span>
-                    <span className="macro-chip bg-amber-50 text-amber-600">🌾 {Math.round(meal.carbs)}g</span>
-                    <span className="macro-chip bg-green-50 text-green-600">🥑 {Math.round(meal.fat)}g</span>
-                  </div>
-                </div>
-                <span className="text-xs text-slate-400 whitespace-nowrap">
-                  {format(new Date(meal.loggedAt), 'HH:mm')}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+        <MealsList meals={todayMeals} />
       </div>
 
       {!user.age && (
