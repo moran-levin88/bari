@@ -56,19 +56,22 @@ Return ONLY valid JSON (no markdown, no explanation):
             ],
           },
         ],
-        max_tokens: 400,
+        max_tokens: 600,
       })
     } else {
       response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 400,
+        max_tokens: 600,
       })
     }
 
     const content = response.choices[0].message.content || '{}'
-    const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    const nutrition = JSON.parse(cleaned)
+
+    // Extract JSON robustly — find the first { ... } block
+    const jsonMatch = content.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) throw new Error('התשובה לא הכילה JSON תקין')
+    const nutrition = JSON.parse(jsonMatch[0])
 
     return Response.json({ success: true, nutrition })
   } catch (error) {
