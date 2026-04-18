@@ -26,6 +26,7 @@ model User {
   waterLogs    WaterLog[]
   exerciseLogs ExerciseLog[]
   stepLogs     StepLog[]
+  weightLogs   WeightLog[]
   groupMembers GroupMember[]
   reactions    Reaction[]
   comments     Comment[]
@@ -120,6 +121,15 @@ model StepLog {
   id       String   @id @default(cuid())
   userId   String
   steps    Int
+  loggedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WeightLog {
+  id       String   @id @default(cuid())
+  userId   String
+  weight   Float
   loggedAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

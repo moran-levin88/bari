@@ -11,6 +11,7 @@ const navItems = [
   { href: '/log/water', label: 'תיעוד מים', icon: '💧' },
   { href: '/log/exercise', label: 'תיעוד ספורט', icon: '🏃' },
   { href: '/log/steps', label: 'צעדים', icon: '👟' },
+  { href: '/weight', label: 'מעקב משקל', icon: '⚖️' },
   { href: '/groups', label: 'קבוצות', icon: '🤝' },
   { href: '/profile', label: 'פרופיל', icon: '👤' },
 ]
