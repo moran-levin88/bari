@@ -1,18 +1,20 @@
 'use client'
 
-import { useActionState, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useActionState, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { login } from '@/lib/auth'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get('redirect') || '/dashboard'
   const [state, action, pending] = useActionState(login, undefined)
   const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
-    if (state?.success) router.push('/dashboard')
-  }, [state, router])
+    if (state?.success) router.push(redirect)
+  }, [state, router, redirect])
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
@@ -77,5 +79,13 @@ export default function LoginPage() {
         </p>
       </div>
     </main>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }

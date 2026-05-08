@@ -31,12 +31,22 @@ type FeedItem = {
   comments: Array<{ id: string; text: string; userId: string; user: { id: string; name: string; image?: string }; createdAt: string }>
 }
 
+function Avatar({ name, size = 10 }: { name: string; size?: number }) {
+  const sizeClass = size === 10 ? 'w-10 h-10 text-lg' : 'w-7 h-7 text-xs'
+  return (
+    <div className={`${sizeClass} bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold flex-shrink-0`}>
+      {name[0]}
+    </div>
+  )
+}
+
 function FeedCard({ item, currentUserId }: { item: FeedItem; currentUserId: string }) {
   const [reactions, setReactions] = useState(item.reactions)
   const [comments, setComments] = useState(item.comments)
   const [commentText, setCommentText] = useState('')
   const [showComments, setShowComments] = useState(false)
   const [submittingComment, setSubmittingComment] = useState(false)
+  const [imageExpanded, setImageExpanded] = useState(false)
 
   async function toggleReaction(type: string) {
     const res = await fetch('/api/reactions', {
@@ -85,78 +95,124 @@ function FeedCard({ item, currentUserId }: { item: FeedItem; currentUserId: stri
     active: reactions.some((rx) => rx.type === r.type && rx.userId === currentUserId),
   }))
 
+  const totalReactions = reactions.length
+
   return (
-    <div className="card mb-4">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-lg">
-          {item.user.name[0]}
-        </div>
-        <div className="flex-1">
-          <span className="font-bold text-slate-700">{item.user.name}</span>
-          <span className="text-slate-400 text-sm mr-2">
-            {item.type === 'meal' ? 'אכלה' : 'ביצעה'}{' '}
-            <span className="font-medium text-blue-600">{item.name}</span>
+    <div className="card mb-4 overflow-hidden p-0">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+        <Avatar name={item.user.name} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <span className="font-bold text-slate-800">{item.user.name}</span>
+            <span className="text-slate-400 text-sm">
+              {item.type === 'meal' ? 'שיתפה ארוחה' : 'התאמנה'}
+            </span>
+          </div>
+          <span className="text-xs text-slate-400">
+            {format(new Date(item.loggedAt), 'HH:mm · d בMMM', { locale: he })}
           </span>
         </div>
-        <span className="text-xs text-slate-400">
-          {format(new Date(item.loggedAt), 'HH:mm, d בMMM', { locale: he })}
-        </span>
+        {item.type === 'meal' && (
+          <span className="text-2xl">🍽️</span>
+        )}
+        {item.type === 'exercise' && (
+          <span className="text-2xl">🏃</span>
+        )}
       </div>
 
+      {/* Food name */}
+      <div className="px-4 mb-3">
+        <h3 className="font-bold text-slate-800 text-lg leading-tight">{item.name}</h3>
+        {item.description && (
+          <p className="text-slate-500 text-sm mt-0.5">{item.description}</p>
+        )}
+      </div>
+
+      {/* Image - full width, tappable to expand */}
       {item.imageUrl && (
-        <img
-          src={item.imageUrl}
-          alt={item.name}
-          className="w-full max-h-64 object-cover rounded-xl mb-3"
-        />
-      )}
-
-      {item.type === 'meal' && (
-        <div className="flex gap-2 flex-wrap mb-3">
-          <span className="macro-chip bg-blue-100 text-blue-700">⚡ {Math.round(item.calories || 0)} קל</span>
-          <span className="macro-chip bg-blue-50 text-blue-600">💪 {Math.round(item.protein || 0)}g חלבון</span>
-          <span className="macro-chip bg-amber-50 text-amber-600">🌾 {Math.round(item.carbs || 0)}g פחמימות</span>
-          <span className="macro-chip bg-green-50 text-green-600">🥑 {Math.round(item.fat || 0)}g שומן</span>
+        <div
+          className="cursor-pointer"
+          onClick={() => setImageExpanded(!imageExpanded)}
+        >
+          <img
+            src={item.imageUrl}
+            alt={item.name}
+            className={`w-full object-cover transition-all duration-300 ${imageExpanded ? 'max-h-[70vh]' : 'max-h-72'}`}
+          />
         </div>
       )}
 
-      {item.type === 'exercise' && (
-        <div className="flex gap-2 flex-wrap mb-3">
-          <span className="macro-chip bg-orange-100 text-orange-700">⏱️ {item.duration} דקות</span>
-          <span className="macro-chip bg-blue-50 text-blue-600">🏃 {item.category}</span>
-        </div>
-      )}
+      {/* Macros / Exercise stats */}
+      <div className="px-4 py-3">
+        {item.type === 'meal' && (
+          <div className="grid grid-cols-4 gap-2">
+            <div className="bg-blue-50 rounded-xl p-2 text-center">
+              <div className="text-xs text-slate-400 mb-0.5">קלוריות</div>
+              <div className="font-bold text-blue-700 text-sm">{Math.round(item.calories || 0)}</div>
+            </div>
+            <div className="bg-blue-50 rounded-xl p-2 text-center">
+              <div className="text-xs text-slate-400 mb-0.5">חלבון</div>
+              <div className="font-bold text-blue-600 text-sm">{Math.round(item.protein || 0)}g</div>
+            </div>
+            <div className="bg-amber-50 rounded-xl p-2 text-center">
+              <div className="text-xs text-slate-400 mb-0.5">פחמימות</div>
+              <div className="font-bold text-amber-600 text-sm">{Math.round(item.carbs || 0)}g</div>
+            </div>
+            <div className="bg-green-50 rounded-xl p-2 text-center">
+              <div className="text-xs text-slate-400 mb-0.5">שומן</div>
+              <div className="font-bold text-green-600 text-sm">{Math.round(item.fat || 0)}g</div>
+            </div>
+          </div>
+        )}
+        {item.type === 'exercise' && (
+          <div className="flex gap-2">
+            <span className="macro-chip bg-orange-100 text-orange-700">⏱️ {item.duration} דקות</span>
+            <span className="macro-chip bg-blue-50 text-blue-600">🏃 {item.category}</span>
+          </div>
+        )}
+      </div>
 
-      <div className="flex gap-2 mb-3 flex-wrap">
+      {/* Reactions bar */}
+      <div className="px-4 pb-3 flex items-center gap-1.5 flex-wrap">
         {groupedReactions.map((r) => (
           <button
             key={r.type}
             onClick={() => toggleReaction(r.type)}
             className={`reaction-btn ${r.active ? 'active' : ''}`}
+            title={r.label}
           >
-            {r.emoji} {r.count > 0 && <span>{r.count}</span>}
+            {r.emoji}{r.count > 0 && <span className="mr-1">{r.count}</span>}
           </button>
         ))}
         <button
           onClick={() => setShowComments(!showComments)}
-          className="reaction-btn mr-auto"
+          className={`reaction-btn mr-auto ${showComments ? 'active' : ''}`}
         >
-          💬 {comments.length > 0 && comments.length}
+          💬{comments.length > 0 && <span className="mr-1">{comments.length}</span>}
         </button>
       </div>
 
+      {/* Reactions summary */}
+      {totalReactions > 0 && (
+        <div className="px-4 pb-2">
+          <p className="text-xs text-slate-400">
+            {groupedReactions.filter(r => r.count > 0).map(r => r.emoji).join(' ')} {totalReactions} תגובות
+          </p>
+        </div>
+      )}
+
+      {/* Comments */}
       {showComments && (
-        <div className="border-t border-blue-100 pt-3">
+        <div className="border-t border-blue-50 px-4 pt-3 pb-3">
           {comments.length > 0 && (
             <div className="flex flex-col gap-2 mb-3">
               {comments.map((c) => (
                 <div key={c.id} className="flex gap-2 items-start">
-                  <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-xs font-bold flex-shrink-0">
-                    {c.user.name[0]}
-                  </div>
-                  <div className="bg-blue-50 rounded-xl px-3 py-2 flex-1">
-                    <span className="font-medium text-sm text-slate-700">{c.user.name}</span>
-                    <p className="text-sm text-slate-600">{c.text}</p>
+                  <Avatar name={c.user.name} size={7} />
+                  <div className="bg-blue-50 rounded-2xl px-3 py-2 flex-1">
+                    <span className="font-semibold text-xs text-slate-700">{c.user.name} </span>
+                    <span className="text-sm text-slate-600">{c.text}</span>
                   </div>
                 </div>
               ))}
@@ -166,10 +222,10 @@ function FeedCard({ item, currentUserId }: { item: FeedItem; currentUserId: stri
             <input
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
-              className="input text-sm"
-              placeholder="כתבי תגובה מעודדת..."
+              className="input text-sm flex-1"
+              placeholder="כתבי תגובה מעודדת... 💪"
             />
-            <button type="submit" disabled={submittingComment} className="btn-primary text-sm px-4">
+            <button type="submit" disabled={submittingComment || !commentText.trim()} className="btn-primary text-sm px-4 disabled:opacity-40">
               שלחי
             </button>
           </form>
@@ -186,12 +242,12 @@ export default function FeedPage() {
 
   const loadFeed = useCallback(async () => {
     try {
-      const res = await fetch('/api/feed')
-      const data = await res.json()
-      setFeed(data.feed || [])
-
-      // Get current user id from first item or fetch separately
-      const meRes = await fetch('/api/me')
+      const [feedRes, meRes] = await Promise.all([
+        fetch('/api/feed'),
+        fetch('/api/me'),
+      ])
+      const feedData = await feedRes.json()
+      setFeed(feedData.feed || [])
       if (meRes.ok) {
         const me = await meRes.json()
         setCurrentUserId(me.userId || '')
@@ -222,7 +278,7 @@ export default function FeedPage() {
         <div className="text-6xl mb-4">👥</div>
         <h2 className="text-xl font-bold text-slate-600 mb-2">הפיד עדיין ריק</h2>
         <p className="text-slate-400 mb-6 max-w-sm mx-auto">
-          הצטרפי לקבוצה עם חברים כדי לראות את הפעילות שלהם ולעודד אחד את השני!
+          הצטרפי לקבוצה עם חברות כדי לראות את הפעילות שלהן ולעודד אחת את השנייה!
         </p>
         <Link href="/groups" className="btn-primary">
           🤝 הצטרפי לקבוצה
@@ -233,7 +289,7 @@ export default function FeedPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-bold text-blue-700">👥 פיד הקבוצה</h1>
         <button onClick={loadFeed} className="btn-secondary text-sm">🔄 רענן</button>
       </div>

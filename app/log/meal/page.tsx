@@ -52,6 +52,7 @@ export default function LogMealPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [isPublic, setIsPublic] = useState(true)
+  const [savedShared, setSavedShared] = useState(false)
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -134,7 +135,12 @@ export default function LogMealPage() {
       })
 
       if (!res.ok) throw new Error('שגיאה בשמירה')
-      router.push('/dashboard')
+      if (isPublic) {
+        setSavedShared(true)
+        setTimeout(() => router.push('/feed'), 2000)
+      } else {
+        router.push('/dashboard')
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'שגיאה בשמירה')
     } finally {
@@ -144,6 +150,17 @@ export default function LogMealPage() {
 
   const activeNutrition = manualMode ? manualData : nutrition
   const hasIngredients = ingredients.some((i) => i.name.trim())
+
+  if (savedShared) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <div className="text-7xl mb-4 animate-bounce">🎉</div>
+        <h2 className="text-2xl font-bold text-blue-700 mb-2">הארוחה שותפה!</h2>
+        <p className="text-slate-500 mb-1">חברי הקבוצה שלך יכולים לראות ולעודד אותך</p>
+        <p className="text-slate-400 text-sm">מעבירה לפיד...</p>
+      </div>
+    )
+  }
 
   return (
     <div>
