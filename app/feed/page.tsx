@@ -14,10 +14,10 @@ const REACTIONS = [
 
 type FeedItem = {
   id: string
-  type: 'meal' | 'exercise'
+  type: 'meal' | 'exercise' | 'water' | 'steps'
   userId: string
   user: { id: string; name: string; image?: string }
-  name: string
+  name?: string
   description?: string
   imageUrl?: string
   calories?: number
@@ -26,6 +26,8 @@ type FeedItem = {
   fat?: number
   duration?: number
   category?: string
+  amount?: number
+  steps?: number
   loggedAt: string
   reactions: Array<{ id: string; type: string; userId: string; user: { id: string; name: string } }>
   comments: Array<{ id: string; text: string; userId: string; user: { id: string; name: string; image?: string }; createdAt: string }>
@@ -40,6 +42,35 @@ function Avatar({ name, size = 10 }: { name: string; size?: number }) {
   )
 }
 
+function WaterStepsCard({ item }: { item: FeedItem }) {
+  const isWater = item.type === 'water'
+  return (
+    <div className="card mb-3 p-0 overflow-hidden">
+      <div className="flex items-center gap-3 px-4 py-3">
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl flex-shrink-0 ${isWater ? 'bg-blue-100' : 'bg-green-100'}`}>
+          {isWater ? '💧' : '👟'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <span className="font-bold text-slate-800">{item.user.name}</span>
+            <span className="text-slate-500 text-sm">
+              {isWater
+                ? `שתתה ${item.amount! >= 1000 ? `${(item.amount! / 1000).toFixed(1)}L` : `${item.amount}ml`} מים`
+                : `הלכה ${item.steps!.toLocaleString()} צעדים`}
+            </span>
+          </div>
+          <span className="text-xs text-slate-400">
+            {format(new Date(item.loggedAt), 'HH:mm · d בMMM', { locale: he })}
+          </span>
+        </div>
+        {!isWater && item.steps && item.steps >= 10000 && (
+          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">🎯 יעד!</span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function FeedCard({ item, currentUserId }: { item: FeedItem; currentUserId: string }) {
   const [reactions, setReactions] = useState(item.reactions)
   const [comments, setComments] = useState(item.comments)
@@ -47,6 +78,10 @@ function FeedCard({ item, currentUserId }: { item: FeedItem; currentUserId: stri
   const [showComments, setShowComments] = useState(false)
   const [submittingComment, setSubmittingComment] = useState(false)
   const [imageExpanded, setImageExpanded] = useState(false)
+
+  if (item.type === 'water' || item.type === 'steps') {
+    return <WaterStepsCard item={item} />
+  }
 
   async function toggleReaction(type: string) {
     const res = await fetch('/api/reactions', {
@@ -113,15 +148,10 @@ function FeedCard({ item, currentUserId }: { item: FeedItem; currentUserId: stri
             {format(new Date(item.loggedAt), 'HH:mm · d בMMM', { locale: he })}
           </span>
         </div>
-        {item.type === 'meal' && (
-          <span className="text-2xl">🍽️</span>
-        )}
-        {item.type === 'exercise' && (
-          <span className="text-2xl">🏃</span>
-        )}
+        <span className="text-2xl">{item.type === 'meal' ? '🍽️' : '🏃'}</span>
       </div>
 
-      {/* Food name */}
+      {/* Food/exercise name */}
       <div className="px-4 mb-3">
         <h3 className="font-bold text-slate-800 text-lg leading-tight">{item.name}</h3>
         {item.description && (
@@ -129,12 +159,9 @@ function FeedCard({ item, currentUserId }: { item: FeedItem; currentUserId: stri
         )}
       </div>
 
-      {/* Image - full width, tappable to expand */}
+      {/* Image */}
       {item.imageUrl && (
-        <div
-          className="cursor-pointer"
-          onClick={() => setImageExpanded(!imageExpanded)}
-        >
+        <div className="cursor-pointer" onClick={() => setImageExpanded(!imageExpanded)}>
           <img
             src={item.imageUrl}
             alt={item.name}
@@ -143,7 +170,7 @@ function FeedCard({ item, currentUserId }: { item: FeedItem; currentUserId: stri
         </div>
       )}
 
-      {/* Macros / Exercise stats */}
+      {/* Macros / stats */}
       <div className="px-4 py-3">
         {item.type === 'meal' && (
           <div className="grid grid-cols-4 gap-2">
@@ -173,7 +200,7 @@ function FeedCard({ item, currentUserId }: { item: FeedItem; currentUserId: stri
         )}
       </div>
 
-      {/* Reactions bar */}
+      {/* Reactions */}
       <div className="px-4 pb-3 flex items-center gap-1.5 flex-wrap">
         {groupedReactions.map((r) => (
           <button
@@ -193,7 +220,6 @@ function FeedCard({ item, currentUserId }: { item: FeedItem; currentUserId: stri
         </button>
       </div>
 
-      {/* Reactions summary */}
       {totalReactions > 0 && (
         <div className="px-4 pb-2">
           <p className="text-xs text-slate-400">
@@ -295,7 +321,7 @@ export default function FeedPage() {
       </div>
 
       {feed.map((item) => (
-        <FeedCard key={item.id} item={item} currentUserId={currentUserId} />
+        <FeedCard key={`${item.type}-${item.id}`} item={item} currentUserId={currentUserId} />
       ))}
     </div>
   )

@@ -6,7 +6,6 @@ export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Get all users in same groups as current user
   const userGroups = await prisma.groupMember.findMany({
     where: { userId: session.userId },
     select: { groupId: true },
@@ -26,17 +25,12 @@ export async function GET(request: NextRequest) {
 
   const groupMateIds = groupMates.map((m) => m.userId)
 
-  // Fetch public meals and exercises from group mates (last 7 days)
   const since = new Date()
   since.setDate(since.getDate() - 7)
 
-  const [meals, exercises] = await Promise.all([
+  const [meals, exercises, waterLogs, stepLogs] = await Promise.all([
     prisma.meal.findMany({
-      where: {
-        userId: { in: groupMateIds },
-        isPublic: true,
-        loggedAt: { gte: since },
-      },
+      where: { userId: { in: groupMateIds }, isPublic: true, loggedAt: { gte: since } },
       orderBy: { loggedAt: 'desc' },
       take: 50,
       include: {
@@ -46,11 +40,7 @@ export async function GET(request: NextRequest) {
       },
     }),
     prisma.exerciseLog.findMany({
-      where: {
-        userId: { in: groupMateIds },
-        isPublic: true,
-        loggedAt: { gte: since },
-      },
+      where: { userId: { in: groupMateIds }, isPublic: true, loggedAt: { gte: since } },
       orderBy: { loggedAt: 'desc' },
       take: 30,
       include: {
@@ -59,12 +49,25 @@ export async function GET(request: NextRequest) {
         comments: { include: { user: { select: { id: true, name: true, image: true } } } },
       },
     }),
+    prisma.waterLog.findMany({
+      where: { userId: { in: groupMateIds }, isPublic: true, loggedAt: { gte: since } },
+      orderBy: { loggedAt: 'desc' },
+      take: 30,
+      include: { user: { select: { id: true, name: true, image: true } } },
+    }),
+    prisma.stepLog.findMany({
+      where: { userId: { in: groupMateIds }, isPublic: true, loggedAt: { gte: since } },
+      orderBy: { loggedAt: 'desc' },
+      take: 30,
+      include: { user: { select: { id: true, name: true, image: true } } },
+    }),
   ])
 
-  // Merge and sort by date
   const feed = [
     ...meals.map((m) => ({ ...m, type: 'meal' as const })),
     ...exercises.map((e) => ({ ...e, type: 'exercise' as const })),
+    ...waterLogs.map((w) => ({ ...w, type: 'water' as const, reactions: [], comments: [] })),
+    ...stepLogs.map((s) => ({ ...s, type: 'steps' as const, reactions: [], comments: [] })),
   ].sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())
 
   return Response.json({ feed })

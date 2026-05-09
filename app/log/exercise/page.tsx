@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 
 const CATEGORIES = [
   { value: 'cardio', label: '🏃 קרדיו', examples: 'ריצה, אופניים, שחייה' },
-  { value: 'strength', label: '💪 כוח', examples: 'משקולות, TRX, פילאטיס' },
+  { value: 'strength', label: '💪 כוח', examples: 'משקולות, TRX, גומיות' },
+  { value: 'pilates_machine', label: '🤸 פילאטיס מכשירים', examples: 'רפורמר, קדילק, באריל' },
   { value: 'yoga', label: '🧘 יוגה/מדיטציה', examples: 'יוגה, מדיטציה, נשימות' },
   { value: 'walking', label: '🚶 הליכה', examples: 'הליכה, טיול, מדרגות' },
   { value: 'sports', label: '⚽ ספורט קבוצתי', examples: 'כדורגל, כדורסל, טניס' },
