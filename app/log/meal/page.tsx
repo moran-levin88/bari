@@ -147,6 +147,16 @@ function SavedFoodsPicker({
 
       {/* Add button / search */}
       {!showList ? (
+        savedFoods.length === 0 ? (
+          <Link
+            href="/saved-foods"
+            className="w-full py-3 border-2 border-dashed border-blue-300 rounded-xl text-blue-600 text-sm font-medium hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 block text-center"
+          >
+            <span>🗂️</span>
+            <span>הגדירי מוצרים שמורים לבחירה מהירה</span>
+            <span className="text-blue-400">←</span>
+          </Link>
+        ) : (
         <button
           type="button"
           onClick={() => setShowList(true)}
@@ -154,6 +164,7 @@ function SavedFoodsPicker({
         >
           🗂️ בחרי ממוצרים שמורים
         </button>
+        )
       ) : (
         <div className="border-2 border-blue-200 rounded-xl overflow-hidden">
           <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border-b border-blue-100">
@@ -201,13 +212,11 @@ function SavedFoodsPicker({
         </div>
       )}
 
-      {savedFoods.length > 0 && !showList && (
-        <div className="text-center mt-1.5">
-          <Link href="/saved-foods" className="text-xs text-slate-400 hover:text-blue-500 transition-colors">
-            ✏️ ניהול מוצרים שמורים
-          </Link>
-        </div>
-      )}
+      <div className="text-center mt-1.5">
+        <Link href="/saved-foods" className="text-xs text-slate-400 hover:text-blue-500 transition-colors">
+          {savedFoods.length === 0 ? '➕ הוסיפי מוצרים שמורים' : '✏️ ניהול מוצרים שמורים'}
+        </Link>
+      </div>
     </div>
   )
 }

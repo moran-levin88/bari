@@ -13,6 +13,7 @@ const navItems = [
   { href: '/log/steps', label: 'צעדים', icon: '👟' },
   { href: '/weight', label: 'מעקב משקל', icon: '⚖️' },
   { href: '/groups', label: 'קבוצות', icon: '🤝' },
+  { href: '/saved-foods', label: 'מוצרים שמורים', icon: '🗂️' },
   { href: '/profile', label: 'פרופיל', icon: '👤' },
 ]
 
