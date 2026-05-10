@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { calculateDailyTargets } from '@/lib/nutrition'
 
 const GENDERS = [
@@ -180,6 +181,16 @@ export default function ProfilePage() {
           {saving ? 'שומרת...' : saved ? '✅ נשמר!' : 'שמירת פרופיל'}
         </button>
       </form>
+
+      <div className="card mt-4">
+        <Link href="/saved-foods" className="flex items-center justify-between py-1 group">
+          <div>
+            <p className="font-medium text-slate-700">🗂️ מוצרים שמורים</p>
+            <p className="text-sm text-slate-400">ניהול מוצרים לתיעוד ארוחות מהיר</p>
+          </div>
+          <span className="text-slate-300 group-hover:text-blue-500 transition-colors text-xl">←</span>
+        </Link>
+      </div>
     </div>
   )
 }

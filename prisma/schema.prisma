@@ -31,6 +31,7 @@ model User {
   reactions    Reaction[]
   comments     Comment[]
   sentInvites  GroupInvite[] @relation("InviteSender")
+  savedFoods   SavedFood[]
 }
 
 model Group {
@@ -162,4 +163,20 @@ model Comment {
   user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   meal     Meal?        @relation(fields: [mealId], references: [id], onDelete: Cascade)
   exercise ExerciseLog? @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+}
+
+model SavedFood {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  servingName String   @default("מנה")
+  calories    Float    @default(0)
+  protein     Float    @default(0)
+  carbs       Float    @default(0)
+  fat         Float    @default(0)
+  fiber       Float    @default(0)
+  sugar       Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
