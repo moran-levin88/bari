@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ShareToggle from '@/components/ShareToggle'
 
-const QUICK_AMOUNTS = [150, 250, 330, 500, 750]
+const QUICK_AMOUNTS = [150, 250, 330, 500, 750, 1000]
 
 export default function LogWaterPage() {
   const router = useRouter()

@@ -31,7 +31,8 @@ model User {
   reactions    Reaction[]
   comments     Comment[]
   sentInvites  GroupInvite[] @relation("InviteSender")
-  savedFoods   SavedFood[]
+  savedFoods        SavedFood[]
+  pushSubscriptions PushSubscription[]
 }
 
 model Group {
@@ -177,6 +178,17 @@ model SavedFood {
   fiber       Float    @default(0)
   sugar       Float    @default(0)
   createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

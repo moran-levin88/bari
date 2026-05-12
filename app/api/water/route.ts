@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
+import { sendPushToGroupMates } from '@/lib/push'
 
 export async function POST(request: NextRequest) {
   const session = await getSession()
@@ -12,6 +13,15 @@ export async function POST(request: NextRequest) {
   const log = await prisma.waterLog.create({
     data: { userId: session.userId, amount: amount || 250, isPublic },
   })
+
+  if (isPublic) {
+    const display = amount >= 1000 ? `${(amount / 1000).toFixed(1)}L` : `${amount}ml`
+    sendPushToGroupMates(session.userId, {
+      title: `${session.name} שתתה מים 💧`,
+      body: `${display} מים`,
+      url: '/feed',
+    }).catch(() => {})
+  }
 
   return Response.json({ success: true, log })
 }

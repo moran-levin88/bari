@@ -360,6 +360,11 @@ export default function LogMealPage() {
   }
 
   async function saveMeal() {
+    if (!mealType) {
+      setError('אנא בחרי סוג ארוחה לפני השמירה')
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
     const analyzedNutrition = manualMode ? manualData : nutrition
     const mealDescription = buildMealDescription(ingredients)
 
@@ -430,8 +435,9 @@ export default function LogMealPage() {
       <h1 className="text-2xl font-bold text-blue-700 mb-6">🍽️ תיעוד ארוחה</h1>
 
       {/* Meal type */}
-      <div className="card mb-4">
-        <h2 className="font-bold text-slate-700 mb-3">סוג הארוחה</h2>
+      <div className={`card mb-4 ${!mealType && error ? 'border-2 border-red-400' : ''}`}>
+        <h2 className="font-bold text-slate-700 mb-1">סוג הארוחה <span className="text-red-400">*</span></h2>
+        {!mealType && error && <p className="text-red-400 text-xs mb-2">נדרש לבחור סוג ארוחה</p>}
         <div className="grid grid-cols-2 gap-2">
           {MEAL_TYPES.map((t) => (
             <button key={t.value} onClick={() => setMealType(mealType === t.value ? '' : t.value)}

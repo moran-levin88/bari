@@ -1,12 +1,10 @@
-const CACHE_VERSION = 'bari-v3'
+const CACHE_VERSION = 'bari-v4'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
 
-// On install — take control immediately
 self.addEventListener('install', () => {
   self.skipWaiting()
 })
 
-// On activate — delete old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -17,16 +15,13 @@ self.addEventListener('activate', (event) => {
   )
 })
 
-// Fetch strategy
 self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
 
-  // Skip non-GET and API/auth requests — always go to network
   if (request.method !== 'GET') return
   if (url.pathname.startsWith('/api/')) return
   if (url.pathname.startsWith('/_next/')) {
-    // Cache Next.js static chunks
     event.respondWith(
       caches.open(STATIC_CACHE).then((cache) =>
         cache.match(request).then((cached) => {
@@ -41,7 +36,6 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Network-first for pages — always fresh content
   event.respondWith(
     fetch(request)
       .then((res) => {
@@ -53,7 +47,45 @@ self.addEventListener('fetch', (event) => {
   )
 })
 
-// Notify clients when a new SW version takes over
 self.addEventListener('message', (event) => {
   if (event.data === 'SKIP_WAITING') self.skipWaiting()
+})
+
+// Push notification received from server
+self.addEventListener('push', (event) => {
+  if (!event.data) return
+  let payload
+  try {
+    payload = event.data.json()
+  } catch {
+    payload = { title: 'Bari', body: event.data.text() }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title || 'Bari', {
+      body: payload.body || '',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      data: { url: payload.url || '/' },
+      dir: 'rtl',
+      lang: 'he',
+    })
+  )
+})
+
+// Tap on notification — open the app at the right page
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const url = event.notification.data?.url || '/'
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(url)
+          return client.focus()
+        }
+      }
+      return clients.openWindow(url)
+    })
+  )
 })

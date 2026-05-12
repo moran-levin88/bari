@@ -16,7 +16,7 @@ export async function createSession(
   payload: Omit<SessionPayload, 'expiresAt'>,
   rememberMe = false
 ) {
-  const days = rememberMe ? 30 : 1
+  const days = rememberMe ? 30 : 7
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
 
   const session = await new SignJWT({ ...payload, expiresAt })
@@ -30,6 +30,7 @@ export async function createSession(
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     expires: expiresAt,
+    maxAge: days * 24 * 60 * 60,
     sameSite: 'lax',
     path: '/',
   })

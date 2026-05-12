@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import './globals.css'
 import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar'
 import PullToRefresh from '@/components/PullToRefresh'
+import PushPermission from '@/components/PushPermission'
 
 export const metadata: Metadata = {
   title: "Bari - בארי",
@@ -42,6 +43,7 @@ export default function RootLayout({
         {children}
         <ServiceWorkerRegistrar />
         <PullToRefresh />
+        <PushPermission />
       </body>
     </html>
   )

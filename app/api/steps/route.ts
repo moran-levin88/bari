@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
+import { sendPushToGroupMates } from '@/lib/push'
 
 export async function POST(request: NextRequest) {
   const session = await getSession()
@@ -12,6 +13,14 @@ export async function POST(request: NextRequest) {
   const log = await prisma.stepLog.create({
     data: { userId: session.userId, steps: Math.round(steps), isPublic },
   })
+
+  if (isPublic) {
+    sendPushToGroupMates(session.userId, {
+      title: `${session.name} הלכה ${steps.toLocaleString()} צעדים 👟`,
+      body: steps >= 10000 ? 'הגיעה ליעד היומי! 🎯' : 'כל הכבוד על ההליכה!',
+      url: '/feed',
+    }).catch(() => {})
+  }
 
   return Response.json({ success: true, log })
 }

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
+import { sendPushToGroupMates } from '@/lib/push'
 
 export async function POST(request: NextRequest) {
   const session = await getSession()
@@ -28,6 +29,14 @@ export async function POST(request: NextRequest) {
         loggedAt: new Date(),
       },
     })
+
+    if (isPublic !== false) {
+      sendPushToGroupMates(session.userId, {
+        title: `${session.name} תיעדה ארוחה 🍽️`,
+        body: name,
+        url: '/feed',
+      }).catch(() => {})
+    }
 
     return Response.json({ success: true, meal })
   } catch (error) {
