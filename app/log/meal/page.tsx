@@ -332,6 +332,11 @@ export default function LogMealPage() {
     setSelectedFoods((prev) => prev.filter((s) => s.food.id !== foodId))
   }
 
+  // Combined nutrition = saved foods + AI/manual
+  function combinedWithSF(base: Pick<NutritionData, 'calories'|'protein'|'carbs'|'fat'|'fiber'|'sugar'>) {
+    return sumNutrition(sfNutrition, base)
+  }
+
   async function analyzeFood() {
     const mealDescription = buildMealDescription(ingredients)
     if (!imageFile && !mealDescription) {
@@ -352,8 +357,10 @@ export default function LogMealPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'שגיאה לא ידועה'
       setError(`שגיאה בניתוח: ${msg}`)
+      // On failure, enter manual mode pre-seeded with saved foods
+      const combined = combinedWithSF(emptyNutrition())
       setManualMode(true)
-      setManualData({ ...emptyNutrition(), name: buildMealDescription(ingredients) })
+      setManualData({ ...emptyNutrition(), ...combined, name: buildMealDescription(ingredients) })
     } finally {
       setAnalyzing(false)
     }
@@ -365,19 +372,20 @@ export default function LogMealPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     }
-    const analyzedNutrition = manualMode ? manualData : nutrition
     const mealDescription = buildMealDescription(ingredients)
 
-    // Build final nutrition: saved foods + analyzed (if any)
-    let finalNutrition = { ...sfNutrition }
-    if (analyzedNutrition) {
-      const merged = sumNutrition(sfNutrition, analyzedNutrition)
-      finalNutrition = merged
-    }
+    // finalNutrition is always the combined total
+    // manualData already includes sfNutrition (seeded on entry); AI mode sums on the fly
+    const finalNutrition = manualMode
+      ? { calories: manualData.calories, protein: manualData.protein, carbs: manualData.carbs, fat: manualData.fat, fiber: manualData.fiber, sugar: manualData.sugar }
+      : nutrition
+        ? sumNutrition(sfNutrition, nutrition)
+        : { ...sfNutrition }
 
-    // Build name from saved foods + free text
+    // Name always combines saved food names + AI/manual name
     const sfNames = selectedFoods.map((s) => `${s.servings} ${s.food.servingName} ${s.food.name}`).join(', ')
-    const name = analyzedNutrition?.name || [sfNames, mealDescription].filter(Boolean).join(' + ') || 'ארוחה'
+    const aiName = (manualMode ? manualData.name : nutrition?.name) || mealDescription
+    const name = [sfNames, aiName].filter(Boolean).join(' + ') || 'ארוחה'
 
     if (!name.trim() && !hasSavedFoods) {
       setError('אנא הזיני לפחות פריט אחד')
@@ -388,11 +396,11 @@ export default function LogMealPage() {
     try {
       const payload = {
         name,
-        description: analyzedNutrition?.description,
+        description: (manualMode ? manualData : nutrition)?.description,
         imageUrl: imagePreview || undefined,
         mealType: mealType || 'other',
         ...finalNutrition,
-        aiAnalysis: analyzedNutrition ? JSON.stringify(analyzedNutrition) : null,
+        aiAnalysis: nutrition ? JSON.stringify(nutrition) : null,
         isPublic,
       }
 
@@ -465,18 +473,6 @@ export default function LogMealPage() {
           />
         </div>
 
-        {/* Saved foods nutrition preview */}
-        {hasSavedFoods && (
-          <div className="bg-blue-50 rounded-xl p-3 mb-4 border border-blue-200">
-            <p className="text-xs font-medium text-blue-600 mb-2">סיכום מוצרים שמורים:</p>
-            <div className="flex gap-2 flex-wrap">
-              <span className="macro-chip bg-white text-blue-700 border border-blue-200">⚡ {Math.round(sfNutrition.calories)} קל</span>
-              <span className="macro-chip bg-white text-blue-600 border border-blue-200">💪 {Math.round(sfNutrition.protein)}g</span>
-              <span className="macro-chip bg-white text-amber-600 border border-amber-200">🌾 {Math.round(sfNutrition.carbs)}g</span>
-              <span className="macro-chip bg-white text-green-600 border border-green-200">🥑 {Math.round(sfNutrition.fat)}g</span>
-            </div>
-          </div>
-        )}
 
         {/* Divider */}
         <div className="flex items-center gap-2 mb-3">
@@ -525,28 +521,52 @@ export default function LogMealPage() {
       </div>
 
       {!manualMode && !nutrition && (
-        <button onClick={() => setManualMode(true)} className="w-full text-blue-500 text-sm underline mb-4">
+        <button
+          onClick={() => {
+            const combined = combinedWithSF(emptyNutrition())
+            setManualData({ ...emptyNutrition(), ...combined })
+            setManualMode(true)
+          }}
+          className="w-full text-blue-500 text-sm underline mb-4"
+        >
           הזיני ערכים ידנית ללא ניתוח AI
         </button>
       )}
 
       {(manualMode || nutrition) && (
         <div className="card mb-4 border-blue-400">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2">
             <h2 className="font-bold text-blue-700 text-lg">
-              {nutrition && !manualMode ? '✨ תוצאות ניתוח' : '✏️ הזנה ידנית'}
+              {nutrition && !manualMode
+                ? hasSavedFoods ? '✨ סיכום ארוחה' : '✨ תוצאות ניתוח'
+                : '✏️ הזנה ידנית'}
             </h2>
             {nutrition && (
-              <button onClick={() => setManualMode(!manualMode)} className="text-sm text-blue-500 underline">
+              <button
+                onClick={() => {
+                  if (!manualMode) {
+                    // Enter manual: seed with combined total
+                    const combined = combinedWithSF(nutrition)
+                    setManualData({ ...nutrition, ...combined })
+                  }
+                  setManualMode(!manualMode)
+                }}
+                className="text-sm text-blue-500 underline"
+              >
                 {manualMode ? 'חזרי לניתוח AI' : 'ערכי ידנית'}
               </button>
             )}
           </div>
 
-          {hasSavedFoods && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3 text-xs text-amber-700">
-              ⚠️ הערכים הסופיים יכללו גם את המוצרים השמורים שבחרת
-            </div>
+          {/* Breakdown line when both sources contribute */}
+          {hasSavedFoods && nutrition && !manualMode && (
+            <p className="text-xs text-slate-400 mb-3">
+              מוצרים שמורים: {Math.round(sfNutrition.calories)} קל
+              {' · '}
+              ניתוח AI: {Math.round(nutrition.calories)} קל
+              {' · '}
+              <span className="text-blue-600 font-medium">סה״כ: {Math.round(sfNutrition.calories + nutrition.calories)} קל</span>
+            </p>
           )}
 
           <div className="grid grid-cols-2 gap-3 mb-3">
@@ -557,22 +577,28 @@ export default function LogMealPage() {
               { key: 'fat', label: 'שומן (g) 🥑' },
               { key: 'fiber', label: 'סיבים (g)' },
               { key: 'sugar', label: 'סוכר (g)' },
-            ].map(({ key, label }) => (
-              <div key={key} className="bg-blue-50 rounded-xl p-3">
-                <label className="block text-xs text-slate-500 mb-1">{label}</label>
-                {manualMode ? (
-                  <input type="number"
-                    value={manualData[key as keyof NutritionData] as number}
-                    onChange={(e) => setManualData({ ...manualData, [key]: Number(e.target.value) })}
-                    className="w-full bg-white border border-blue-200 rounded-lg px-2 py-1 text-lg font-bold text-blue-700 text-center"
-                    min={0} />
-                ) : (
-                  <div className="text-xl font-bold text-blue-700 text-center">
-                    {Math.round((activeNutrition as NutritionData)[key as keyof NutritionData] as number)}
-                  </div>
-                )}
-              </div>
-            ))}
+            ].map(({ key, label }) => {
+              // Always show combined total
+              const displayVal = manualMode
+                ? manualData[key as keyof NutritionData] as number
+                : (sfNutrition[key as keyof typeof sfNutrition] || 0) + ((nutrition as NutritionData)[key as keyof NutritionData] as number || 0)
+              return (
+                <div key={key} className="bg-blue-50 rounded-xl p-3">
+                  <label className="block text-xs text-slate-500 mb-1">{label}</label>
+                  {manualMode ? (
+                    <input type="number"
+                      value={manualData[key as keyof NutritionData] as number}
+                      onChange={(e) => setManualData({ ...manualData, [key]: Number(e.target.value) })}
+                      className="w-full bg-white border border-blue-200 rounded-lg px-2 py-1 text-lg font-bold text-blue-700 text-center"
+                      min={0} />
+                  ) : (
+                    <div className="text-xl font-bold text-blue-700 text-center">
+                      {Math.round(displayVal)}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
 
           {nutrition?.tips && !manualMode && (
