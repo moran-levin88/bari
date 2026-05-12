@@ -36,6 +36,11 @@ export default async function DashboardPage() {
     prisma.meal.findMany({
       where: { userId: user.id, loggedAt: { gte: today, lt: tomorrow } },
       orderBy: { loggedAt: 'desc' },
+      select: {
+        id: true, name: true, description: true, imageUrl: true, mealType: true,
+        calories: true, protein: true, carbs: true, fat: true, fiber: true, sugar: true,
+        aiAnalysis: true, loggedAt: true,
+      },
     }),
     prisma.waterLog.findMany({
       where: { userId: user.id, loggedAt: { gte: today, lt: tomorrow } },
