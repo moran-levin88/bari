@@ -2,9 +2,9 @@
 
 import bcrypt from 'bcryptjs'
 import { prisma } from './prisma'
-import { createSession, deleteSession, getSession } from './session'
+import { createSession, createRefreshToken, deleteSession, getSession } from './session'
 
-type AuthState = { error?: string; success?: boolean } | undefined
+type AuthState = { error?: string; success?: boolean; refreshToken?: string } | undefined
 
 export async function signup(_state: AuthState, formData: FormData): Promise<AuthState> {
   const name = formData.get('name') as string
@@ -40,7 +40,8 @@ export async function login(_state: AuthState, formData: FormData): Promise<Auth
   if (!valid) return { error: 'אימייל או סיסמה שגויים' }
 
   await createSession({ userId: user.id, email: user.email, name: user.name }, rememberMe)
-  return { success: true }
+  const refreshToken = rememberMe ? await createRefreshToken(user.id) : undefined
+  return { success: true, refreshToken }
 }
 
 export async function logout() {

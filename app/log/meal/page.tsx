@@ -372,6 +372,11 @@ export default function LogMealPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     }
+    // Warn if free-text ingredients were entered but not analyzed
+    if (hasIngredients && !nutrition && !manualMode) {
+      setError('הזנת מרכיבים אבל לא ניתחת אותם — לחצי על "נתחי ערכים תזונתיים" קודם, או על "הזנה ידנית"')
+      return
+    }
     const mealDescription = buildMealDescription(ingredients)
 
     // finalNutrition is always the combined total

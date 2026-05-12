@@ -159,18 +159,18 @@ export default function SavedFoodsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">שם המנה *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">מה זה יחידה אחת? *</label>
                 <input
                   value={form.servingName}
                   onChange={(e) => setForm({ ...form, servingName: e.target.value })}
                   className="input"
-                  placeholder="פרוסה, כוס, 100g..."
+                  placeholder="פרוסה / כוס / בקבוק / 100g..."
                 />
               </div>
             </div>
 
             <p className="text-xs text-slate-400 -mt-2">
-              הערכים התזונתיים הם <strong>למנה אחת</strong> (לפרוסה אחת, לכוס אחת וכו&apos;)
+              הערכים הם <strong>ליחידה אחת</strong> — לפרוסה אחת, לכוס אחת, ל-100g וכו&apos;
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -221,7 +221,7 @@ export default function SavedFoodsPage() {
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <h3 className="font-bold text-slate-800">{food.name}</h3>
-                  <p className="text-xs text-slate-400">ל{food.servingName} אחת</p>
+                  <p className="text-xs text-slate-400">ערכים ל{food.servingName} אחת</p>
                 </div>
                 <div className="flex gap-1">
                   <button

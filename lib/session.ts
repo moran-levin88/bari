@@ -55,3 +55,22 @@ export async function deleteSession() {
   const cookieStore = await cookies()
   cookieStore.delete(SESSION_COOKIE)
 }
+
+// Refresh token — stored in localStorage on iOS PWA to survive cookie loss
+export async function createRefreshToken(userId: string): Promise<string> {
+  return new SignJWT({ userId, type: 'refresh' })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('30d')
+    .sign(encodedKey)
+}
+
+export async function verifyRefreshToken(token: string): Promise<string | null> {
+  try {
+    const { payload } = await jwtVerify(token, encodedKey, { algorithms: ['HS256'] })
+    if (payload.type !== 'refresh') return null
+    return payload.userId as string
+  } catch {
+    return null
+  }
+}
