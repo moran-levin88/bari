@@ -20,24 +20,23 @@ function LoginForm() {
     async function tryRestore() {
       try {
         const stored = localStorage.getItem(REFRESH_KEY)
-        if (!stored) return
-        const { token, expiresAt } = JSON.parse(stored)
-        if (!token || new Date(expiresAt) < new Date()) {
+        if (stored) {
+          const { token, expiresAt } = JSON.parse(stored)
+          if (token && new Date(expiresAt) > new Date()) {
+            const res = await fetch('/api/auth/refresh', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token }),
+            })
+            if (res.ok) {
+              router.replace(redirect)
+              return // navigating away — don't show login form
+            }
+          }
           localStorage.removeItem(REFRESH_KEY)
-          return
         }
-        const res = await fetch('/api/auth/refresh', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
-        })
-        if (res.ok) {
-          router.replace(redirect)
-          return
-        }
-        localStorage.removeItem(REFRESH_KEY)
       } catch {}
-      setRestoring(false)
+      setRestoring(false) // always reached unless we navigated away
     }
     tryRestore()
   }, [router, redirect])
