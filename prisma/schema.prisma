@@ -33,6 +33,7 @@ model User {
   sentInvites  GroupInvite[] @relation("InviteSender")
   savedFoods        SavedFood[]
   pushSubscriptions PushSubscription[]
+  mealTemplates     MealTemplate[]
 }
 
 model Group {
@@ -189,6 +190,24 @@ model PushSubscription {
   p256dh    String
   auth      String
   createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model MealTemplate {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  mealType   String   @default("other")
+  calories   Float    @default(0)
+  protein    Float    @default(0)
+  carbs      Float    @default(0)
+  fat        Float    @default(0)
+  fiber      Float    @default(0)
+  sugar      Float    @default(0)
+  aiAnalysis String?
+  isPublic   Boolean  @default(true)
+  createdAt  DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

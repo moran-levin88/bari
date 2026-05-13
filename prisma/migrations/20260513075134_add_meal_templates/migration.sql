@@ -1,0 +1,21 @@
+-- CreateTable
+CREATE TABLE "MealTemplate" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "mealType" TEXT NOT NULL DEFAULT 'other',
+    "calories" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "protein" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "carbs" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "fat" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "fiber" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "sugar" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "aiAnalysis" TEXT,
+    "isPublic" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MealTemplate_pkey" PRIMARY KEY ("id")
+);
+
+-- AddForeignKey
+ALTER TABLE "MealTemplate" ADD CONSTRAINT "MealTemplate_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

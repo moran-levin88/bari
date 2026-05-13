@@ -289,13 +289,41 @@ export default function LogMealPage() {
   // Saved foods
   const [savedFoods, setSavedFoods] = useState<SavedFood[]>([])
   const [selectedFoods, setSelectedFoods] = useState<SelectedFood[]>([])
+  // Meal templates
+  type MealTemplate = { id: string; name: string; mealType: string; calories: number; protein: number; carbs: number; fat: number }
+  const [templates, setTemplates] = useState<MealTemplate[]>([])
+  const [loggingTemplateId, setLoggingTemplateId] = useState<string | null>(null)
+  const [loggedTemplateId, setLoggedTemplateId] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/saved-foods')
       .then((r) => r.json())
       .then((d) => setSavedFoods(d.foods || []))
       .catch(() => {})
+    fetch('/api/meal-templates')
+      .then((r) => r.json())
+      .then((d) => setTemplates(d.templates || []))
+      .catch(() => {})
   }, [])
+
+  async function logFromTemplate(id: string) {
+    setLoggingTemplateId(id)
+    try {
+      const res = await fetch(`/api/meal-templates/${id}`, { method: 'POST' })
+      if (res.ok) {
+        setLoggedTemplateId(id)
+        setTimeout(() => router.push('/dashboard'), 1200)
+      }
+    } finally {
+      setLoggingTemplateId(null)
+    }
+  }
+
+  async function deleteTemplate(id: string, e: React.MouseEvent) {
+    e.stopPropagation()
+    await fetch(`/api/meal-templates/${id}`, { method: 'DELETE' })
+    setTemplates((prev) => prev.filter((t) => t.id !== id))
+  }
 
   const sfNutrition = savedFoodsNutrition(selectedFoods)
   const hasSavedFoods = selectedFoods.length > 0
@@ -446,6 +474,43 @@ export default function LogMealPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-blue-700 mb-6">🍽️ תיעוד ארוחה</h1>
+
+      {/* Pinned meal templates */}
+      {templates.length > 0 && (
+        <div className="card mb-4">
+          <h2 className="font-bold text-slate-700 mb-3">📌 ארוחות מקובעות</h2>
+          <div className="flex flex-col gap-2">
+            {templates.map((t) => (
+              <div key={t.id} className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-slate-800 text-sm truncate">{t.name}</p>
+                  <p className="text-xs text-slate-400">
+                    ⚡ {Math.round(t.calories)} קל · 💪 {Math.round(t.protein)}g · 🌾 {Math.round(t.carbs)}g · 🥑 {Math.round(t.fat)}g
+                  </p>
+                </div>
+                <button
+                  onClick={() => logFromTemplate(t.id)}
+                  disabled={loggingTemplateId === t.id || loggedTemplateId === t.id}
+                  className={`flex-shrink-0 text-sm font-medium px-3 py-1.5 rounded-xl transition-all disabled:opacity-60 ${
+                    loggedTemplateId === t.id
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
+                  }`}
+                >
+                  {loggingTemplateId === t.id ? '...' : loggedTemplateId === t.id ? '✅ נרשם!' : 'תיעד עכשיו'}
+                </button>
+                <button
+                  onClick={(e) => deleteTemplate(t.id, e)}
+                  className="flex-shrink-0 text-slate-300 hover:text-red-400 text-lg leading-none transition-colors"
+                  title="הסר קיבוע"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Meal type */}
       <div className={`card mb-4 ${!mealType && error ? 'border-2 border-red-400' : ''}`}>

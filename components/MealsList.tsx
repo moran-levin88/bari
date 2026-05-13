@@ -48,7 +48,34 @@ export default function MealsList({ meals }: { meals: Meal[] }) {
   const router = useRouter()
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [pinningId, setPinningId] = useState<string | null>(null)
+  const [pinnedId, setPinnedId] = useState<string | null>(null)
   const [list, setList] = useState(meals)
+
+  async function pinMeal(meal: Meal, e: React.MouseEvent) {
+    e.stopPropagation()
+    setPinningId(meal.id)
+    try {
+      const res = await fetch('/api/meal-templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: meal.name,
+          mealType: meal.mealType,
+          calories: meal.calories,
+          protein: meal.protein,
+          carbs: meal.carbs,
+          fat: meal.fat,
+          fiber: meal.fiber ?? 0,
+          sugar: meal.sugar ?? 0,
+          aiAnalysis: meal.aiAnalysis,
+        }),
+      })
+      if (res.ok) setPinnedId(meal.id)
+    } finally {
+      setPinningId(null)
+    }
+  }
 
   async function deleteMeal(id: string, e: React.MouseEvent) {
     e.stopPropagation()
@@ -153,12 +180,24 @@ export default function MealsList({ meals }: { meals: Meal[] }) {
                     className="flex-1 text-center text-sm font-medium bg-blue-600 text-white py-2 rounded-xl hover:bg-blue-700 transition-colors"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    ✏️ ערכי ארוחה
+                    ✏️ ערכי
                   </Link>
+                  <button
+                    onClick={(e) => pinMeal(meal, e)}
+                    disabled={pinningId === meal.id || pinnedId === meal.id}
+                    className={`px-3 py-2 text-sm rounded-xl transition-colors disabled:opacity-60 ${
+                      pinnedId === meal.id
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-slate-100 text-slate-600 hover:bg-amber-50 hover:text-amber-600'
+                    }`}
+                    title="קבע כתבנית לשימוש חוזר"
+                  >
+                    {pinningId === meal.id ? '...' : pinnedId === meal.id ? '📌 נשמר!' : '📌 קבע'}
+                  </button>
                   <button
                     onClick={(e) => deleteMeal(meal.id, e)}
                     disabled={deletingId === meal.id}
-                    className="px-4 py-2 text-sm text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-40"
+                    className="px-3 py-2 text-sm text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-40"
                   >
                     {deletingId === meal.id ? '...' : '🗑️'}
                   </button>
