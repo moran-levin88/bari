@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+  || 'BK3Pjzjgqvkmx7m-ri6XJrrgVVbIwLKM4w-RDmGW60h7sJNzFwUiLprUt0K1Wn6HdCDtMOxm39Yn9794PvaTMoM'
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -11,28 +12,32 @@ function urlBase64ToUint8Array(base64String: string) {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)))
 }
 
-async function subscribeToPush() {
-  const reg = await navigator.serviceWorker.ready
-  const existing = await reg.pushManager.getSubscription()
-  if (existing) {
-    await saveSubscription(existing)
-    return existing
-  }
-  const sub = await reg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-  })
-  await saveSubscription(sub)
-  return sub
-}
-
 async function saveSubscription(sub: PushSubscription) {
   const json = sub.toJSON()
-  await fetch('/api/push/subscribe', {
+  const res = await fetch('/api/push/subscribe', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ endpoint: sub.endpoint, keys: json.keys }),
   })
+  if (!res.ok) throw new Error('Failed to save subscription')
+}
+
+async function ensureSubscribed(): Promise<boolean> {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false
+    const reg = await navigator.serviceWorker.ready
+    let sub = await reg.pushManager.getSubscription()
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      })
+    }
+    await saveSubscription(sub)
+    return true
+  } catch {
+    return false
+  }
 }
 
 export default function PushPermission() {
@@ -44,12 +49,12 @@ export default function PushPermission() {
       return
     }
     if (Notification.permission === 'granted') {
-      subscribeToPush().catch(() => {})
+      // Re-save subscription on every app open (handles token refresh)
+      ensureSubscribed()
       setState('subscribed')
     } else if (Notification.permission === 'denied') {
       setState('denied')
     } else {
-      // Show prompt after a short delay so it doesn't appear on first load
       const dismissed = localStorage.getItem('push_dismissed')
       if (!dismissed) {
         setTimeout(() => setState('prompt'), 3000)
@@ -60,8 +65,9 @@ export default function PushPermission() {
   async function requestPermission() {
     const result = await Notification.requestPermission()
     if (result === 'granted') {
-      await subscribeToPush()
-      setState('subscribed')
+      const ok = await ensureSubscribed()
+      setState(ok ? 'subscribed' : 'denied')
+      if (!ok) localStorage.setItem('push_dismissed', '1')
     } else {
       setState('denied')
       localStorage.setItem('push_dismissed', '1')
@@ -86,16 +92,10 @@ export default function PushPermission() {
               קבלי עדכון כשחברה בקבוצה מתעדת פעילות, ותזכורות לשתות מים
             </p>
             <div className="flex gap-2 mt-3">
-              <button
-                onClick={requestPermission}
-                className="btn-primary text-xs py-1.5 px-3 flex-1"
-              >
+              <button onClick={requestPermission} className="btn-primary text-xs py-1.5 px-3 flex-1">
                 הפעלי
               </button>
-              <button
-                onClick={dismiss}
-                className="btn-secondary text-xs py-1.5 px-3"
-              >
+              <button onClick={dismiss} className="btn-secondary text-xs py-1.5 px-3">
                 אחר כך
               </button>
             </div>

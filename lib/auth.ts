@@ -52,20 +52,37 @@ export async function getCurrentUser() {
   const session = await getSession()
   if (!session) return null
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      image: true,
-      age: true,
-      weight: true,
-      height: true,
-      gender: true,
-      goal: true,
-      activityLevel: true,
-    },
-  })
-  return user
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        age: true,
+        weight: true,
+        height: true,
+        gender: true,
+        goal: true,
+        activityLevel: true,
+      },
+    })
+    return user
+  } catch {
+    // DB unreachable (e.g. Neon cold start) — return minimal user from session
+    // so the user stays logged in instead of being redirected to login
+    return {
+      id: session.userId,
+      name: session.name,
+      email: session.email,
+      image: null,
+      age: null,
+      weight: null,
+      height: null,
+      gender: null,
+      goal: null,
+      activityLevel: null,
+    }
+  }
 }

@@ -29,7 +29,8 @@ function LoginForm() {
               body: JSON.stringify({ token }),
             })
             if (res.ok) {
-              router.replace(redirect)
+              // Full reload so server-side render receives the new cookie
+              window.location.href = redirect
               return // navigating away — don't show login form
             }
           }
