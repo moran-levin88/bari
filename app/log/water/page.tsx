@@ -1,87 +1,92 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import ShareToggle from '@/components/ShareToggle'
+import { useState, useRef } from 'react'
 
 const QUICK_AMOUNTS = [150, 250, 380, 500, 750, 1000]
 
 export default function LogWaterPage() {
-  const router = useRouter()
-  const [amount, setAmount] = useState(250)
-  const [isPublic, setIsPublic] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [isPublic] = useState(true)
+  const [customAmount, setCustomAmount] = useState('')
+  const [snack, setSnack] = useState<{ ml: number; logId: string } | null>(null)
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  async function logWater(ml: number) {
-    setSaving(true)
-    try {
-      await fetch('/api/water', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: ml, isPublic }),
-      })
-      setSaved(true)
-      setTimeout(() => router.push('/dashboard'), 1000)
-    } finally {
-      setSaving(false)
+  async function quickLog(ml: number) {
+    // Cancel any pending undo first
+    if (undoTimer.current) clearTimeout(undoTimer.current)
+    if (snack) {
+      // Previous snack not undone — that log stays
     }
+
+    const res = await fetch('/api/water', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: ml, isPublic }),
+    })
+    const data = await res.json()
+    if (!data.success) return
+
+    setSnack({ ml, logId: data.log.id })
+    undoTimer.current = setTimeout(() => setSnack(null), 4000)
+  }
+
+  async function undo() {
+    if (!snack) return
+    if (undoTimer.current) clearTimeout(undoTimer.current)
+    await fetch(`/api/water/${snack.logId}`, { method: 'DELETE' })
+    setSnack(null)
+  }
+
+  async function logCustom() {
+    const ml = Number(customAmount)
+    if (!ml || ml <= 0) return
+    await quickLog(ml)
+    setCustomAmount('')
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-blue-700 mb-6">💧 תיעוד שתייה</h1>
+      <h1 className="text-2xl font-bold text-blue-700 mb-2">💧 תיעוד שתייה</h1>
+      <p className="text-slate-400 text-sm mb-6">לחצי על כמות — תישמר מיד</p>
 
-      <div className="card mb-4 text-center">
-        <div className="text-6xl mb-4">💧</div>
-        <h2 className="text-xl font-bold text-slate-700 mb-2">כמה שתית?</h2>
-        <p className="text-slate-400 text-sm mb-6">מים, תה, קפה — כל שתייה נחשבת!</p>
-
-        <div className="flex flex-wrap gap-2 justify-center mb-6">
+      {/* Quick amounts — one tap saves immediately */}
+      <div className="card mb-4">
+        <div className="grid grid-cols-3 gap-3">
           {QUICK_AMOUNTS.map((ml) => (
             <button
               key={ml}
-              onClick={() => setAmount(ml)}
-              className={`py-2 px-4 rounded-xl border-2 font-medium transition-all ${
-                amount === ml ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-blue-100 text-slate-600 hover:border-blue-300'
-              }`}
+              onClick={() => quickLog(ml)}
+              className="flex flex-col items-center justify-center py-5 rounded-2xl bg-blue-50 hover:bg-blue-100 active:scale-95 transition-all border-2 border-transparent hover:border-blue-300 active:border-blue-500"
             >
-              {ml >= 1000 ? `${ml / 1000}L` : `${ml}ml`}
+              <span className="text-2xl mb-1">💧</span>
+              <span className="font-bold text-blue-700 text-lg">
+                {ml >= 1000 ? `${ml / 1000}L` : `${ml}ml`}
+              </span>
             </button>
           ))}
         </div>
-
-        <div className="mb-6">
-          <label className="block text-sm text-slate-500 mb-2">כמות מדויקת (ml)</label>
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(Number(e.target.value))}
-            className="input text-center text-xl font-bold"
-            min={1}
-            max={3000}
-            step={1}
-          />
-        </div>
-
-        {saved ? (
-          <div className="bg-green-50 border border-green-200 text-green-600 rounded-xl p-4 font-medium">
-            ✅ נשמר! {amount}ml תועד
-          </div>
-        ) : (
-          <button
-            onClick={() => logWater(amount)}
-            disabled={saving}
-            className="btn-primary w-full py-3 text-base"
-          >
-            {saving ? 'שומרת...' : `💧 תעדי ${amount}ml`}
-          </button>
-        )}
       </div>
 
-      <ShareToggle value={isPublic} onChange={setIsPublic} />
+      {/* Custom amount */}
+      <div className="card mb-4">
+        <p className="text-sm font-medium text-slate-600 mb-2">כמות אחרת</p>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            value={customAmount}
+            onChange={(e) => setCustomAmount(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && logCustom()}
+            className="input flex-1 text-center text-lg font-bold"
+            placeholder="כמות (ml)"
+            min={1}
+            max={3000}
+          />
+          <button onClick={logCustom} disabled={!customAmount} className="btn-primary px-5 disabled:opacity-40">
+            💧 תיעדי
+          </button>
+        </div>
+      </div>
 
-      <div className="card mt-4">
+      <div className="card">
         <h3 className="font-bold text-slate-700 mb-3">מדוע שתייה חשובה?</h3>
         <ul className="text-sm text-slate-500 flex flex-col gap-2">
           <li>✅ גוף הביולוגי שלנו מורכב מ-60% מים</li>
@@ -91,6 +96,20 @@ export default function LogWaterPage() {
           <li>✅ ממליצים על 8-10 כוסות ביום (2-2.5 ליטר)</li>
         </ul>
       </div>
+
+      {/* Undo snackbar */}
+      {snack && (
+        <div className="fixed bottom-24 right-4 left-4 z-50 flex justify-center">
+          <div className="bg-slate-800 text-white rounded-2xl px-5 py-3 flex items-center gap-4 shadow-xl max-w-sm w-full">
+            <span className="flex-1 text-sm">
+              💧 נשמר {snack.ml >= 1000 ? `${snack.ml / 1000}L` : `${snack.ml}ml`}
+            </span>
+            <button onClick={undo} className="text-blue-300 font-semibold text-sm hover:text-blue-100 transition-colors">
+              בטלי
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

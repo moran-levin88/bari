@@ -604,39 +604,51 @@ export default function LogMealPage() {
       )}
 
       {(manualMode || nutrition) && (
-        <div className="card mb-4 border-blue-400">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="font-bold text-blue-700 text-lg">
-              {nutrition && !manualMode
-                ? hasSavedFoods ? '✨ סיכום ארוחה' : '✨ תוצאות ניתוח'
-                : '✏️ הזנה ידנית'}
-            </h2>
-            {nutrition && (
-              <button
-                onClick={() => {
-                  if (!manualMode) {
-                    // Enter manual: seed with combined total
-                    const combined = combinedWithSF(nutrition)
-                    setManualData({ ...nutrition, ...combined })
-                  }
-                  setManualMode(!manualMode)
-                }}
-                className="text-sm text-blue-500 underline"
-              >
-                {manualMode ? 'חזרי לניתוח AI' : 'ערכי ידנית'}
-              </button>
-            )}
-          </div>
+        <div className="card mb-4 border-blue-300">
+          {/* Nutrition label header */}
+          {nutrition && !manualMode ? (
+            <div className="mb-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs text-slate-400 mb-0.5">זוהה:</p>
+                  <h2 className="font-bold text-slate-800 text-base leading-tight">{nutrition.name}</h2>
+                  {nutrition.servingSize && (
+                    <p className="text-xs text-slate-400 mt-0.5">כמות: {nutrition.servingSize}</p>
+                  )}
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">✨ זיהוי AI</span>
+                  <button
+                    onClick={() => {
+                      const combined = combinedWithSF(nutrition)
+                      setManualData({ ...nutrition, ...combined })
+                      setManualMode(true)
+                    }}
+                    className="text-xs text-blue-500 hover:text-blue-700"
+                  >
+                    ערכי ידנית
+                  </button>
+                </div>
+              </div>
 
-          {/* Breakdown line when both sources contribute */}
-          {hasSavedFoods && nutrition && !manualMode && (
-            <p className="text-xs text-slate-400 mb-3">
-              מוצרים שמורים: {Math.round(sfNutrition.calories)} קל
-              {' · '}
-              ניתוח AI: {Math.round(nutrition.calories)} קל
-              {' · '}
-              <span className="text-blue-600 font-medium">סה״כ: {Math.round(sfNutrition.calories + nutrition.calories)} קל</span>
-            </p>
+              {hasSavedFoods && (
+                <p className="text-xs text-slate-400 mt-2 bg-blue-50 rounded-lg px-2 py-1">
+                  מוצרים שמורים: {Math.round(sfNutrition.calories)} קל
+                  {' · '}AI: {Math.round(nutrition.calories)} קל
+                  {' · '}
+                  <span className="text-blue-600 font-semibold">סה״כ: {Math.round(sfNutrition.calories + nutrition.calories)} קל</span>
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-bold text-blue-700 text-lg">✏️ הזנה ידנית</h2>
+              {nutrition && (
+                <button onClick={() => setManualMode(false)} className="text-sm text-blue-500 underline">
+                  חזרי לניתוח AI
+                </button>
+              )}
+            </div>
           )}
 
           <div className="grid grid-cols-2 gap-3 mb-3">
@@ -670,6 +682,20 @@ export default function LogMealPage() {
               )
             })}
           </div>
+
+          {nutrition && !manualMode && nutrition.ingredients?.length > 0 && (
+            <details className="mb-3">
+              <summary className="text-xs text-blue-500 cursor-pointer select-none">פירוט לפי רכיבים ▾</summary>
+              <ul className="mt-2 flex flex-col gap-1">
+                {nutrition.ingredients.map((ing, i) => (
+                  <li key={i} className="flex items-center gap-1.5 text-sm text-slate-600">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
+                    {ing}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
 
           {nutrition?.tips && !manualMode && (
             <div className="bg-green-50 border border-green-200 rounded-xl p-3">
