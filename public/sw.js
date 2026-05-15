@@ -1,17 +1,21 @@
-const CACHE_VERSION = 'bari-v4'
+const CACHE_VERSION = 'bari-v5'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
 
-self.addEventListener('install', () => {
-  self.skipWaiting()
-})
+// Static assets safe to cache (no user data)
+const CACHEABLE_PREFIXES = ['/_next/static/', '/icon-', '/apple-touch-icon', '/manifest.json']
+
+function isCacheableAsset(url) {
+  const path = new URL(url).pathname
+  return CACHEABLE_PREFIXES.some((prefix) => path.startsWith(prefix))
+}
+
+self.addEventListener('install', () => self.skipWaiting())
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((k) => k !== STATIC_CACHE).map((k) => caches.delete(k))
-      )
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== STATIC_CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   )
 })
 
@@ -19,9 +23,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
 
+  // Only cache static assets — never cache HTML pages (authenticated content)
   if (request.method !== 'GET') return
   if (url.pathname.startsWith('/api/')) return
-  if (url.pathname.startsWith('/_next/')) {
+
+  if (isCacheableAsset(request.url)) {
     event.respondWith(
       caches.open(STATIC_CACHE).then((cache) =>
         cache.match(request).then((cached) => {
@@ -36,22 +42,14 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  event.respondWith(
-    fetch(request)
-      .then((res) => {
-        const clone = res.clone()
-        caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone))
-        return res
-      })
-      .catch(() => caches.match(request))
-  )
+  // All other requests (pages, dynamic content) — network only, no cache
+  // This prevents stale authenticated HTML from persisting after logout
 })
 
 self.addEventListener('message', (event) => {
   if (event.data === 'SKIP_WAITING') self.skipWaiting()
 })
 
-// Push notification received from server
 self.addEventListener('push', (event) => {
   if (!event.data) return
   let payload
@@ -73,7 +71,6 @@ self.addEventListener('push', (event) => {
   )
 })
 
-// Tap on notification — open the app at the right page
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const url = event.notification.data?.url || '/'

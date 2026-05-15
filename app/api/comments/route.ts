@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
+import { canInteractWith } from '@/lib/feedAuth'
 
 export async function POST(request: NextRequest) {
   const session = await getSession()
@@ -12,6 +13,13 @@ export async function POST(request: NextRequest) {
   if (!text?.trim()) {
     return Response.json({ error: 'תגובה לא יכולה להיות ריקה' }, { status: 400 })
   }
+
+  if (!mealId && !exerciseId) {
+    return Response.json({ error: 'Missing target' }, { status: 400 })
+  }
+
+  const allowed = await canInteractWith(session.userId, mealId, exerciseId)
+  if (!allowed) return Response.json({ error: 'Forbidden' }, { status: 403 })
 
   const comment = await prisma.comment.create({
     data: {

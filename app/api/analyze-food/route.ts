@@ -4,6 +4,30 @@ import { getSession } from '@/lib/session'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
+function clamp(v: unknown, min: number, max: number): number {
+  const n = Number(v)
+  if (!isFinite(n)) return 0
+  return Math.max(min, Math.min(max, n))
+}
+
+function validateNutrition(raw: Record<string, unknown>) {
+  return {
+    name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : 'ארוחה',
+    description: typeof raw.description === 'string' ? raw.description : '',
+    servingSize: typeof raw.servingSize === 'string' ? raw.servingSize : '',
+    calories: clamp(raw.calories, 0, 5000),
+    protein: clamp(raw.protein, 0, 500),
+    carbs: clamp(raw.carbs, 0, 1000),
+    fat: clamp(raw.fat, 0, 500),
+    fiber: clamp(raw.fiber, 0, 200),
+    sugar: clamp(raw.sugar, 0, 500),
+    ingredients: Array.isArray(raw.ingredients)
+      ? raw.ingredients.filter((i) => typeof i === 'string').slice(0, 20)
+      : [],
+    tips: typeof raw.tips === 'string' ? raw.tips : '',
+  }
+}
+
 export async function POST(request: NextRequest) {
   const session = await getSession()
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -13,11 +37,17 @@ export async function POST(request: NextRequest) {
     const imageFile = formData.get('image') as File | null
     const mealName = formData.get('name') as string | null
 
-    let base64Image: string | null = null
+    if (!mealName && (!imageFile || imageFile.size === 0)) {
+      return Response.json({ error: 'MISSING_INPUT' }, { status: 400 })
+    }
 
+    if (imageFile && imageFile.size > 10 * 1024 * 1024) {
+      return Response.json({ error: 'IMAGE_TOO_LARGE' }, { status: 400 })
+    }
+
+    let base64Image: string | null = null
     if (imageFile && imageFile.size > 0) {
-      const bytes = await imageFile.arrayBuffer()
-      const buffer = Buffer.from(bytes)
+      const buffer = Buffer.from(await imageFile.arrayBuffer())
       base64Image = buffer.toString('base64')
     }
 
@@ -41,21 +71,13 @@ Return ONLY valid JSON (no markdown, no explanation):
     if (base64Image && imageFile) {
       response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: prompt },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:${imageFile.type};base64,${base64Image}`,
-                  detail: 'low',
-                },
-              },
-            ],
-          },
-        ],
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: `data:${imageFile.type};base64,${base64Image}`, detail: 'low' } },
+          ],
+        }],
         response_format: { type: 'json_object' },
         max_tokens: 600,
         temperature: 0,
@@ -70,13 +92,21 @@ Return ONLY valid JSON (no markdown, no explanation):
       })
     }
 
-    const content = response.choices[0].message.content || '{}'
-    const nutrition = JSON.parse(content)
+    const raw = JSON.parse(response.choices[0].message.content || '{}')
+    const nutrition = validateNutrition(raw)
 
     return Response.json({ success: true, nutrition })
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    console.error('Food analysis error:', message)
-    return Response.json({ error: message }, { status: 500 })
+    // Log full error server-side, return opaque code to client
+    console.error('[analyze-food]', error instanceof Error ? error.message : error)
+
+    const message = error instanceof Error ? error.message : ''
+    if (message.includes('quota') || message.includes('billing')) {
+      return Response.json({ error: 'AI_QUOTA_EXCEEDED' }, { status: 503 })
+    }
+    if (message.includes('too large') || message.includes('image')) {
+      return Response.json({ error: 'IMAGE_TOO_LARGE' }, { status: 400 })
+    }
+    return Response.json({ error: 'AI_UNAVAILABLE' }, { status: 503 })
   }
 }

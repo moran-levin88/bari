@@ -4,12 +4,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { format, isToday, isYesterday, parseISO } from 'date-fns'
 import { he } from 'date-fns/locale'
 import Link from 'next/link'
-import { calculateDailyTargets, DEFAULT_TARGETS } from '@/lib/nutrition'
+import { DEFAULT_TARGETS } from '@/lib/nutrition'
 
 type UserProfile = {
   id: string; name: string; image?: string
-  age?: number | null; weight?: number | null; height?: number | null
-  gender?: string | null; goal?: string | null; activityLevel?: string | null
+  targetCalories?: number; targetWater?: number
 }
 
 type FeedItem = {
@@ -55,17 +54,10 @@ function dateLabel(dateKey: string) {
 }
 
 function getTargets(user: UserProfile) {
-  if (user.age && user.weight && user.height) {
-    return calculateDailyTargets({
-      age: user.age,
-      weight: user.weight,
-      height: user.height,
-      gender: user.gender ?? 'other',
-      goal: user.goal ?? 'maintain',
-      activityLevel: user.activityLevel ?? 'moderate',
-    })
+  return {
+    calories: user.targetCalories ?? DEFAULT_TARGETS.calories,
+    water: user.targetWater ?? DEFAULT_TARGETS.water,
   }
-  return DEFAULT_TARGETS
 }
 
 function groupFeed(items: FeedItem[]): DateGroup[] {

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
+import { canInteractWith } from '@/lib/feedAuth'
 
 export async function POST(request: NextRequest) {
   const session = await getSession()
@@ -9,9 +10,20 @@ export async function POST(request: NextRequest) {
   const body = await request.json()
   const { type, mealId, exerciseId } = body
 
-  // Toggle: remove if exists, add if not
+  if (!type || (!mealId && !exerciseId)) {
+    return Response.json({ error: 'Missing required fields' }, { status: 400 })
+  }
+
+  const allowed = await canInteractWith(session.userId, mealId, exerciseId)
+  if (!allowed) return Response.json({ error: 'Forbidden' }, { status: 403 })
+
   const existing = await prisma.reaction.findFirst({
-    where: { userId: session.userId, type, mealId: mealId || null, exerciseId: exerciseId || null },
+    where: {
+      userId: session.userId,
+      type,
+      mealId: mealId || null,
+      exerciseId: exerciseId || null,
+    },
   })
 
   if (existing) {

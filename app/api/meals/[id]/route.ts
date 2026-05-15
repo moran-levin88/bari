@@ -28,17 +28,22 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
   const body = await request.json()
   const { name, mealType, calories, protein, carbs, fat, fiber, sugar, isPublic } = body
 
+  const safeNum = (v: unknown, fallback: number) => {
+    const n = Number(v)
+    return isFinite(n) ? n : fallback
+  }
+
   const updated = await prisma.meal.update({
     where: { id },
     data: {
       name: name?.trim() || meal.name,
       mealType: mealType || meal.mealType,
-      calories: Number(calories) ?? meal.calories,
-      protein: Number(protein) ?? meal.protein,
-      carbs: Number(carbs) ?? meal.carbs,
-      fat: Number(fat) ?? meal.fat,
-      fiber: Number(fiber) ?? meal.fiber,
-      sugar: Number(sugar) ?? meal.sugar,
+      calories: safeNum(calories, meal.calories),
+      protein: safeNum(protein, meal.protein),
+      carbs: safeNum(carbs, meal.carbs),
+      fat: safeNum(fat, meal.fat),
+      fiber: safeNum(fiber, meal.fiber),
+      sugar: safeNum(sugar, meal.sugar),
       isPublic: isPublic ?? meal.isPublic,
     },
   })

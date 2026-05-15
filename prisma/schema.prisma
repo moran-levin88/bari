@@ -22,15 +22,15 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  meals        Meal[]
-  waterLogs    WaterLog[]
-  exerciseLogs ExerciseLog[]
-  stepLogs     StepLog[]
-  weightLogs   WeightLog[]
-  groupMembers GroupMember[]
-  reactions    Reaction[]
-  comments     Comment[]
-  sentInvites  GroupInvite[] @relation("InviteSender")
+  meals             Meal[]
+  waterLogs         WaterLog[]
+  exerciseLogs      ExerciseLog[]
+  stepLogs          StepLog[]
+  weightLogs        WeightLog[]
+  groupMembers      GroupMember[]
+  reactions         Reaction[]
+  comments          Comment[]
+  sentInvites       GroupInvite[]      @relation("InviteSender")
   savedFoods        SavedFood[]
   pushSubscriptions PushSubscription[]
   mealTemplates     MealTemplate[]
@@ -58,6 +58,7 @@ model GroupMember {
   group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([userId, groupId])
+  @@index([groupId, userId])
 }
 
 model GroupInvite {
@@ -92,6 +93,8 @@ model Meal {
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   reactions Reaction[]
   comments  Comment[]
+
+  @@index([userId, isPublic, loggedAt])
 }
 
 model WaterLog {
@@ -102,23 +105,27 @@ model WaterLog {
   loggedAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, loggedAt])
 }
 
 model ExerciseLog {
-  id       String   @id @default(cuid())
-  userId   String
-  name     String
-  category String
-  duration Int
-  calories Float?
-  notes    String?
-  isPublic Boolean  @default(true)
-  loggedAt DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  category  String
+  duration  Int
+  calories  Float?
+  notes     String?
+  isPublic  Boolean  @default(true)
+  loggedAt  DateTime @default(now())
   createdAt DateTime @default(now())
 
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   reactions Reaction[]
   comments  Comment[]
+
+  @@index([userId, isPublic, loggedAt])
 }
 
 model StepLog {
@@ -129,6 +136,8 @@ model StepLog {
   loggedAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, loggedAt])
 }
 
 model WeightLog {
@@ -139,6 +148,8 @@ model WeightLog {
   loggedAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, loggedAt])
 }
 
 model Reaction {
@@ -152,6 +163,11 @@ model Reaction {
   user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   meal     Meal?        @relation(fields: [mealId], references: [id], onDelete: Cascade)
   exercise ExerciseLog? @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  // Prevent duplicate reactions from same user on same item
+  @@unique([userId, type, mealId, exerciseId])
+  @@index([mealId, userId, type])
+  @@index([exerciseId, userId, type])
 }
 
 model Comment {
@@ -165,6 +181,9 @@ model Comment {
   user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   meal     Meal?        @relation(fields: [mealId], references: [id], onDelete: Cascade)
   exercise ExerciseLog? @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([mealId, createdAt])
+  @@index([exerciseId, createdAt])
 }
 
 model SavedFood {
