@@ -58,6 +58,7 @@ Return ONLY valid JSON (no markdown, no explanation):
         ],
         response_format: { type: 'json_object' },
         max_tokens: 600,
+        temperature: 0,
       })
     } else {
       response = await openai.chat.completions.create({
@@ -65,6 +66,7 @@ Return ONLY valid JSON (no markdown, no explanation):
         messages: [{ role: 'user', content: prompt }],
         response_format: { type: 'json_object' },
         max_tokens: 600,
+        temperature: 0,
       })
     }
 

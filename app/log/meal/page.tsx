@@ -582,7 +582,7 @@ export default function LogMealPage() {
 
         {error && <p className="text-orange-500 text-sm mb-3">{error}</p>}
 
-        {!manualMode && (
+        {!manualMode && !nutrition && (
           <button onClick={analyzeFood} disabled={analyzing || (!hasIngredients && !imageFile)}
             className="btn-primary w-full py-3 text-base disabled:opacity-40">
             {analyzing ? '🔍 מנתחת...' : '🔍 נתחי ערכים תזונתיים (AI)'}

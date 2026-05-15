@@ -4,14 +4,20 @@ import { useState, useEffect, useCallback } from 'react'
 import { format, isToday, isYesterday, parseISO } from 'date-fns'
 import { he } from 'date-fns/locale'
 import Link from 'next/link'
+import { calculateDailyTargets, DEFAULT_TARGETS } from '@/lib/nutrition'
+
+type UserProfile = {
+  id: string; name: string; image?: string
+  age?: number | null; weight?: number | null; height?: number | null
+  gender?: string | null; goal?: string | null; activityLevel?: string | null
+}
 
 type FeedItem = {
   id: string
   type: 'meal' | 'exercise' | 'water' | 'steps'
   userId: string
-  user: { id: string; name: string; image?: string }
+  user: UserProfile
   name?: string
-  imageUrl?: string
   calories?: number
   protein?: number
   carbs?: number
@@ -26,8 +32,13 @@ type FeedItem = {
 }
 
 type UserDaySummary = {
-  user: { id: string; name: string; image?: string }
+  user: UserProfile
+  calories: number
+  water: number
+  hasExercise: boolean
+  totalSteps: number
   items: FeedItem[]
+  targets: { calories: number; water: number }
 }
 
 type DateGroup = {
@@ -43,6 +54,20 @@ function dateLabel(dateKey: string) {
   return format(d, 'd בMMM', { locale: he })
 }
 
+function getTargets(user: UserProfile) {
+  if (user.age && user.weight && user.height) {
+    return calculateDailyTargets({
+      age: user.age,
+      weight: user.weight,
+      height: user.height,
+      gender: user.gender ?? 'other',
+      goal: user.goal ?? 'maintain',
+      activityLevel: user.activityLevel ?? 'moderate',
+    })
+  }
+  return DEFAULT_TARGETS
+}
+
 function groupFeed(items: FeedItem[]): DateGroup[] {
   const byDate: Record<string, Record<string, UserDaySummary>> = {}
 
@@ -51,9 +76,22 @@ function groupFeed(items: FeedItem[]): DateGroup[] {
     if (!byDate[dateKey]) byDate[dateKey] = {}
     const uid = item.userId
     if (!byDate[dateKey][uid]) {
-      byDate[dateKey][uid] = { user: item.user, items: [] }
+      byDate[dateKey][uid] = {
+        user: item.user,
+        calories: 0,
+        water: 0,
+        hasExercise: false,
+        totalSteps: 0,
+        items: [],
+        targets: getTargets(item.user),
+      }
     }
-    byDate[dateKey][uid].items.push(item)
+    const s = byDate[dateKey][uid]
+    s.items.push(item)
+    if (item.type === 'meal') s.calories += item.calories || 0
+    if (item.type === 'water') s.water += item.amount || 0
+    if (item.type === 'exercise') s.hasExercise = true
+    if (item.type === 'steps') s.totalSteps = Math.max(s.totalSteps, item.steps || 0)
   }
 
   return Object.entries(byDate)
@@ -65,125 +103,123 @@ function groupFeed(items: FeedItem[]): DateGroup[] {
     }))
 }
 
+function StatRow({ icon, value, target, unit }: { icon: string; value: number; target: number; unit: string }) {
+  const pct = Math.min(100, Math.round((value / target) * 100))
+  const done = pct >= 100
+  return (
+    <div className="w-full">
+      <div className="flex justify-between items-center text-xs mb-0.5">
+        <span>{icon}</span>
+        <span className={done ? 'text-green-600 font-bold' : 'text-slate-600'}>
+          {unit === 'L'
+            ? `${(value / 1000).toFixed(1)}/${(target / 1000).toFixed(1)}L`
+            : `${Math.round(value)}/${target}`}
+        </span>
+      </div>
+      <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${done ? 'bg-green-400' : 'bg-blue-400'}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
 function ItemLine({ item }: { item: FeedItem }) {
-  if (item.type === 'meal') {
-    return (
-      <div className="flex items-start gap-2 py-2 border-b border-blue-50 last:border-0">
-        {item.imageUrl && (
-          <img src={item.imageUrl} alt={item.name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-        )}
-        {!item.imageUrl && (
-          <span className="text-lg flex-shrink-0 mt-0.5">🍽️</span>
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-slate-800 text-sm truncate">{item.name}</p>
-          <div className="flex gap-2 mt-0.5 flex-wrap">
-            <span className="text-xs text-blue-600">⚡ {Math.round(item.calories || 0)} קל</span>
-            <span className="text-xs text-slate-400">💪 {Math.round(item.protein || 0)}g</span>
-            <span className="text-xs text-slate-400">🌾 {Math.round(item.carbs || 0)}g</span>
-            <span className="text-xs text-slate-400">🥑 {Math.round(item.fat || 0)}g</span>
-          </div>
-        </div>
-        <span className="text-xs text-slate-400 flex-shrink-0">
-          {format(new Date(item.loggedAt), 'HH:mm')}
-        </span>
-      </div>
-    )
-  }
-
-  if (item.type === 'exercise') {
-    return (
-      <div className="flex items-center gap-2 py-2 border-b border-blue-50 last:border-0">
-        <span className="text-lg flex-shrink-0">🏃</span>
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-slate-800 text-sm">{item.name}</p>
-          <p className="text-xs text-slate-400">{item.duration} דקות · {item.category}</p>
-        </div>
-        <span className="text-xs text-slate-400 flex-shrink-0">
-          {format(new Date(item.loggedAt), 'HH:mm')}
-        </span>
-      </div>
-    )
-  }
-
-  if (item.type === 'water') {
-    const display = (item.amount || 0) >= 1000
-      ? `${((item.amount || 0) / 1000).toFixed(1)}L`
-      : `${item.amount}ml`
-    return (
-      <div className="flex items-center gap-2 py-2 border-b border-blue-50 last:border-0">
-        <span className="text-lg flex-shrink-0">💧</span>
-        <p className="flex-1 text-sm text-slate-700">{display} מים</p>
-        <span className="text-xs text-slate-400 flex-shrink-0">
-          {format(new Date(item.loggedAt), 'HH:mm')}
-        </span>
-      </div>
-    )
-  }
-
-  if (item.type === 'steps') {
-    return (
-      <div className="flex items-center gap-2 py-2 border-b border-blue-50 last:border-0">
-        <span className="text-lg flex-shrink-0">👟</span>
-        <p className="flex-1 text-sm text-slate-700">{(item.steps || 0).toLocaleString()} צעדים</p>
-        <span className="text-xs text-slate-400 flex-shrink-0">
-          {format(new Date(item.loggedAt), 'HH:mm')}
-        </span>
-      </div>
-    )
-  }
-
+  if (item.type === 'meal') return (
+    <div className="flex items-center gap-2 py-1.5 border-b border-blue-50 last:border-0 text-sm">
+      <span>🍽️</span>
+      <span className="flex-1 truncate text-slate-700">{item.name}</span>
+      <span className="text-blue-600 text-xs font-medium">{Math.round(item.calories || 0)} קל</span>
+      <span className="text-xs text-slate-400">{format(new Date(item.loggedAt), 'HH:mm')}</span>
+    </div>
+  )
+  if (item.type === 'exercise') return (
+    <div className="flex items-center gap-2 py-1.5 border-b border-blue-50 last:border-0 text-sm">
+      <span>🏃</span>
+      <span className="flex-1 truncate text-slate-700">{item.name}</span>
+      <span className="text-xs text-slate-400">{item.duration} דק' · {format(new Date(item.loggedAt), 'HH:mm')}</span>
+    </div>
+  )
+  if (item.type === 'water') return (
+    <div className="flex items-center gap-2 py-1.5 border-b border-blue-50 last:border-0 text-sm">
+      <span>💧</span>
+      <span className="flex-1 text-slate-700">
+        {(item.amount || 0) >= 1000 ? `${((item.amount || 0) / 1000).toFixed(1)}L` : `${item.amount}ml`} מים
+      </span>
+      <span className="text-xs text-slate-400">{format(new Date(item.loggedAt), 'HH:mm')}</span>
+    </div>
+  )
+  if (item.type === 'steps') return (
+    <div className="flex items-center gap-2 py-1.5 border-b border-blue-50 last:border-0 text-sm">
+      <span>👟</span>
+      <span className="flex-1 text-slate-700">{(item.steps || 0).toLocaleString()} צעדים</span>
+      <span className="text-xs text-slate-400">{format(new Date(item.loggedAt), 'HH:mm')}</span>
+    </div>
+  )
   return null
 }
 
-function UserSummaryChip({
-  summary,
-  isOpen,
-  onToggle,
-}: {
-  summary: UserDaySummary
-  isOpen: boolean
-  onToggle: () => void
-}) {
-  const mealCount = summary.items.filter((i) => i.type === 'meal').length
-  const hasExercise = summary.items.some((i) => i.type === 'exercise')
-  const hasWater = summary.items.some((i) => i.type === 'water')
-  const hasSteps = summary.items.some((i) => i.type === 'steps')
-
-  const icons = [
-    mealCount > 0 && `🍽️${mealCount > 1 ? `×${mealCount}` : ''}`,
-    hasExercise && '🏃',
-    hasWater && '💧',
-    hasSteps && '👟',
-  ].filter(Boolean).join(' ')
+function UserCircle({ summary }: { summary: UserDaySummary }) {
+  const [open, setOpen] = useState(false)
+  const { user, calories, water, hasExercise, targets } = summary
+  const calPct = Math.min(100, Math.round((calories / targets.calories) * 100))
+  const waterPct = Math.min(100, Math.round((water / targets.water) * 100))
 
   return (
-    <div className="mb-2">
+    <div className="flex flex-col items-center">
+      {/* Circle button */}
       <button
-        onClick={onToggle}
-        className={`w-full text-right flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all ${
-          isOpen
-            ? 'bg-blue-600 border-blue-600 text-white'
-            : 'bg-white border-blue-100 hover:border-blue-300 text-slate-700'
+        onClick={() => setOpen(!open)}
+        className={`flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all w-full ${
+          open ? 'bg-blue-50 border-2 border-blue-300' : 'border-2 border-transparent hover:bg-slate-50'
         }`}
       >
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${
-          isOpen ? 'bg-white text-blue-600' : 'bg-blue-100 text-blue-700'
-        }`}>
-          {summary.user.name[0]}
+        {/* Avatar with progress ring */}
+        <div className="relative">
+          <svg className="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
+            <circle cx="28" cy="28" r="24" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+            <circle
+              cx="28" cy="28" r="24"
+              fill="none" stroke="#3b82f6" strokeWidth="3"
+              strokeDasharray={`${(calPct / 100) * 150.8} 150.8`}
+              strokeLinecap="round"
+            />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+              {user.name[0]}
+            </div>
+          </div>
         </div>
-        <span className="font-medium text-sm flex-1">{summary.user.name}</span>
-        <span className={`text-xs ${isOpen ? 'text-blue-100' : 'text-slate-400'}`}>{icons}</span>
-        <span className={`text-xs ${isOpen ? 'text-blue-200' : 'text-slate-300'}`}>
-          {isOpen ? '▲' : '▼'}
-        </span>
+
+        {/* Name */}
+        <span className="text-xs font-semibold text-slate-700 truncate max-w-full px-1">{user.name}</span>
+
+        {/* Stats */}
+        <div className="w-full px-1 flex flex-col gap-1">
+          <StatRow icon="⚡" value={calories} target={targets.calories} unit="קל" />
+          <StatRow icon="💧" value={water} target={targets.water} unit="L" />
+        </div>
+
+        {/* Exercise badge */}
+        <div className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+          hasExercise ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'
+        }`}>
+          {hasExercise ? '🏃 פעילה' : '🏃 לא פעילה'}
+        </div>
       </button>
 
-      {isOpen && (
-        <div className="mt-1 mx-1 bg-white border border-blue-100 rounded-xl px-3 py-1">
-          {summary.items.map((item) => (
-            <ItemLine key={`${item.type}-${item.id}`} item={item} />
-          ))}
+      {/* Expanded detail */}
+      {open && (
+        <div className="w-full mt-2 bg-white border border-blue-100 rounded-xl px-3 py-2 shadow-sm">
+          <p className="text-xs font-semibold text-blue-600 mb-2">{user.name} — כל הפעילות:</p>
+          {summary.items
+            .sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())
+            .map((item) => (
+              <ItemLine key={`${item.type}-${item.id}`} item={item} />
+            ))}
         </div>
       )}
     </div>
@@ -191,24 +227,23 @@ function UserSummaryChip({
 }
 
 function DateSection({ group }: { group: DateGroup }) {
-  const [openUserId, setOpenUserId] = useState<string | null>(null)
-
   return (
-    <div className="mb-5">
+    <div className="mb-6">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-sm font-bold text-blue-700">{group.label}</span>
         <div className="flex-1 h-px bg-blue-100" />
         <span className="text-xs text-slate-400">{group.users.length} משתתפות</span>
       </div>
 
-      {group.users.map((summary) => (
-        <UserSummaryChip
-          key={summary.user.id}
-          summary={summary}
-          isOpen={openUserId === summary.user.id}
-          onToggle={() => setOpenUserId(openUserId === summary.user.id ? null : summary.user.id)}
-        />
-      ))}
+      <div className={`grid gap-2 ${
+        group.users.length === 1 ? 'grid-cols-1 max-w-[160px]' :
+        group.users.length === 2 ? 'grid-cols-2' :
+        'grid-cols-3'
+      }`}>
+        {group.users.map((summary) => (
+          <UserCircle key={summary.user.id} summary={summary} />
+        ))}
+      </div>
     </div>
   )
 }
@@ -228,9 +263,7 @@ export default function FeedPage() {
     }
   }, [])
 
-  useEffect(() => {
-    loadFeed()
-  }, [loadFeed])
+  useEffect(() => { loadFeed() }, [loadFeed])
 
   if (loading) {
     return (
@@ -248,12 +281,8 @@ export default function FeedPage() {
       <div className="text-center py-20">
         <div className="text-6xl mb-4">👥</div>
         <h2 className="text-xl font-bold text-slate-600 mb-2">הפיד עדיין ריק</h2>
-        <p className="text-slate-400 mb-6 max-w-sm mx-auto">
-          הצטרפי לקבוצה עם חברות כדי לראות את הפעילות שלהן!
-        </p>
-        <Link href="/groups" className="btn-primary">
-          🤝 הצטרפי לקבוצה
-        </Link>
+        <p className="text-slate-400 mb-6 max-w-sm mx-auto">הצטרפי לקבוצה עם חברות כדי לראות את הפעילות שלהן!</p>
+        <Link href="/groups" className="btn-primary">🤝 הצטרפי לקבוצה</Link>
       </div>
     )
   }
@@ -264,7 +293,6 @@ export default function FeedPage() {
         <h1 className="text-2xl font-bold text-blue-700">👥 פיד הקבוצה</h1>
         <button onClick={loadFeed} className="btn-secondary text-sm">🔄 רענן</button>
       </div>
-
       {groups.map((group) => (
         <DateSection key={group.dateKey} group={group} />
       ))}
