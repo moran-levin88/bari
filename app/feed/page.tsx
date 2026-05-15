@@ -1,16 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { format, isToday, isYesterday } from 'date-fns'
+import { format, isToday, isYesterday, parseISO } from 'date-fns'
 import { he } from 'date-fns/locale'
 import Link from 'next/link'
-
-const REACTIONS = [
-  { type: 'clap', emoji: '👏', label: 'כל הכבוד' },
-  { type: 'fire', emoji: '🔥', label: 'חזק' },
-  { type: 'heart', emoji: '💙', label: 'פה איתך' },
-  { type: 'like', emoji: '💪', label: 'השראה' },
-]
+import { DEFAULT_TARGETS } from '@/lib/nutrition'
 
 type UserPublic = { id: string; name: string; image?: string; targetCalories?: number; targetWater?: number }
 
@@ -34,256 +28,217 @@ type FeedItem = {
   comments: Array<{ id: string; text: string; userId: string; user: { id: string; name: string; image?: string }; createdAt: string }>
 }
 
-function timeAgo(dateStr: string) {
-  const d = new Date(dateStr)
-  if (isToday(d)) return format(d, 'HH:mm')
-  if (isYesterday(d)) return `אתמול ${format(d, 'HH:mm')}`
-  return format(d, 'd בMMM · HH:mm', { locale: he })
+type UserDaySummary = {
+  user: UserPublic
+  calories: number
+  water: number
+  hasExercise: boolean
+  totalSteps: number
+  items: FeedItem[]
+  targets: { calories: number; water: number }
 }
 
-function Avatar({ name, size = 10 }: { name: string; size?: number }) {
-  const cls = size === 10 ? 'w-10 h-10 text-base' : 'w-7 h-7 text-xs'
-  return (
-    <div className={`${cls} bg-blue-600 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0`}>
-      {name[0]}
-    </div>
-  )
+type DateGroup = {
+  dateKey: string
+  label: string
+  users: UserDaySummary[]
 }
 
-// Compact card for water/steps achievements
-function AchievementCard({ item }: { item: FeedItem }) {
-  const isWater = item.type === 'water'
-  const ml = item.amount || 0
-  const displayWater = ml >= 1000 ? `${(ml / 1000).toFixed(1)}L` : `${ml}ml`
-  const steps = item.steps || 0
-  const hitGoal = steps >= 10000
+function dateLabel(dateKey: string) {
+  const d = parseISO(dateKey)
+  if (isToday(d)) return 'היום'
+  if (isYesterday(d)) return 'אתמול'
+  return format(d, 'd בMMM', { locale: he })
+}
 
+function getTargets(user: UserPublic) {
+  return {
+    calories: user.targetCalories ?? DEFAULT_TARGETS.calories,
+    water: user.targetWater ?? DEFAULT_TARGETS.water,
+  }
+}
+
+function groupFeed(items: FeedItem[]): DateGroup[] {
+  const byDate: Record<string, Record<string, UserDaySummary>> = {}
+
+  for (const item of items) {
+    const dateKey = item.loggedAt.slice(0, 10)
+    if (!byDate[dateKey]) byDate[dateKey] = {}
+    const uid = item.userId
+    if (!byDate[dateKey][uid]) {
+      byDate[dateKey][uid] = {
+        user: item.user,
+        calories: 0, water: 0, hasExercise: false, totalSteps: 0,
+        items: [],
+        targets: getTargets(item.user),
+      }
+    }
+    const s = byDate[dateKey][uid]
+    s.items.push(item)
+    if (item.type === 'meal') s.calories += item.calories || 0
+    if (item.type === 'water') s.water += item.amount || 0
+    if (item.type === 'exercise') s.hasExercise = true
+    if (item.type === 'steps') s.totalSteps = Math.max(s.totalSteps, item.steps || 0)
+  }
+
+  return Object.entries(byDate)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([dateKey, usersMap]) => ({
+      dateKey,
+      label: dateLabel(dateKey),
+      users: Object.values(usersMap),
+    }))
+}
+
+function StatRow({ icon, value, target, unit }: { icon: string; value: number; target: number; unit: string }) {
+  const pct = Math.min(100, Math.round((value / target) * 100))
+  const done = pct >= 100
   return (
-    <div className="flex items-center gap-3 px-4 py-3 bg-white border border-blue-50 rounded-2xl mb-3">
-      <Avatar name={item.user.name} />
-      <div className="flex-1 min-w-0">
-        <span className="font-medium text-slate-800 text-sm">{item.user.name}</span>
-        <span className="text-slate-500 text-sm">
-          {isWater
-            ? ` שתתה ${displayWater} מים 💧`
-            : ` הלכה ${steps.toLocaleString()} צעדים 👟${hitGoal ? ' 🎯' : ''}`}
+    <div className="w-full">
+      <div className="flex justify-between items-center text-xs mb-0.5">
+        <span>{icon}</span>
+        <span className={done ? 'text-green-600 font-bold' : 'text-slate-600'}>
+          {unit === 'L'
+            ? `${(value / 1000).toFixed(1)}/${(target / 1000).toFixed(1)}L`
+            : `${Math.round(value)}/${target}`}
         </span>
       </div>
-      <span className="text-xs text-slate-400 flex-shrink-0">{timeAgo(item.loggedAt)}</span>
+      <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${done ? 'bg-green-400' : 'bg-blue-400'}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
     </div>
   )
 }
 
-// Full social card for meals and exercises
-function SocialCard({ item, currentUserId }: { item: FeedItem; currentUserId: string }) {
-  const [reactions, setReactions] = useState(item.reactions)
-  const [comments, setComments] = useState(item.comments)
-  const [commentText, setCommentText] = useState('')
-  const [showComments, setShowComments] = useState(false)
-  const [commentPending, setCommentPending] = useState(false)
+function ItemLine({ item }: { item: FeedItem }) {
+  if (item.type === 'meal') return (
+    <div className="flex items-center gap-2 py-1.5 border-b border-blue-50 last:border-0 text-sm">
+      <span>🍽️</span>
+      <span className="flex-1 truncate text-slate-700">{item.name}</span>
+      <span className="text-blue-600 text-xs font-medium">{Math.round(item.calories || 0)} קל</span>
+      <span className="text-xs text-slate-400">{format(new Date(item.loggedAt), 'HH:mm')}</span>
+    </div>
+  )
+  if (item.type === 'exercise') return (
+    <div className="flex items-center gap-2 py-1.5 border-b border-blue-50 last:border-0 text-sm">
+      <span>🏃</span>
+      <span className="flex-1 truncate text-slate-700">{item.name}</span>
+      <span className="text-xs text-slate-400">{item.duration} דק' · {format(new Date(item.loggedAt), 'HH:mm')}</span>
+    </div>
+  )
+  if (item.type === 'water') return (
+    <div className="flex items-center gap-2 py-1.5 border-b border-blue-50 last:border-0 text-sm">
+      <span>💧</span>
+      <span className="flex-1 text-slate-700">
+        {(item.amount || 0) >= 1000 ? `${((item.amount || 0) / 1000).toFixed(1)}L` : `${item.amount}ml`} מים
+      </span>
+      <span className="text-xs text-slate-400">{format(new Date(item.loggedAt), 'HH:mm')}</span>
+    </div>
+  )
+  if (item.type === 'steps') return (
+    <div className="flex items-center gap-2 py-1.5 border-b border-blue-50 last:border-0 text-sm">
+      <span>👟</span>
+      <span className="flex-1 text-slate-700">{(item.steps || 0).toLocaleString()} צעדים</span>
+      <span className="text-xs text-slate-400">{format(new Date(item.loggedAt), 'HH:mm')}</span>
+    </div>
+  )
+  return null
+}
 
-  async function toggleReaction(type: string) {
-    const myReaction = reactions.find((r) => r.type === type && r.userId === currentUserId)
-    // Optimistic update
-    if (myReaction) {
-      setReactions((r) => r.filter((rx) => rx.id !== myReaction.id))
-    } else {
-      const optimistic = { id: `opt-${Date.now()}`, type, userId: currentUserId, user: { id: currentUserId, name: '' } }
-      setReactions((r) => [...r, optimistic])
-    }
-    // Sync
-    const res = await fetch('/api/reactions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type,
-        mealId: item.type === 'meal' ? item.id : undefined,
-        exerciseId: item.type === 'exercise' ? item.id : undefined,
-      }),
-    })
-    if (!res.ok) {
-      // Revert on failure
-      setReactions(item.reactions)
-    }
-  }
-
-  async function submitComment(e: React.FormEvent) {
-    e.preventDefault()
-    if (!commentText.trim()) return
-    setCommentPending(true)
-    const res = await fetch('/api/comments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: commentText,
-        mealId: item.type === 'meal' ? item.id : undefined,
-        exerciseId: item.type === 'exercise' ? item.id : undefined,
-      }),
-    })
-    const data = await res.json()
-    if (data.success) {
-      setComments((c) => [...c, data.comment])
-      setCommentText('')
-    }
-    setCommentPending(false)
-  }
-
-  // Group reactions by type with counts
-  const grouped = REACTIONS.map((r) => {
-    const matches = reactions.filter((rx) => rx.type === r.type)
-    const mine = matches.some((rx) => rx.userId === currentUserId)
-    return { ...r, count: matches.length, mine }
-  }).filter((r) => r.count > 0 || true)
-
-  const totalReactions = reactions.length
-  // Build "מורן ועוד X" label for most popular reaction
-  const topReaction = grouped.filter((r) => r.count > 0).sort((a, b) => b.count - a.count)[0]
-  const reactorNames = topReaction
-    ? reactions.filter((r) => r.type === topReaction.type).map((r) => r.user.name).filter(Boolean)
-    : []
-  const reactorsLabel = reactorNames.length > 0
-    ? reactorNames.length === 1
-      ? reactorNames[0]
-      : `${reactorNames[0]} ועוד ${reactorNames.length - 1}`
-    : null
+function UserCircle({ summary }: { summary: UserDaySummary }) {
+  const [open, setOpen] = useState(false)
+  const { user, calories, water, hasExercise, targets } = summary
+  const calPct = Math.min(100, Math.round((calories / targets.calories) * 100))
 
   return (
-    <div className="bg-white rounded-2xl border border-blue-50 mb-3 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-2">
-        <Avatar name={item.user.name} />
-        <div className="flex-1 min-w-0">
-          <span className="font-bold text-slate-800 text-sm">{item.user.name}</span>
-          <span className="text-slate-400 text-xs mr-1">
-            {item.type === 'meal' ? '· ארוחה' : '· אימון'}
-          </span>
-          <div className="text-xs text-slate-400">{timeAgo(item.loggedAt)}</div>
-        </div>
-        <span className="text-xl">{item.type === 'meal' ? '🍽️' : '🏃'}</span>
-      </div>
-
-      {/* Content */}
-      <div className="px-4 pb-3">
-        <p className="font-semibold text-slate-800 mb-2">{item.name}</p>
-
-        {item.imageUrl && (
-          <img src={item.imageUrl} alt={item.name} className="w-full max-h-64 object-cover rounded-xl mb-3" />
-        )}
-
-        {item.type === 'meal' && (
-          <div className="grid grid-cols-4 gap-2">
-            <div className="bg-blue-50 rounded-xl p-2 text-center">
-              <div className="text-xs text-slate-400">קל׳</div>
-              <div className="font-bold text-blue-700 text-sm">{Math.round(item.calories || 0)}</div>
-            </div>
-            <div className="bg-blue-50 rounded-xl p-2 text-center">
-              <div className="text-xs text-slate-400">חלב׳</div>
-              <div className="font-bold text-blue-600 text-sm">{Math.round(item.protein || 0)}g</div>
-            </div>
-            <div className="bg-amber-50 rounded-xl p-2 text-center">
-              <div className="text-xs text-slate-400">פחמ׳</div>
-              <div className="font-bold text-amber-600 text-sm">{Math.round(item.carbs || 0)}g</div>
-            </div>
-            <div className="bg-green-50 rounded-xl p-2 text-center">
-              <div className="text-xs text-slate-400">שומן</div>
-              <div className="font-bold text-green-600 text-sm">{Math.round(item.fat || 0)}g</div>
-            </div>
-          </div>
-        )}
-
-        {item.type === 'exercise' && (
-          <div className="flex gap-2">
-            <span className="macro-chip bg-orange-100 text-orange-700">⏱️ {item.duration} דקות</span>
-            <span className="macro-chip bg-blue-50 text-blue-600">🏃 {item.category}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Reactions summary */}
-      {totalReactions > 0 && reactorsLabel && (
-        <div className="px-4 pb-1">
-          <span className="text-xs text-slate-400">
-            {grouped.filter(r => r.count > 0).map(r => r.emoji).join('')} {reactorsLabel}
-          </span>
-        </div>
-      )}
-
-      {/* Reaction + comment bar */}
-      <div className="border-t border-blue-50 px-3 py-2 flex items-center gap-1">
-        {grouped.map((r) => (
-          <button
-            key={r.type}
-            onClick={() => toggleReaction(r.type)}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-sm transition-all active:scale-90 ${
-              r.mine
-                ? 'bg-blue-100 text-blue-700 font-semibold'
-                : 'text-slate-500 hover:bg-slate-50'
-            }`}
-            title={r.label}
-          >
-            <span>{r.emoji}</span>
-            {r.count > 0 && <span className="text-xs">{r.count}</span>}
-          </button>
-        ))}
-        <button
-          onClick={() => setShowComments(!showComments)}
-          className={`mr-auto flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-sm transition-all ${
-            showComments ? 'bg-blue-50 text-blue-600' : 'text-slate-400 hover:bg-slate-50'
-          }`}
-        >
-          <span>💬</span>
-          {comments.length > 0 && <span className="text-xs">{comments.length}</span>}
-        </button>
-      </div>
-
-      {/* Comments */}
-      {showComments && (
-        <div className="border-t border-blue-50 px-4 pt-3 pb-3">
-          {comments.slice(-3).map((c) => (
-            <div key={c.id} className="flex gap-2 items-start mb-2">
-              <Avatar name={c.user.name} size={7} />
-              <div className="bg-slate-50 rounded-2xl px-3 py-1.5 flex-1">
-                <span className="font-semibold text-xs text-slate-700">{c.user.name} </span>
-                <span className="text-sm text-slate-600">{c.text}</span>
-              </div>
-            </div>
-          ))}
-          {comments.length > 3 && (
-            <p className="text-xs text-blue-500 mb-2 cursor-pointer">הצגת כל {comments.length} התגובות</p>
-          )}
-          <form onSubmit={submitComment} className="flex gap-2 items-center">
-            <Avatar name="?" size={7} />
-            <input
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              className="flex-1 bg-slate-50 rounded-full px-3 py-1.5 text-sm outline-none border border-transparent focus:border-blue-300 transition-colors"
-              placeholder="כתבי עידוד... 💪"
+    <div className="flex flex-col items-center">
+      <button
+        onClick={() => setOpen(!open)}
+        className={`flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all w-full ${
+          open ? 'bg-blue-50 border-2 border-blue-300' : 'border-2 border-transparent hover:bg-slate-50'
+        }`}
+      >
+        {/* Avatar with calorie progress ring */}
+        <div className="relative">
+          <svg className="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
+            <circle cx="28" cy="28" r="24" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+            <circle
+              cx="28" cy="28" r="24"
+              fill="none" stroke="#3b82f6" strokeWidth="3"
+              strokeDasharray={`${(calPct / 100) * 150.8} 150.8`}
+              strokeLinecap="round"
             />
-            <button type="submit" disabled={commentPending || !commentText.trim()} className="text-blue-600 font-semibold text-sm disabled:opacity-40">
-              שלחי
-            </button>
-          </form>
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+              {user.name[0]}
+            </div>
+          </div>
+        </div>
+
+        <span className="text-xs font-semibold text-slate-700 truncate max-w-full px-1">{user.name}</span>
+
+        <div className="w-full px-1 flex flex-col gap-1">
+          <StatRow icon="⚡" value={calories} target={targets.calories} unit="קל" />
+          <StatRow icon="💧" value={water} target={targets.water} unit="L" />
+        </div>
+
+        <div className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+          hasExercise ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'
+        }`}>
+          {hasExercise ? '🏃 פעילה' : '🏃 לא פעילה'}
+        </div>
+      </button>
+
+      {open && (
+        <div className="w-full mt-2 bg-white border border-blue-100 rounded-xl px-3 py-2 shadow-sm">
+          <p className="text-xs font-semibold text-blue-600 mb-2">{user.name} — כל הפעילות:</p>
+          {summary.items
+            .sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())
+            .map((item) => (
+              <ItemLine key={`${item.type}-${item.id}`} item={item} />
+            ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function DateSection({ group }: { group: DateGroup }) {
+  return (
+    <div className="mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-sm font-bold text-blue-700">{group.label}</span>
+        <div className="flex-1 h-px bg-blue-100" />
+        <span className="text-xs text-slate-400">{group.users.length} משתתפות</span>
+      </div>
+
+      <div className={`grid gap-2 ${
+        group.users.length === 1 ? 'grid-cols-1 max-w-[160px]' :
+        group.users.length === 2 ? 'grid-cols-2' :
+        'grid-cols-3'
+      }`}>
+        {group.users.map((summary) => (
+          <UserCircle key={summary.user.id} summary={summary} />
+        ))}
+      </div>
     </div>
   )
 }
 
 export default function FeedPage() {
-  const [feed, setFeed] = useState<FeedItem[]>([])
+  const [groups, setGroups] = useState<DateGroup[]>([])
   const [loading, setLoading] = useState(true)
-  const [currentUserId, setCurrentUserId] = useState('')
 
   const loadFeed = useCallback(async () => {
     setLoading(true)
     try {
-      const [feedRes, meRes] = await Promise.all([fetch('/api/feed'), fetch('/api/me')])
-      const feedData = await feedRes.json()
-      setFeed(feedData.feed || [])
-      if (meRes.ok) {
-        const me = await meRes.json()
-        setCurrentUserId(me.userId || '')
-      }
+      const res = await fetch('/api/feed')
+      const data = await res.json()
+      setGroups(groupFeed(data.feed || []))
     } finally {
       setLoading(false)
     }
@@ -302,7 +257,7 @@ export default function FeedPage() {
     )
   }
 
-  if (feed.length === 0) {
+  if (groups.length === 0) {
     return (
       <div className="text-center py-20">
         <div className="text-6xl mb-4">👥</div>
@@ -313,40 +268,15 @@ export default function FeedPage() {
     )
   }
 
-  // Group by date for headers
-  const byDate: Record<string, FeedItem[]> = {}
-  for (const item of feed) {
-    const key = item.loggedAt.slice(0, 10)
-    if (!byDate[key]) byDate[key] = []
-    byDate[key].push(item)
-  }
-
-  const dateEntries = Object.entries(byDate).sort(([a], [b]) => b.localeCompare(a))
-
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-blue-700">👥 פיד הקבוצה</h1>
-        <button onClick={loadFeed} className="btn-secondary text-sm">🔄</button>
+        <button onClick={loadFeed} className="btn-secondary text-sm">🔄 רענן</button>
       </div>
-
-      {dateEntries.map(([dateKey, items]) => {
-        const d = new Date(dateKey)
-        const label = isToday(d) ? 'היום' : isYesterday(d) ? 'אתמול' : format(d, 'd בMMM', { locale: he })
-        return (
-          <div key={dateKey} className="mb-4">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-bold text-blue-600 uppercase tracking-wide">{label}</span>
-              <div className="flex-1 h-px bg-blue-100" />
-            </div>
-            {items.map((item) =>
-              item.type === 'water' || item.type === 'steps'
-                ? <AchievementCard key={`${item.type}-${item.id}`} item={item} />
-                : <SocialCard key={`${item.type}-${item.id}`} item={item} currentUserId={currentUserId} />
-            )}
-          </div>
-        )
-      })}
+      {groups.map((group) => (
+        <DateSection key={group.dateKey} group={group} />
+      ))}
     </div>
   )
 }
