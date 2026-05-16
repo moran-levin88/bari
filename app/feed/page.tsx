@@ -156,8 +156,8 @@ const PING_TOPICS = [
 
 const PING_MESSAGES: Record<string, string[]> = {
   water: ['שתית מספיק מים היום? 💧', 'תשתי גם קצת מים 💧', 'מים מים מים!'],
-  exercise: ['הגיע הזמן לזוז 🏃', 'אימון היום?', 'בואי נתאמן יחד!'],
-  food: ['אכלת ארוחת בוקר?', 'שתיעדי ארוחה?', 'אל תשכחי לאכול! 🍽️'],
+  exercise: ['הגיע הזמן לזוז 🏃', 'אימון היום?', 'בואי נתאמן יחד!', 'כל הכבוד על האימון!'],
+  food: ['אכלת ארוחת בוקר?', 'ארוחות מושלמות היום!', 'אל תשכחי לאכול! 🍽️'],
 }
 
 function PingPanel({ userId, userName, onClose }: { userId: string; userName: string; onClose: () => void }) {
