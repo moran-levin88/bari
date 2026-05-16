@@ -148,10 +148,91 @@ function ItemLine({ item }: { item: FeedItem }) {
   return null
 }
 
-function UserCircle({ summary }: { summary: UserDaySummary }) {
+const PING_TOPICS = [
+  { key: 'water', emoji: '💧', label: 'מים' },
+  { key: 'exercise', emoji: '🏃', label: 'ספורט' },
+  { key: 'food', emoji: '🍽️', label: 'אוכל' },
+]
+
+const PING_MESSAGES: Record<string, string[]> = {
+  water: ['שתית מספיק מים היום? 💧', 'תשתי גם קצת מים 💧', 'מים מים מים!'],
+  exercise: ['הגיע הזמן לזוז 🏃', 'אימון היום?', 'בואי נתאמן יחד!'],
+  food: ['אכלת ארוחת בוקר?', 'שתיעדי ארוחה?', 'אל תשכחי לאכול! 🍽️'],
+}
+
+function PingPanel({ userId, userName, onClose }: { userId: string; userName: string; onClose: () => void }) {
+  const [topic, setTopic] = useState('water')
+  const [message, setMessage] = useState(PING_MESSAGES.water[0])
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+
+  function chooseTopic(t: string) {
+    setTopic(t)
+    setMessage(PING_MESSAGES[t][0])
+  }
+
+  async function send() {
+    setSending(true)
+    const res = await fetch('/api/pings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recipientId: userId, topic, message }),
+    })
+    setSending(false)
+    if (res.ok) { setSent(true); setTimeout(onClose, 1500) }
+  }
+
+  if (sent) return (
+    <div className="mt-2 bg-green-50 border border-green-200 rounded-xl px-3 py-3 text-center text-sm text-green-700 font-medium">
+      📣 הפינג נשלח ל{userName}!
+    </div>
+  )
+
+  return (
+    <div className="mt-2 bg-white border border-blue-200 rounded-xl px-3 py-3 shadow-sm">
+      <p className="text-xs font-semibold text-blue-600 mb-2">📣 שלחי פינג ל{userName}</p>
+      <div className="flex gap-1.5 mb-3">
+        {PING_TOPICS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => chooseTopic(t.key)}
+            className={`flex-1 py-1.5 rounded-xl text-xs font-medium transition-all ${
+              topic === t.key ? 'bg-blue-600 text-white' : 'bg-blue-50 text-slate-600 hover:bg-blue-100'
+            }`}
+          >
+            {t.emoji} {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-col gap-1.5 mb-3">
+        {PING_MESSAGES[topic].map((msg) => (
+          <button
+            key={msg}
+            onClick={() => setMessage(msg)}
+            className={`text-right text-xs px-2.5 py-1.5 rounded-lg transition-all ${
+              message === msg ? 'bg-blue-100 text-blue-700 font-medium' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            {msg}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <button onClick={send} disabled={sending} className="btn-primary text-xs py-2 flex-1 disabled:opacity-40">
+          {sending ? '...' : '📣 שלחי פינג'}
+        </button>
+        <button onClick={onClose} className="btn-secondary text-xs py-2 px-3">ביטול</button>
+      </div>
+    </div>
+  )
+}
+
+function UserCircle({ summary, currentUserId }: { summary: UserDaySummary; currentUserId: string }) {
   const [open, setOpen] = useState(false)
+  const [showPing, setShowPing] = useState(false)
   const { user, calories, water, hasExercise, targets } = summary
   const calPct = Math.min(100, Math.round((calories / targets.calories) * 100))
+  const isSelf = user.id === currentUserId
 
   return (
     <div className="flex flex-col items-center">
@@ -195,7 +276,17 @@ function UserCircle({ summary }: { summary: UserDaySummary }) {
 
       {open && (
         <div className="w-full mt-2 bg-white border border-blue-100 rounded-xl px-3 py-2 shadow-sm">
-          <p className="text-xs font-semibold text-blue-600 mb-2">{user.name} — כל הפעילות:</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-blue-600">{user.name} — כל הפעילות:</p>
+            {!isSelf && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowPing(!showPing) }}
+                className="text-xs text-blue-500 hover:text-blue-700 px-2 py-0.5 rounded-lg hover:bg-blue-50 transition-colors"
+              >
+                📣 פינג
+              </button>
+            )}
+          </div>
           {summary.items
             .sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())
             .map((item) => (
@@ -203,11 +294,19 @@ function UserCircle({ summary }: { summary: UserDaySummary }) {
             ))}
         </div>
       )}
+
+      {showPing && (
+        <PingPanel
+          userId={user.id}
+          userName={user.name}
+          onClose={() => setShowPing(false)}
+        />
+      )}
     </div>
   )
 }
 
-function DateSection({ group }: { group: DateGroup }) {
+function DateSection({ group, currentUserId }: { group: DateGroup; currentUserId: string }) {
   return (
     <div className="mb-6">
       <div className="flex items-center gap-2 mb-3">
@@ -222,7 +321,7 @@ function DateSection({ group }: { group: DateGroup }) {
         'grid-cols-3'
       }`}>
         {group.users.map((summary) => (
-          <UserCircle key={summary.user.id} summary={summary} />
+          <UserCircle key={summary.user.id} summary={summary} currentUserId={currentUserId} />
         ))}
       </div>
     </div>
@@ -232,13 +331,15 @@ function DateSection({ group }: { group: DateGroup }) {
 export default function FeedPage() {
   const [groups, setGroups] = useState<DateGroup[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentUserId, setCurrentUserId] = useState('')
 
   const loadFeed = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/feed')
-      const data = await res.json()
+      const [feedRes, meRes] = await Promise.all([fetch('/api/feed'), fetch('/api/me')])
+      const data = await feedRes.json()
       setGroups(groupFeed(data.feed || []))
+      if (meRes.ok) { const me = await meRes.json(); setCurrentUserId(me.userId || '') }
     } finally {
       setLoading(false)
     }
@@ -275,7 +376,7 @@ export default function FeedPage() {
         <button onClick={loadFeed} className="btn-secondary text-sm">🔄 רענן</button>
       </div>
       {groups.map((group) => (
-        <DateSection key={group.dateKey} group={group} />
+        <DateSection key={group.dateKey} group={group} currentUserId={currentUserId} />
       ))}
     </div>
   )

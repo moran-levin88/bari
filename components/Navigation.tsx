@@ -2,11 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { logout } from '@/lib/auth'
 
 const navItems = [
   { href: '/dashboard', label: 'דשבורד', icon: '📊' },
   { href: '/feed', label: 'פיד קבוצה', icon: '👥' },
+  { href: '/pings', label: 'פינגים', icon: '📣' },
   { href: '/log/meal', label: 'תיעוד ארוחה', icon: '🍽️' },
   { href: '/log/water', label: 'תיעוד מים', icon: '💧' },
   { href: '/log/exercise', label: 'תיעוד ספורט', icon: '🏃' },
@@ -20,6 +22,14 @@ const navItems = [
 export default function Navigation({ userName }: { userName: string }) {
   const pathname = usePathname()
   const router = useRouter()
+  const [unreadPings, setUnreadPings] = useState(0)
+
+  useEffect(() => {
+    fetch('/api/pings')
+      .then((r) => r.json())
+      .then((d) => setUnreadPings(d.unreadCount || 0))
+      .catch(() => {})
+  }, [pathname])
 
   async function handleLogout() {
     await logout()
@@ -38,10 +48,15 @@ export default function Navigation({ userName }: { userName: string }) {
             <Link
               key={item.href}
               href={item.href}
-              className={`nav-link text-sm ${pathname === item.href || pathname.startsWith(item.href + '/') ? 'active' : ''}`}
+              className={`nav-link text-sm relative ${pathname === item.href || pathname.startsWith(item.href + '/') ? 'active' : ''}`}
             >
               <span>{item.icon}</span>
               <span>{item.label}</span>
+              {item.href === '/pings' && unreadPings > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                  {unreadPings}
+                </span>
+              )}
             </Link>
           ))}
         </div>
@@ -60,10 +75,15 @@ export default function Navigation({ userName }: { userName: string }) {
           <Link
             key={item.href}
             href={item.href}
-            className={`nav-link text-xs whitespace-nowrap ${pathname.startsWith(item.href) ? 'active' : ''}`}
+            className={`nav-link text-xs whitespace-nowrap relative ${pathname.startsWith(item.href) ? 'active' : ''}`}
           >
             <span>{item.icon}</span>
             <span>{item.label}</span>
+            {item.href === '/pings' && unreadPings > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                {unreadPings}
+              </span>
+            )}
           </Link>
         ))}
       </div>

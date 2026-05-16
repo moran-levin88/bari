@@ -34,6 +34,8 @@ model User {
   savedFoods        SavedFood[]
   pushSubscriptions PushSubscription[]
   mealTemplates     MealTemplate[]
+  sentPings         Ping[]             @relation("PingSender")
+  receivedPings     Ping[]             @relation("PingRecipient")
 }
 
 model Group {
@@ -229,4 +231,22 @@ model MealTemplate {
   createdAt  DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Ping {
+  id          String    @id @default(cuid())
+  senderId    String
+  recipientId String
+  topic       String
+  message     String
+  reply       String?
+  repliedAt   DateTime?
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  sender    User @relation("PingSender",    fields: [senderId],    references: [id], onDelete: Cascade)
+  recipient User @relation("PingRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, isRead, createdAt])
+  @@index([senderId, createdAt])
 }
