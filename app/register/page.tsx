@@ -21,7 +21,7 @@ export default function RegisterPage() {
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     if (password !== confirm) {
       e.preventDefault()
-      setConfirmError('הסיסמאות אינן תואמות')
+      setConfirmError('Passwords do not match')
       return
     }
     setConfirmError('')
@@ -34,64 +34,56 @@ export default function RegisterPage() {
       <div className="card w-full max-w-md">
         <div className="text-center mb-6">
           <div className="text-4xl mb-2">🌿</div>
-          <h1 className="text-2xl font-bold text-blue-700">הצטרפי ל-Bari</h1>
-          <p className="text-slate-500 text-sm mt-1">צרי חשבון חדש ותתחילי את המסע</p>
+          <h1 className="text-2xl font-bold text-blue-700">Join Bari</h1>
+          <p className="text-slate-500 text-sm mt-1">Create your account and start your journey</p>
         </div>
 
         <form action={action} onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">שם מלא</label>
-            <input name="name" type="text" required className="input" placeholder="השם שלך" />
+            <label className="block text-sm font-medium text-slate-700 mb-1">Full name</label>
+            <input name="name" type="text" required className="input" placeholder="Your name" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">אימייל</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
             <input name="email" type="email" required className="input" placeholder="example@email.com" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">סיסמה</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
             <div className="relative">
               <input
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 required
-                className="input pl-10"
-                placeholder="לפחות 6 תווים"
+                className="input pr-10"
+                placeholder="At least 6 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-lg leading-none"
-                tabIndex={-1}
-              >
+              <button type="button" onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-lg leading-none" tabIndex={-1}>
                 {showPassword ? '🙈' : '👁️'}
               </button>
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">אימות סיסמה</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Confirm password</label>
             <div className="relative">
               <input
                 type={showConfirm ? 'text' : 'password'}
                 required
-                className={`input pl-10 ${mismatch ? 'border-red-300 focus:ring-red-200' : ''}`}
-                placeholder="הזיני שוב את הסיסמה"
+                className={`input pr-10 ${mismatch ? 'border-red-300 focus:ring-red-200' : ''}`}
+                placeholder="Enter password again"
                 value={confirm}
                 onChange={(e) => { setConfirm(e.target.value); setConfirmError('') }}
               />
-              <button
-                type="button"
-                onClick={() => setShowConfirm((v) => !v)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-lg leading-none"
-                tabIndex={-1}
-              >
+              <button type="button" onClick={() => setShowConfirm((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-lg leading-none" tabIndex={-1}>
                 {showConfirm ? '🙈' : '👁️'}
               </button>
             </div>
-            {mismatch && <p className="text-red-500 text-xs mt-1">הסיסמאות אינן תואמות</p>}
+            {mismatch && <p className="text-red-500 text-xs mt-1">Passwords do not match</p>}
             {!mismatch && confirm.length > 0 && password === confirm && (
-              <p className="text-green-500 text-xs mt-1">✓ הסיסמאות תואמות</p>
+              <p className="text-green-500 text-xs mt-1">✓ Passwords match</p>
             )}
             {confirmError && <p className="text-red-500 text-xs mt-1">{confirmError}</p>}
           </div>
@@ -103,15 +95,13 @@ export default function RegisterPage() {
           )}
 
           <button type="submit" disabled={pending} className="btn-primary py-3 text-base mt-2">
-            {pending ? 'נרשמת...' : 'הצטרפי עכשיו'}
+            {pending ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 
         <p className="text-center text-sm text-slate-500 mt-4">
-          כבר יש לך חשבון?{' '}
-          <Link href="/login" className="text-blue-600 font-medium hover:underline">
-            כניסה
-          </Link>
+          Already have an account?{' '}
+          <Link href="/login" className="text-blue-600 font-medium hover:underline">Sign in</Link>
         </p>
       </div>
     </main>

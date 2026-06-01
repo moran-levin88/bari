@@ -5,8 +5,8 @@ import PullToRefresh from '@/components/PullToRefresh'
 import PushPermission from '@/components/PushPermission'
 
 export const metadata: Metadata = {
-  title: "Bari - בארי",
-  description: "האפליקציה החכמה שלך לתזונה ובריאות",
+  title: "Bari",
+  description: "Your smart nutrition & health companion",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -38,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="he" dir="rtl" className="h-full">
+    <html lang="en" className="h-full">
       <body className="min-h-full bg-blue-50">
         {children}
         <ServiceWorkerRegistrar />

@@ -5,23 +5,23 @@ import Link from 'next/link'
 import { calculateDailyTargets } from '@/lib/nutrition'
 
 const GENDERS = [
-  { value: 'female', label: '👩 אישה' },
-  { value: 'male', label: '👨 גבר' },
-  { value: 'other', label: '🧑 אחר' },
+  { value: 'female', label: '👩 Female' },
+  { value: 'male', label: '👨 Male' },
+  { value: 'other', label: '🧑 Other' },
 ]
 
 const GOALS = [
-  { value: 'lose_weight', label: '⬇️ ירידה במשקל' },
-  { value: 'maintain', label: '⚖️ שמירה על משקל' },
-  { value: 'gain_muscle', label: '💪 עלייה בשריר' },
+  { value: 'lose_weight', label: '⬇️ Lose weight' },
+  { value: 'maintain', label: '⚖️ Maintain weight' },
+  { value: 'gain_muscle', label: '💪 Build muscle' },
 ]
 
 const ACTIVITY_LEVELS = [
-  { value: 'sedentary', label: '🪑 יושבני (ללא ספורט)' },
-  { value: 'light', label: '🚶 קל (1-3 פעמים בשבוע)' },
-  { value: 'moderate', label: '🏃 בינוני (3-5 פעמים)' },
-  { value: 'active', label: '⚡ פעיל (6-7 פעמים)' },
-  { value: 'very_active', label: '🔥 פעיל מאוד (ספורטאי)' },
+  { value: 'sedentary', label: '🪑 Sedentary (no exercise)' },
+  { value: 'light', label: '🚶 Light (1–3 times/week)' },
+  { value: 'moderate', label: '🏃 Moderate (3–5 times/week)' },
+  { value: 'active', label: '⚡ Active (6–7 times/week)' },
+  { value: 'very_active', label: '🔥 Very active (athlete)' },
 ]
 
 export default function ProfilePage() {
@@ -85,32 +85,32 @@ export default function ProfilePage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-blue-700 mb-6">👤 הפרופיל שלי</h1>
+      <h1 className="text-2xl font-bold text-blue-700 mb-6">👤 My Profile</h1>
 
       <form onSubmit={save}>
         <div className="card mb-4">
-          <h2 className="font-bold text-slate-700 mb-4">פרטים אישיים</h2>
+          <h2 className="font-bold text-slate-700 mb-4">Personal Details</h2>
           <div className="flex flex-col gap-3">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">שם מלא</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Full name</label>
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" />
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">גיל</label>
-                <input type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} className="input" placeholder="שנים" min={1} max={120} />
+                <label className="block text-sm font-medium text-slate-700 mb-1">Age</label>
+                <input type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} className="input" placeholder="years" min={1} max={120} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">משקל (ק"ג)</label>
-                <input type="number" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="input" placeholder="ק&quot;ג" min={20} max={300} step={0.5} />
+                <label className="block text-sm font-medium text-slate-700 mb-1">Weight (kg)</label>
+                <input type="number" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="input" placeholder="kg" min={20} max={300} step={0.5} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">גובה (ס"מ)</label>
-                <input type="number" value={form.height} onChange={(e) => setForm({ ...form, height: e.target.value })} className="input" placeholder='ס"מ' min={100} max={250} />
+                <label className="block text-sm font-medium text-slate-700 mb-1">Height (cm)</label>
+                <input type="number" value={form.height} onChange={(e) => setForm({ ...form, height: e.target.value })} className="input" placeholder="cm" min={100} max={250} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">מין</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Gender</label>
               <div className="flex gap-2">
                 {GENDERS.map((g) => (
                   <button
@@ -130,7 +130,7 @@ export default function ProfilePage() {
         </div>
 
         <div className="card mb-4">
-          <h2 className="font-bold text-slate-700 mb-3">מטרת התזונה</h2>
+          <h2 className="font-bold text-slate-700 mb-3">Nutrition Goal</h2>
           <div className="flex flex-col gap-2">
             {GOALS.map((g) => (
               <label key={g.value} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${form.goal === g.value ? 'border-blue-500 bg-blue-50' : 'border-blue-100 hover:border-blue-300'}`}>
@@ -142,7 +142,7 @@ export default function ProfilePage() {
         </div>
 
         <div className="card mb-4">
-          <h2 className="font-bold text-slate-700 mb-3">רמת פעילות</h2>
+          <h2 className="font-bold text-slate-700 mb-3">Activity Level</h2>
           <div className="flex flex-col gap-2">
             {ACTIVITY_LEVELS.map((a) => (
               <label key={a.value} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${form.activityLevel === a.value ? 'border-blue-500 bg-blue-50' : 'border-blue-100 hover:border-blue-300'}`}>
@@ -155,40 +155,40 @@ export default function ProfilePage() {
 
         {targets && (
           <div className="card mb-4 bg-blue-600 text-white">
-            <h2 className="font-bold mb-3">📊 היעדים היומיים שלך</h2>
+            <h2 className="font-bold mb-3">📊 Your Daily Targets</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="text-center bg-white/10 rounded-xl p-3">
                 <div className="text-2xl font-bold">{targets.calories}</div>
-                <div className="text-blue-200 text-xs">קלוריות</div>
+                <div className="text-blue-200 text-xs">Calories</div>
               </div>
               <div className="text-center bg-white/10 rounded-xl p-3">
                 <div className="text-2xl font-bold">{targets.protein}g</div>
-                <div className="text-blue-200 text-xs">חלבון</div>
+                <div className="text-blue-200 text-xs">Protein</div>
               </div>
               <div className="text-center bg-white/10 rounded-xl p-3">
                 <div className="text-2xl font-bold">{targets.carbs}g</div>
-                <div className="text-blue-200 text-xs">פחמימות</div>
+                <div className="text-blue-200 text-xs">Carbs</div>
               </div>
               <div className="text-center bg-white/10 rounded-xl p-3">
                 <div className="text-2xl font-bold">{(targets.water / 1000).toFixed(1)}L</div>
-                <div className="text-blue-200 text-xs">מים</div>
+                <div className="text-blue-200 text-xs">Water</div>
               </div>
             </div>
           </div>
         )}
 
         <button type="submit" disabled={saving} className="btn-primary w-full py-3 text-base">
-          {saving ? 'שומרת...' : saved ? '✅ נשמר!' : 'שמירת פרופיל'}
+          {saving ? 'Saving...' : saved ? '✅ Saved!' : 'Save Profile'}
         </button>
       </form>
 
       <div className="card mt-4">
         <Link href="/saved-foods" className="flex items-center justify-between py-1 group">
           <div>
-            <p className="font-medium text-slate-700">🗂️ מוצרים שמורים</p>
-            <p className="text-sm text-slate-400">ניהול מוצרים לתיעוד ארוחות מהיר</p>
+            <p className="font-medium text-slate-700">🗂️ Saved Foods</p>
+            <p className="text-sm text-slate-400">Manage foods for fast meal logging</p>
           </div>
-          <span className="text-slate-300 group-hover:text-blue-500 transition-colors text-xl">←</span>
+          <span className="text-slate-300 group-hover:text-blue-500 transition-colors text-xl">→</span>
         </Link>
       </div>
     </div>

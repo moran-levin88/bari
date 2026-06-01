@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
 
   if (isPublic !== false) {
     sendPushToGroupMates(session.userId, {
-      title: `${session.name} התאמנה 🏃`,
-      body: `${name} · ${duration || 30} דקות`,
+      title: `${session.name} worked out 🏃`,
+      body: `${name} · ${duration || 30} min`,
       url: '/feed',
     }).catch(() => {})
   }

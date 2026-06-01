@@ -11,11 +11,11 @@ export async function signup(_state: AuthState, formData: FormData): Promise<Aut
   const email = formData.get('email') as string
   const password = formData.get('password') as string
 
-  if (!name || !email || !password) return { error: 'כל השדות נדרשים' }
-  if (password.length < 6) return { error: 'הסיסמה חייבת להכיל לפחות 6 תווים' }
+  if (!name || !email || !password) return { error: 'All fields are required' }
+  if (password.length < 6) return { error: 'Password must be at least 6 characters' }
 
   const existing = await prisma.user.findUnique({ where: { email } })
-  if (existing) return { error: 'המשתמש כבר קיים עם כתובת האימייל הזו' }
+  if (existing) return { error: 'An account with this email already exists' }
 
   const hashed = await bcrypt.hash(password, 10)
   const user = await prisma.user.create({
@@ -31,13 +31,13 @@ export async function login(_state: AuthState, formData: FormData): Promise<Auth
   const password = formData.get('password') as string
   const rememberMe = formData.get('rememberMe') === 'on'
 
-  if (!email || !password) return { error: 'אימייל וסיסמה נדרשים' }
+  if (!email || !password) return { error: 'Email and password are required' }
 
   const user = await prisma.user.findUnique({ where: { email } })
-  if (!user) return { error: 'אימייל או סיסמה שגויים' }
+  if (!user) return { error: 'Invalid email or password' }
 
   const valid = await bcrypt.compare(password, user.password)
-  if (!valid) return { error: 'אימייל או סיסמה שגויים' }
+  if (!valid) return { error: 'Invalid email or password' }
 
   await createSession({ userId: user.id, email: user.email, name: user.name }, rememberMe)
   const refreshToken = rememberMe ? await createRefreshToken(user.id) : undefined

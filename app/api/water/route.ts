@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
   if (isPublic) {
     const display = amount >= 1000 ? `${(amount / 1000).toFixed(1)}L` : `${amount}ml`
     sendPushToGroupMates(session.userId, {
-      title: `${session.name} שתתה מים 💧`,
-      body: `${display} מים`,
+      title: `${session.name} drank water 💧`,
+      body: `${display} water`,
       url: '/feed',
     }).catch(() => {})
   }

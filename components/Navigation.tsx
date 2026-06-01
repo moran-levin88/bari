@@ -2,34 +2,25 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
 import { logout } from '@/lib/auth'
 
 const navItems = [
-  { href: '/dashboard', label: 'דשבורד', icon: '📊' },
-  { href: '/feed', label: 'פיד קבוצה', icon: '👥' },
-  { href: '/pings', label: 'פינגים', icon: '📣' },
-  { href: '/log/meal', label: 'תיעוד ארוחה', icon: '🍽️' },
-  { href: '/log/water', label: 'תיעוד מים', icon: '💧' },
-  { href: '/log/exercise', label: 'תיעוד ספורט', icon: '🏃' },
-  { href: '/log/steps', label: 'צעדים', icon: '👟' },
-  { href: '/weight', label: 'מעקב משקל', icon: '⚖️' },
-  { href: '/groups', label: 'קבוצות', icon: '🤝' },
-  { href: '/saved-foods', label: 'מוצרים שמורים', icon: '🗂️' },
-  { href: '/profile', label: 'פרופיל', icon: '👤' },
+  { href: '/dashboard', label: 'Dashboard', icon: '📊' },
+  { href: '/feed', label: 'Group Feed', icon: '👥' },
+  { href: '/log/meal', label: 'Log Meal', icon: '🍽️' },
+  { href: '/log/water', label: 'Water', icon: '💧' },
+  { href: '/log/exercise', label: 'Exercise', icon: '🏃' },
+  { href: '/log/steps', label: 'Steps', icon: '👟' },
+  { href: '/weight', label: 'Weight', icon: '⚖️' },
+  { href: '/groups', label: 'Groups', icon: '🤝' },
+  { href: '/saved-foods', label: 'Saved Foods', icon: '🗂️' },
+  { href: '/pings', label: 'Pings', icon: '📣' },
+  { href: '/profile', label: 'Profile', icon: '👤' },
 ]
 
 export default function Navigation({ userName }: { userName: string }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [unreadPings, setUnreadPings] = useState(0)
-
-  useEffect(() => {
-    fetch('/api/pings')
-      .then((r) => r.json())
-      .then((d) => setUnreadPings(d.unreadCount || 0))
-      .catch(() => {})
-  }, [pathname])
 
   async function handleLogout() {
     await logout()
@@ -48,23 +39,18 @@ export default function Navigation({ userName }: { userName: string }) {
             <Link
               key={item.href}
               href={item.href}
-              className={`nav-link text-sm relative ${pathname === item.href || pathname.startsWith(item.href + '/') ? 'active' : ''}`}
+              className={`nav-link text-sm ${pathname === item.href || pathname.startsWith(item.href + '/') ? 'active' : ''}`}
             >
               <span>{item.icon}</span>
               <span>{item.label}</span>
-              {item.href === '/pings' && unreadPings > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
-                  {unreadPings}
-                </span>
-              )}
             </Link>
           ))}
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-sm text-slate-500">שלום, {userName}</span>
+          <span className="text-sm text-slate-500">Hi, {userName}</span>
           <button onClick={handleLogout} className="btn-secondary text-sm py-2 px-4">
-            יציאה
+            Sign Out
           </button>
         </div>
       </div>
@@ -75,15 +61,10 @@ export default function Navigation({ userName }: { userName: string }) {
           <Link
             key={item.href}
             href={item.href}
-            className={`nav-link text-xs whitespace-nowrap relative ${pathname.startsWith(item.href) ? 'active' : ''}`}
+            className={`nav-link text-xs whitespace-nowrap ${pathname.startsWith(item.href) ? 'active' : ''}`}
           >
             <span>{item.icon}</span>
             <span>{item.label}</span>
-            {item.href === '/pings' && unreadPings > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
-                {unreadPings}
-              </span>
-            )}
           </Link>
         ))}
       </div>

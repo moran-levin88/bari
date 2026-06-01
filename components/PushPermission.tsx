@@ -45,20 +45,15 @@ export default function PushPermission() {
 
   useEffect(() => {
     if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-      setState('unsupported')
-      return
+      setState('unsupported'); return
     }
     if (Notification.permission === 'granted') {
-      // Re-save subscription on every app open (handles token refresh)
-      ensureSubscribed()
-      setState('subscribed')
+      ensureSubscribed(); setState('subscribed')
     } else if (Notification.permission === 'denied') {
       setState('denied')
     } else {
       const dismissed = localStorage.getItem('push_dismissed')
-      if (!dismissed) {
-        setTimeout(() => setState('prompt'), 3000)
-      }
+      if (!dismissed) setTimeout(() => setState('prompt'), 3000)
     }
   }, [])
 
@@ -74,11 +69,6 @@ export default function PushPermission() {
     }
   }
 
-  function dismiss() {
-    setState('idle')
-    localStorage.setItem('push_dismissed', '1')
-  }
-
   if (state !== 'prompt') return null
 
   return (
@@ -87,17 +77,14 @@ export default function PushPermission() {
         <div className="flex items-start gap-3">
           <span className="text-2xl flex-shrink-0">🔔</span>
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-slate-800 text-sm">הפעלי התראות</p>
+            <p className="font-bold text-slate-800 text-sm">Enable notifications</p>
             <p className="text-slate-500 text-xs mt-0.5">
-              קבלי עדכון כשחברה בקבוצה מתעדת פעילות, ותזכורות לשתות מים
+              Get notified when a group member logs activity, and receive water reminders
             </p>
             <div className="flex gap-2 mt-3">
-              <button onClick={requestPermission} className="btn-primary text-xs py-1.5 px-3 flex-1">
-                הפעלי
-              </button>
-              <button onClick={dismiss} className="btn-secondary text-xs py-1.5 px-3">
-                אחר כך
-              </button>
+              <button onClick={requestPermission} className="btn-primary text-xs py-1.5 px-3 flex-1">Enable</button>
+              <button onClick={() => { setState('idle'); localStorage.setItem('push_dismissed', '1') }}
+                className="btn-secondary text-xs py-1.5 px-3">Later</button>
             </div>
           </div>
         </div>

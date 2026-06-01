@@ -26,7 +26,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   })
 
   sendPushToUser(ping.senderId, {
-    title: `💬 ${session.name} ענתה לפינג שלך`,
+    title: `💬 ${session.name} replied to your ping`,
     body: reply.trim(),
     url: '/pings',
   }).catch(() => {})

@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
   const topicEmoji = topic === 'water' ? '💧' : topic === 'exercise' ? '🏃' : '🍽️'
   sendPushToUser(recipientId, {
-    title: `📣 פינג מ${session.name} ${topicEmoji}`,
+    title: `📣 Ping from ${session.name} ${topicEmoji}`,
     body: message.trim(),
     url: '/pings',
   }).catch(() => {})

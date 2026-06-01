@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     if (isPublic !== false) {
       sendPushToGroupMates(session.userId, {
-        title: `${session.name} תיעדה ארוחה 🍽️`,
+        title: `${session.name} logged a meal 🍽️`,
         body: name,
         url: '/feed',
       }).catch(() => {})
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ success: true, meal })
   } catch (error) {
     console.error('Create meal error:', error)
-    return Response.json({ error: 'שגיאה בשמירת הארוחה' }, { status: 500 })
+    return Response.json({ error: 'Failed to save meal' }, { status: 500 })
   }
 }
 

@@ -35,8 +35,8 @@ export async function GET(request: NextRequest) {
       const totalMl = total._sum.amount ?? 0
       if (totalMl < targetGoal * 0.6) {
         await sendPushToUser(userId, {
-          title: '💧 שתית מספיק היום?',
-          body: `שתית ${Math.round(totalMl)}ml מתוך ${targetGoal}ml המומלצים. בואי נשלים!`,
+          title: '💧 Staying hydrated today?',
+          body: `You drank ${Math.round(totalMl)}ml out of the recommended ${targetGoal}ml. Keep it up!`,
           url: '/log/water',
         })
         sent++

@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { steps, isPublic = true } = await request.json()
-  if (!steps || steps < 0) return Response.json({ error: 'כמות צעדים לא תקינה' }, { status: 400 })
+  if (!steps || steps < 0) return Response.json({ error: 'Invalid step count' }, { status: 400 })
 
   const log = await prisma.stepLog.create({
     data: { userId: session.userId, steps: Math.round(steps), isPublic },
@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
 
   if (isPublic) {
     sendPushToGroupMates(session.userId, {
-      title: `${session.name} הלכה ${steps.toLocaleString()} צעדים 👟`,
-      body: steps >= 10000 ? 'הגיעה ליעד היומי! 🎯' : 'כל הכבוד על ההליכה!',
+      title: `${session.name} walked ${steps.toLocaleString()} steps 👟`,
+      body: steps >= 10000 ? 'Daily goal reached! 🎯' : 'Great job on the walk!',
       url: '/feed',
     }).catch(() => {})
   }
