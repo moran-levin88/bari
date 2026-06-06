@@ -52,11 +52,14 @@ function validateNutrition(raw: Record<string, unknown>) {
 
 async function lookupUSDA(item: FoodItem): Promise<NutrientTotals | null> {
   try {
-    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(item.englishName)}&api_key=${USDA_API_KEY}&dataType=Foundation,SR%20Legacy&pageSize=1`
+    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(item.englishName)}&api_key=${USDA_API_KEY}&dataType=Foundation,SR%20Legacy&pageSize=5`
     const res = await fetch(url, { signal: AbortSignal.timeout(4000) })
     if (!res.ok) return null
     const data = await res.json()
-    const food = data.foods?.[0]
+    const foods: { description: string; foodNutrients: { nutrientId: number; value: number }[] }[] = data.foods || []
+    // Prefer whole-food entries — skip skin-only, fat-only, or giblet-only results
+    const SKIP_PATTERN = /\b(skin only|skin \(|fat only|giblets|separable fat)\b/i
+    const food = foods.find((f) => !SKIP_PATTERN.test(f.description)) ?? foods[0]
     if (!food?.foodNutrients?.length) return null
 
     const scale = item.portionGrams / 100
