@@ -39,6 +39,14 @@ function validateNutrition(raw: Record<string, unknown>) {
       ? raw.ingredients.filter((i) => typeof i === 'string').slice(0, 20)
       : [],
     tips: typeof raw.tips === 'string' ? raw.tips : '',
+    breakdown: Array.isArray(raw.breakdown)
+      ? raw.breakdown
+          .filter((b: unknown): b is { name: string; calories: number } =>
+            typeof (b as { name: string }).name === 'string' &&
+            typeof (b as { calories: number }).calories === 'number'
+          )
+          .slice(0, 20)
+      : [],
   }
 }
 
@@ -111,11 +119,12 @@ Rules:
 - For whole fruits/vegetables with no quantity specified, use 1 medium-sized piece.
 - Never reduce protein or calories when adding more foods — totals must always increase or stay the same.
 - Be consistent: the same input must always produce the same output.
+- If multiple foods, populate "breakdown" with calories per individual food item.
 
 Meal: "${mealName}"
 
 Return ONLY valid JSON (no markdown, no explanation):
-{"name":"meal name in Hebrew","description":"תיאור קצר בעברית","servingSize":"תיאור הכמות הכוללת","calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0,"sugar":0,"ingredients":[],"tips":"טיפ תזונתי קצר בעברית"}`
+{"name":"meal name in Hebrew","description":"תיאור קצר בעברית","servingSize":"תיאור הכמות הכוללת","calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0,"sugar":0,"ingredients":[],"breakdown":[{"name":"food item in Hebrew","calories":0}],"tips":"טיפ תזונתי קצר בעברית"}`
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
@@ -202,6 +211,7 @@ Return ONLY valid JSON:
 
     // Phase 2 — OpenFoodFacts + USDA lookup for each food in parallel
     let dbTotals: NutrientTotals | null = null
+    let breakdown: { name: string; calories: number }[] = []
     if (foods.length > 0) {
       const results = await Promise.all(foods.map(lookupFood))
       const validResults = results.filter((r): r is NutrientTotals => r !== null)
@@ -218,6 +228,9 @@ Return ONLY valid JSON:
           }),
           { calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0 }
         )
+        breakdown = foods
+          .map((f, i) => results[i] ? { name: `${f.hebrewName} (${f.portionGrams}g)`, calories: results[i]!.calories } : null)
+          .filter((b): b is { name: string; calories: number } => b !== null)
       }
     }
 
@@ -228,6 +241,7 @@ Return ONLY valid JSON:
         servingSize: identified.servingSize || foods.map((f) => `${f.hebrewName} ${f.portionGrams}g`).join(', '),
         tips: identified.tips || '',
         ingredients: foods.map((f) => `${f.hebrewName} – ${f.portionGrams}g`),
+        breakdown,
         ...dbTotals,
       })
       return Response.json({ success: true, nutrition })

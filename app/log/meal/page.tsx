@@ -40,6 +40,7 @@ type NutritionData = {
   sugar: number
   ingredients: string[]
   tips: string
+  breakdown?: { name: string; calories: number }[]
 }
 
 const emptyNutrition = (): NutritionData => ({
@@ -682,6 +683,24 @@ export default function LogMealPage() {
               )
             })}
           </div>
+
+          {nutrition && !manualMode && (nutrition.breakdown?.length ?? 0) >= 2 && (
+            <div className="mb-3 bg-blue-50 rounded-xl p-3">
+              <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Calories per item</p>
+              <ul className="flex flex-col gap-1.5">
+                {nutrition.breakdown!.map((item, i) => (
+                  <li key={i} className="flex items-center justify-between text-sm">
+                    <span className="text-slate-700">{item.name}</span>
+                    <span className="font-semibold text-blue-700">{item.calories} kcal</span>
+                  </li>
+                ))}
+                <li className="flex items-center justify-between text-sm border-t border-blue-200 pt-1.5 mt-0.5">
+                  <span className="font-semibold text-slate-700">Total</span>
+                  <span className="font-bold text-blue-700">{Math.round(nutrition.calories + sfNutrition.calories)} kcal</span>
+                </li>
+              </ul>
+            </div>
+          )}
 
           {nutrition && !manualMode && nutrition.ingredients?.length > 0 && (
             <details className="mb-3">
