@@ -52,13 +52,13 @@ function validateNutrition(raw: Record<string, unknown>) {
 
 async function lookupUSDA(item: FoodItem): Promise<NutrientTotals | null> {
   try {
-    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(item.englishName)}&api_key=${USDA_API_KEY}&dataType=Foundation,SR%20Legacy&pageSize=5`
+    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(item.englishName)}&api_key=${USDA_API_KEY}&dataType=SR%20Legacy&pageSize=5`
     const res = await fetch(url, { signal: AbortSignal.timeout(4000) })
     if (!res.ok) return null
     const data = await res.json()
     const foods: { description: string; foodNutrients: { nutrientId: number; value: number }[] }[] = data.foods || []
-    // Prefer whole-food entries — skip skin-only, fat-only, or giblet-only results
-    const SKIP_PATTERN = /\b(skin only|skin \(|fat only|giblets|separable fat)\b/i
+    // Prefer whole-food entries — skip skin/fat/giblet-only and confectionery results
+    const SKIP_PATTERN = /\b(skin only|skin \(|fat only|giblets|separable fat|candies|candy|confection)\b/i
     const food = foods.find((f) => !SKIP_PATTERN.test(f.description)) ?? foods[0]
     if (!food?.foodNutrients?.length) return null
 
@@ -193,13 +193,17 @@ Return ONLY valid JSON (no markdown, no explanation):
     }
 
     // Text input: Phase 1 — AI identifies foods with both Hebrew + English names and estimated portions
-    const identifyPrompt = `Parse this meal into individual food items for a nutrition database lookup.
-For each food, provide both the Hebrew name and English name, estimated portion in grams, and whether it is a branded/packaged product (isBranded: true) or a generic whole food like chicken, apple, rice (isBranded: false).
+    const identifyPrompt = `Parse this meal into individual food items for USDA SR Legacy nutrition database lookup.
+For each food provide:
+- hebrewName: the Hebrew name as written
+- englishName: specific USDA-style name (e.g. "peanuts dry roasted" not "peanuts", "chicken thigh meat roasted" not "chicken", "bulgur cooked" not "bulgur")
+- portionGrams: estimated grams
+- isBranded: true only for Israeli branded packaged products (e.g. דנונה, תנובה brands); false for whole/generic foods
 
 Meal: "${mealName}"
 
 Return ONLY valid JSON:
-{"foods":[{"hebrewName":"שם בעברית","englishName":"food name in English","portionGrams":150,"isBranded":false}],"hebrewName":"שם הארוחה","description":"תיאור קצר בעברית","servingSize":"תיאור הכמות הכוללת","tips":"טיפ תזונתי קצר בעברית"}`
+{"foods":[{"hebrewName":"שם בעברית","englishName":"specific USDA food name","portionGrams":150,"isBranded":false}],"hebrewName":"שם הארוחה","description":"תיאור קצר בעברית","servingSize":"תיאור הכמות הכוללת","tips":"טיפ תזונתי קצר בעברית"}`
 
     const identifyResponse = await openai.chat.completions.create({
       model: 'gpt-4o',
