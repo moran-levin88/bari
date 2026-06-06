@@ -26,7 +26,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
   if (meal.userId !== session.userId) return Response.json({ error: 'אין הרשאה' }, { status: 403 })
 
   const body = await request.json()
-  const { name, mealType, calories, protein, carbs, fat, fiber, sugar, isPublic } = body
+  const { name, mealType, calories, protein, carbs, fat, fiber, sugar, isPublic, aiAnalysis } = body
 
   const safeNum = (v: unknown, fallback: number) => {
     const n = Number(v)
@@ -45,6 +45,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
       fiber: safeNum(fiber, meal.fiber),
       sugar: safeNum(sugar, meal.sugar),
       isPublic: isPublic ?? meal.isPublic,
+      ...(aiAnalysis !== undefined && { aiAnalysis }),
     },
   })
 

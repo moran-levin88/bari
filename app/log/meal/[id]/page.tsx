@@ -24,6 +24,12 @@ type FormState = {
   carbs: string; fat: string; fiber: string; sugar: string; isPublic: boolean
 }
 
+type NutritionResult = {
+  name: string; calories: number; protein: number; carbs: number
+  fat: number; fiber: number; sugar: number; tips?: string
+  breakdown?: { name: string; calories: number }[]
+}
+
 function parseIngredients(aiAnalysis: string | null, name: string): string[] {
   if (aiAnalysis) {
     try {
@@ -42,8 +48,11 @@ export default function EditMealPage() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
   const [error, setError] = useState('')
   const [ingredients, setIngredients] = useState<string[]>([])
+  const [reanalyzeText, setReanalyzeText] = useState('')
+  const [analysisResult, setAnalysisResult] = useState<NutritionResult | null>(null)
   const [form, setForm] = useState<FormState>({
     name: '', mealType: '', calories: '0', protein: '0',
     carbs: '0', fat: '0', fiber: '0', sugar: '0', isPublic: true,
@@ -55,6 +64,7 @@ export default function EditMealPage() {
       .then(({ meal }) => {
         if (!meal) { setError('Meal not found'); return }
         setIngredients(parseIngredients(meal.aiAnalysis, meal.name))
+        setReanalyzeText(meal.name)
         setForm({
           name: meal.name, mealType: meal.mealType || '',
           calories: String(Math.round(meal.calories)), protein: String(Math.round(meal.protein)),
@@ -66,6 +76,36 @@ export default function EditMealPage() {
       .catch(() => setError('Failed to load'))
       .finally(() => setLoading(false))
   }, [id])
+
+  async function reanalyze() {
+    if (!reanalyzeText.trim()) return
+    setAnalyzing(true)
+    setError('')
+    setAnalysisResult(null)
+    try {
+      const fd = new FormData()
+      fd.append('name', reanalyzeText)
+      const res = await fetch('/api/analyze-food', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Analysis failed')
+      const n: NutritionResult = data.nutrition
+      setAnalysisResult(n)
+      setForm((prev) => ({
+        ...prev,
+        name: n.name || prev.name,
+        calories: String(Math.round(n.calories)),
+        protein: String(Math.round(n.protein)),
+        carbs: String(Math.round(n.carbs)),
+        fat: String(Math.round(n.fat)),
+        fiber: String(Math.round(n.fiber)),
+        sugar: String(Math.round(n.sugar)),
+      }))
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Analysis failed')
+    } finally {
+      setAnalyzing(false)
+    }
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
@@ -81,6 +121,7 @@ export default function EditMealPage() {
           carbs: Number(form.carbs), fat: Number(form.fat),
           fiber: Number(form.fiber), sugar: Number(form.sugar),
           isPublic: form.isPublic,
+          aiAnalysis: analysisResult ? JSON.stringify(analysisResult) : undefined,
         }),
       })
       const data = await res.json()
@@ -118,7 +159,7 @@ export default function EditMealPage() {
             className="input" placeholder="Meal name..." />
         </div>
 
-        {ingredients.length > 0 && (
+        {ingredients.length > 0 && !analysisResult && (
           <div className="card">
             <p className="text-sm font-semibold text-slate-600 mb-2">🥗 Detected Ingredients</p>
             <ul className="flex flex-col gap-1.5">
@@ -130,6 +171,46 @@ export default function EditMealPage() {
             </ul>
           </div>
         )}
+
+        {/* Re-analyze section */}
+        <div className="card border-blue-200">
+          <h2 className="font-bold text-slate-700 mb-1">🔍 Re-analyze with AI</h2>
+          <p className="text-xs text-slate-400 mb-3">Edit the description below and re-run AI analysis to update the nutrition values</p>
+          <textarea
+            value={reanalyzeText}
+            onChange={(e) => setReanalyzeText(e.target.value)}
+            className="input text-sm mb-3 resize-none"
+            rows={2}
+            placeholder="e.g. chicken breast 150g, rice 100g..."
+          />
+          <button
+            type="button"
+            onClick={reanalyze}
+            disabled={analyzing || !reanalyzeText.trim()}
+            className="btn-primary w-full py-2.5 disabled:opacity-40"
+          >
+            {analyzing ? '🔍 Analyzing...' : '🔍 Re-analyze with AI'}
+          </button>
+
+          {analysisResult && (
+            <div className="mt-3 bg-green-50 border border-green-200 rounded-xl p-3">
+              <p className="text-xs font-semibold text-green-700 mb-1">✅ Analysis complete — values updated below</p>
+              {(analysisResult.breakdown?.length ?? 0) >= 2 && (
+                <ul className="flex flex-col gap-1 mt-2">
+                  {analysisResult.breakdown!.map((item, i) => (
+                    <li key={i} className="flex items-center justify-between text-xs text-slate-600">
+                      <span>{item.name}</span>
+                      <span className="font-semibold text-blue-700">{item.calories} kcal</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {analysisResult.tips && (
+                <p className="text-xs text-green-600 mt-2">💡 {analysisResult.tips}</p>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="card">
           <h2 className="font-bold text-slate-700 mb-3">Meal type</h2>
