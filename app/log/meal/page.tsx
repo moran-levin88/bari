@@ -583,10 +583,10 @@ export default function LogMealPage() {
 
         {error && <p className="text-orange-500 text-sm mb-3">{error}</p>}
 
-        {!manualMode && !nutrition && (
+        {!manualMode && (
           <button onClick={analyzeFood} disabled={analyzing || (!hasIngredients && !imageFile)}
             className="btn-primary w-full py-3 text-base disabled:opacity-40">
-            {analyzing ? '🔍 Analysing...' : '🔍 Analyse Nutrition (AI)'}
+            {analyzing ? '🔍 Analysing...' : nutrition ? '🔄 Re-analyze' : '🔍 Analyse Nutrition (AI)'}
           </button>
         )}
       </div>
