@@ -56,11 +56,12 @@ export default function Navigation({ userName }: { userName: string }) {
       </div>
 
       {/* Mobile nav */}
-      <div className="md:hidden flex gap-1 mt-2 overflow-x-auto pb-1">
+      <div className="md:hidden flex gap-1 mt-2 overflow-x-auto pb-1" dir="rtl">
         {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
+            dir="ltr"
             className={`nav-link text-xs whitespace-nowrap ${pathname.startsWith(item.href) ? 'active' : ''}`}
           >
             <span>{item.icon}</span>
