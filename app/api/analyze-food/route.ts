@@ -132,7 +132,7 @@ Return ONLY valid JSON (no markdown, no explanation):
 {"name":"meal name in Hebrew","description":"תיאור קצר בעברית","servingSize":"תיאור הכמות הכוללת","calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0,"sugar":0,"ingredients":[],"breakdown":[{"name":"food item in Hebrew","calories":0}],"tips":"טיפ תזונתי קצר בעברית"}`
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4o',
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },
     max_tokens: 600,
@@ -173,7 +173,7 @@ Return ONLY valid JSON (no markdown, no explanation):
 {"name":"meal name in Hebrew","description":"תיאור קצר בעברית","servingSize":"תיאור הכמות הכוללת","calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0,"sugar":0,"ingredients":[],"tips":"טיפ תזונתי קצר בעברית"}`
 
       const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [{
           role: 'user',
           content: [
@@ -199,7 +199,7 @@ Return ONLY valid JSON:
 {"foods":[{"hebrewName":"שם בעברית","englishName":"food name in English","portionGrams":150,"isBranded":false}],"hebrewName":"שם הארוחה","description":"תיאור קצר בעברית","servingSize":"תיאור הכמות הכוללת","tips":"טיפ תזונתי קצר בעברית"}`
 
     const identifyResponse = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [{ role: 'user', content: identifyPrompt }],
       response_format: { type: 'json_object' },
       max_tokens: 400,
