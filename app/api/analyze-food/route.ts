@@ -16,7 +16,7 @@ const USDA_NUTRIENT_IDS = {
 } as const
 
 type NutrientTotals = { calories: number; protein: number; fat: number; carbs: number; fiber: number; sugar: number }
-type FoodItem = { englishName: string; hebrewName: string; portionGrams: number }
+type FoodItem = { englishName: string; hebrewName: string; portionGrams: number; isBranded: boolean }
 
 function clamp(v: unknown, min: number, max: number): number {
   const n = Number(v)
@@ -104,9 +104,14 @@ async function lookupOpenFoodFacts(item: FoodItem): Promise<NutrientTotals | nul
 }
 
 async function lookupFood(item: FoodItem): Promise<NutrientTotals | null> {
-  // Run both lookups in parallel; prefer OpenFoodFacts (has Israeli products), fall back to USDA
-  const [off, usda] = await Promise.all([lookupOpenFoodFacts(item), lookupUSDA(item)])
-  return off ?? usda
+  if (item.isBranded) {
+    // Branded/packaged product (e.g. קוטג' 5%, יוגורט דנונה): OpenFoodFacts has real label data
+    const [off, usda] = await Promise.all([lookupOpenFoodFacts(item), lookupUSDA(item)])
+    return off ?? usda
+  } else {
+    // Generic food (chicken, apple, rice): USDA is curated and reliable; OpenFoodFacts can return wrong matches
+    return lookupUSDA(item)
+  }
 }
 
 async function analyzeWithAI(mealName: string): Promise<Record<string, unknown>> {
@@ -186,12 +191,12 @@ Return ONLY valid JSON (no markdown, no explanation):
 
     // Text input: Phase 1 — AI identifies foods with both Hebrew + English names and estimated portions
     const identifyPrompt = `Parse this meal into individual food items for a nutrition database lookup.
-For each food, provide both the Hebrew name (as written/common in Israel) and English name, plus estimated portion in grams.
+For each food, provide both the Hebrew name and English name, estimated portion in grams, and whether it is a branded/packaged product (isBranded: true) or a generic whole food like chicken, apple, rice (isBranded: false).
 
 Meal: "${mealName}"
 
 Return ONLY valid JSON:
-{"foods":[{"hebrewName":"שם בעברית","englishName":"food name in English","portionGrams":150}],"hebrewName":"שם הארוחה","description":"תיאור קצר בעברית","servingSize":"תיאור הכמות הכוללת","tips":"טיפ תזונתי קצר בעברית"}`
+{"foods":[{"hebrewName":"שם בעברית","englishName":"food name in English","portionGrams":150,"isBranded":false}],"hebrewName":"שם הארוחה","description":"תיאור קצר בעברית","servingSize":"תיאור הכמות הכוללת","tips":"טיפ תזונתי קצר בעברית"}`
 
     const identifyResponse = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -206,7 +211,7 @@ Return ONLY valid JSON:
       ? identified.foods.filter(
           (f: unknown): f is FoodItem =>
             typeof (f as FoodItem).englishName === 'string' && Number((f as FoodItem).portionGrams) > 0
-        )
+        ).map((f: FoodItem) => ({ ...f, isBranded: f.isBranded === true }))
       : []
 
     // Phase 2 — OpenFoodFacts + USDA lookup for each food in parallel
