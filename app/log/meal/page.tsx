@@ -123,16 +123,16 @@ function SavedFoodsPicker({
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 <button
                   type="button"
-                  onClick={() => onUpdateServings(food.id, Math.max(0.5, servings - 0.5))}
+                  onClick={() => onUpdateServings(food.id, Math.max(0.1, Math.round((servings - 0.1) * 10) / 10))}
                   className="w-7 h-7 rounded-lg bg-white border border-blue-200 text-blue-600 font-bold flex items-center justify-center text-sm hover:bg-blue-100 transition-colors"
                 >−</button>
                 <div className="text-center min-w-[40px]">
-                  <span className="font-bold text-blue-700 text-sm">{servings}</span>
+                  <span className="font-bold text-blue-700 text-sm">{servings.toFixed(1)}</span>
                   <span className="text-xs text-slate-400 block leading-none">{food.servingName}</span>
                 </div>
                 <button
                   type="button"
-                  onClick={() => onUpdateServings(food.id, servings + 0.5)}
+                  onClick={() => onUpdateServings(food.id, Math.round((servings + 0.1) * 10) / 10)}
                   className="w-7 h-7 rounded-lg bg-white border border-blue-200 text-blue-600 font-bold flex items-center justify-center text-sm hover:bg-blue-100 transition-colors"
                 >+</button>
               </div>
