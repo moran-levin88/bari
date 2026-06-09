@@ -585,7 +585,7 @@ export default function LogMealPage() {
         {/* Free text meal input */}
         <div className="flex items-center gap-2 mb-3">
           <div className="flex-1 h-px bg-blue-100" />
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">או תארי מנה שלמה</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Or describe a full meal</p>
           <div className="flex-1 h-px bg-blue-100" />
         </div>
         <textarea
@@ -593,7 +593,7 @@ export default function LogMealPage() {
           onChange={(e) => { setMealFreeText(e.target.value); setNutrition(null) }}
           className="input text-sm py-2.5 w-full resize-none mb-4"
           rows={2}
-          placeholder="לדוגמה: כריך עם לחמניית ביס 80 גרם וסלט טונה 50 גרם"
+          placeholder="e.g. a sandwich with an 80g bun and 50g tuna salad"
         />
 
         {error && <p className="text-orange-500 text-sm mb-3">{error}</p>}
