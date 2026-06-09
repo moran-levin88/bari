@@ -278,6 +278,7 @@ export default function LogMealPage() {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [ingredients, setIngredients] = useState<Ingredient[]>([{ name: '', grams: '', quantity: '', inputMode: 'grams' }])
+  const [mealFreeText, setMealFreeText] = useState('')
   const [mealType, setMealType] = useState('')
   const [nutrition, setNutrition] = useState<NutritionData | null>(null)
   const [manualMode, setManualMode] = useState(false)
@@ -328,7 +329,7 @@ export default function LogMealPage() {
 
   const sfNutrition = savedFoodsNutrition(selectedFoods)
   const hasSavedFoods = selectedFoods.length > 0
-  const hasIngredients = ingredients.some((i) => i.name.trim())
+  const hasIngredients = ingredients.some((i) => i.name.trim()) || mealFreeText.trim().length > 0
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -367,7 +368,8 @@ export default function LogMealPage() {
   }
 
   async function analyzeFood() {
-    const mealDescription = buildMealDescription(ingredients)
+    const ingredientsDesc = buildMealDescription(ingredients)
+    const mealDescription = [ingredientsDesc, mealFreeText.trim()].filter(Boolean).join(', ')
     if (!imageFile && !mealDescription) {
       setError('Please enter at least one item')
       return
@@ -386,10 +388,9 @@ export default function LogMealPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unknown error'
       setError(`Analysis failed: ${msg}`)
-      // On failure, enter manual mode pre-seeded with saved foods
       const combined = combinedWithSF(emptyNutrition())
       setManualMode(true)
-      setManualData({ ...emptyNutrition(), ...combined, name: buildMealDescription(ingredients) })
+      setManualData({ ...emptyNutrition(), ...combined, name: mealDescription })
     } finally {
       setAnalyzing(false)
     }
@@ -406,7 +407,7 @@ export default function LogMealPage() {
       setError('You entered ingredients but haven\'t analysed them — tap "Analyse nutrition" or "Enter manually"')
       return
     }
-    const mealDescription = buildMealDescription(ingredients)
+    const mealDescription = [buildMealDescription(ingredients), mealFreeText.trim()].filter(Boolean).join(', ')
 
     // finalNutrition is always the combined total
     // manualData already includes sfNutrition (seeded on entry); AI mode sums on the fly
@@ -581,6 +582,20 @@ export default function LogMealPage() {
           + Add another item
         </button>
 
+        {/* Free text meal input */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex-1 h-px bg-blue-100" />
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">או תארי מנה שלמה</p>
+          <div className="flex-1 h-px bg-blue-100" />
+        </div>
+        <textarea
+          value={mealFreeText}
+          onChange={(e) => { setMealFreeText(e.target.value); setNutrition(null) }}
+          className="input text-sm py-2.5 w-full resize-none mb-4"
+          rows={2}
+          placeholder="לדוגמה: כריך עם לחמניית ביס 80 גרם וסלט טונה 50 גרם"
+        />
+
         {error && <p className="text-orange-500 text-sm mb-3">{error}</p>}
 
         {!manualMode && (
@@ -595,7 +610,8 @@ export default function LogMealPage() {
         <button
           onClick={() => {
             const combined = combinedWithSF(emptyNutrition())
-            setManualData({ ...emptyNutrition(), ...combined })
+            const desc = [buildMealDescription(ingredients), mealFreeText.trim()].filter(Boolean).join(', ')
+            setManualData({ ...emptyNutrition(), ...combined, name: desc })
             setManualMode(true)
           }}
           className="w-full text-blue-500 text-sm underline mb-4"
