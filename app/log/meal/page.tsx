@@ -11,6 +11,9 @@ const MEAL_TYPES = [
   { value: 'between', label: '🍎 Snack' },
 ]
 
+type InputMode = 'grams' | 'quantity'
+type Ingredient = { name: string; grams: string; quantity: string; inputMode: InputMode }
+
 type SavedFood = {
   id: string
   name: string
@@ -45,10 +48,7 @@ const emptyNutrition = (): NutritionData => ({
   protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, ingredients: [], tips: '',
 })
 
-function sumNutrition(
-  a: Pick<NutritionData, 'calories'|'protein'|'carbs'|'fat'|'fiber'|'sugar'>,
-  b: Pick<NutritionData, 'calories'|'protein'|'carbs'|'fat'|'fiber'|'sugar'>
-) {
+function sumNutrition(a: Pick<NutritionData, 'calories'|'protein'|'carbs'|'fat'|'fiber'|'sugar'>, b: Pick<NutritionData, 'calories'|'protein'|'carbs'|'fat'|'fiber'|'sugar'>) {
   return {
     calories: a.calories + b.calories,
     protein: a.protein + b.protein,
@@ -71,6 +71,17 @@ function savedFoodsNutrition(selected: SelectedFood[]) {
     }),
     { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0 }
   )
+}
+
+function buildMealDescription(ingredients: Ingredient[]): string {
+  return ingredients
+    .filter((i) => i.name.trim())
+    .map((i) => {
+      if (i.inputMode === 'grams' && i.grams.trim()) return `${i.name.trim()} ${i.grams.trim()}g`
+      if (i.inputMode === 'quantity' && i.quantity.trim()) return `${i.quantity.trim()} ${i.name.trim()}`
+      return i.name.trim()
+    })
+    .join(', ')
 }
 
 // ---- Saved foods picker component ----
@@ -211,13 +222,62 @@ function SavedFoodsPicker({
   )
 }
 
+// ---- Ingredient row ----
+function IngredientRow({
+  item, index, onUpdate, onRemove, canRemove,
+}: {
+  item: Ingredient
+  index: number
+  onUpdate: (index: number, field: keyof Ingredient, value: string) => void
+  onRemove: (index: number) => void
+  canRemove: boolean
+}) {
+  return (
+    <div className="bg-blue-50 rounded-xl p-3 flex flex-col gap-2">
+      <input
+        type="text"
+        value={item.name}
+        onChange={(e) => onUpdate(index, 'name', e.target.value)}
+        className="input text-sm py-2 bg-white"
+        placeholder="Food name: yogurt, chicken, bread..."
+      />
+      <div className="flex items-center gap-2">
+        <div className="flex rounded-lg overflow-hidden border border-blue-200 text-xs font-medium flex-shrink-0">
+          <button type="button" onClick={() => onUpdate(index, 'inputMode', 'grams')}
+            className={`px-2.5 py-1.5 transition-colors ${item.inputMode === 'grams' ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 hover:bg-blue-50'}`}>
+            Grams
+          </button>
+          <button type="button" onClick={() => onUpdate(index, 'inputMode', 'quantity')}
+            className={`px-2.5 py-1.5 transition-colors ${item.inputMode === 'quantity' ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 hover:bg-blue-50'}`}>
+            Qty
+          </button>
+        </div>
+        {item.inputMode === 'grams' ? (
+          <input type="number" value={item.grams} onChange={(e) => onUpdate(index, 'grams', e.target.value)}
+            className="input text-sm py-1.5 text-center flex-1 bg-white" placeholder="150" min={0} />
+        ) : (
+          <input type="number" value={item.quantity} onChange={(e) => onUpdate(index, 'quantity', e.target.value)}
+            className="input text-sm py-1.5 text-center flex-1 bg-white" placeholder="2" min={0} step={0.5} />
+        )}
+        <span className="text-xs text-slate-400 w-8 text-center flex-shrink-0">
+          {item.inputMode === 'grams' ? 'g' : 'pcs'}
+        </span>
+        <button onClick={() => onRemove(index)} disabled={!canRemove}
+          className="w-7 h-7 flex items-center justify-center text-slate-300 hover:text-red-400 disabled:opacity-0 transition-colors rounded-lg hover:bg-red-50 flex-shrink-0">
+          ✕
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ---- Main page ----
 export default function LogMealPage() {
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [mealText, setMealText] = useState('')
+  const [ingredients, setIngredients] = useState<Ingredient[]>([{ name: '', grams: '', quantity: '', inputMode: 'grams' }])
   const [mealType, setMealType] = useState('')
   const [nutrition, setNutrition] = useState<NutritionData | null>(null)
   const [manualMode, setManualMode] = useState(false)
@@ -268,13 +328,25 @@ export default function LogMealPage() {
 
   const sfNutrition = savedFoodsNutrition(selectedFoods)
   const hasSavedFoods = selectedFoods.length > 0
-  const hasIngredients = mealText.trim().length > 0
+  const hasIngredients = ingredients.some((i) => i.name.trim())
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
+  }
+
+  function updateIngredient(index: number, field: keyof Ingredient, value: string) {
+    setIngredients((prev) => prev.map((item, i) => i === index ? { ...item, [field]: value } : item))
+  }
+
+  function addIngredient() {
+    setIngredients((prev) => [...prev, { name: '', grams: '', quantity: '', inputMode: 'grams' }])
+  }
+
+  function removeIngredient(index: number) {
+    setIngredients((prev) => prev.filter((_, i) => i !== index))
   }
 
   function addSavedFood(food: SavedFood) {
@@ -295,7 +367,8 @@ export default function LogMealPage() {
   }
 
   async function analyzeFood() {
-    if (!imageFile && !mealText.trim()) {
+    const mealDescription = buildMealDescription(ingredients)
+    if (!imageFile && !mealDescription) {
       setError('Please enter at least one item')
       return
     }
@@ -304,7 +377,7 @@ export default function LogMealPage() {
     try {
       const fd = new FormData()
       if (imageFile) fd.append('image', imageFile)
-      if (mealText.trim()) fd.append('name', mealText.trim())
+      if (mealDescription) fd.append('name', mealDescription)
 
       const res = await fetch('/api/analyze-food', { method: 'POST', body: fd })
       const data = await res.json()
@@ -313,9 +386,10 @@ export default function LogMealPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unknown error'
       setError(`Analysis failed: ${msg}`)
+      // On failure, enter manual mode pre-seeded with saved foods
       const combined = combinedWithSF(emptyNutrition())
       setManualMode(true)
-      setManualData({ ...emptyNutrition(), ...combined, name: mealText.trim() })
+      setManualData({ ...emptyNutrition(), ...combined, name: buildMealDescription(ingredients) })
     } finally {
       setAnalyzing(false)
     }
@@ -327,19 +401,24 @@ export default function LogMealPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     }
+    // Warn if free-text ingredients were entered but not analyzed
     if (hasIngredients && !nutrition && !manualMode) {
       setError('You entered ingredients but haven\'t analysed them — tap "Analyse nutrition" or "Enter manually"')
       return
     }
+    const mealDescription = buildMealDescription(ingredients)
 
+    // finalNutrition is always the combined total
+    // manualData already includes sfNutrition (seeded on entry); AI mode sums on the fly
     const finalNutrition = manualMode
       ? { calories: manualData.calories, protein: manualData.protein, carbs: manualData.carbs, fat: manualData.fat, fiber: manualData.fiber, sugar: manualData.sugar }
       : nutrition
         ? sumNutrition(sfNutrition, nutrition)
         : { ...sfNutrition }
 
+    // Name always combines saved food names + AI/manual name
     const sfNames = selectedFoods.map((s) => `${s.servings} ${s.food.servingName} ${s.food.name}`).join(', ')
-    const aiName = (manualMode ? manualData.name : nutrition?.name) || mealText.trim()
+    const aiName = (manualMode ? manualData.name : nutrition?.name) || mealDescription
     const name = [sfNames, aiName].filter(Boolean).join(' + ') || 'Meal'
 
     if (!name.trim() && !hasSavedFoods) {
@@ -469,20 +548,8 @@ export default function LogMealPage() {
         {/* Divider */}
         <div className="flex items-center gap-2 mb-3">
           <div className="flex-1 h-px bg-blue-100" />
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">AI analysis</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Free entry for AI analysis</p>
           <div className="flex-1 h-px bg-blue-100" />
-        </div>
-
-        {/* Free text input */}
-        <div className="mb-3">
-          <textarea
-            value={mealText}
-            onChange={(e) => { setMealText(e.target.value); setNutrition(null) }}
-            className="input text-sm py-3 w-full resize-none"
-            rows={3}
-            placeholder="לדוגמה: לחמניית ביס 80 גרם, סלט טונה 50 גרם, עגבניה אחת..."
-          />
-          <p className="text-xs text-slate-400 mt-1">תכתבי הכל בשורה אחת עם הכמויות — ה-AI יחשב את הכל</p>
         </div>
 
         {/* Photo */}
@@ -499,6 +566,21 @@ export default function LogMealPage() {
         </div>
         <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageChange} />
 
+        <p className="text-xs text-slate-400 mb-2">
+          For each item choose: <span className="font-medium text-blue-600">Grams</span> or <span className="font-medium text-blue-600">Qty</span> (slices, cups...)
+        </p>
+
+        <div className="flex flex-col gap-2 mb-3">
+          {ingredients.map((item, index) => (
+            <IngredientRow key={index} item={item} index={index} onUpdate={updateIngredient} onRemove={removeIngredient} canRemove={ingredients.length > 1} />
+          ))}
+        </div>
+
+        <button onClick={addIngredient}
+          className="w-full py-2 border-2 border-dashed border-blue-200 rounded-xl text-blue-500 text-sm hover:border-blue-400 hover:bg-blue-50 transition-all mb-4">
+          + Add another item
+        </button>
+
         {error && <p className="text-orange-500 text-sm mb-3">{error}</p>}
 
         {!manualMode && (
@@ -513,7 +595,7 @@ export default function LogMealPage() {
         <button
           onClick={() => {
             const combined = combinedWithSF(emptyNutrition())
-            setManualData({ ...emptyNutrition(), ...combined, name: mealText.trim() })
+            setManualData({ ...emptyNutrition(), ...combined })
             setManualMode(true)
           }}
           className="w-full text-blue-500 text-sm underline mb-4"
