@@ -296,6 +296,10 @@ export default function LogMealPage() {
   const [templates, setTemplates] = useState<MealTemplate[]>([])
   const [loggingTemplateId, setLoggingTemplateId] = useState<string | null>(null)
   const [loggedTemplateId, setLoggedTemplateId] = useState<string | null>(null)
+  // Section accordions
+  const [openSavedFoods, setOpenSavedFoods] = useState(false)
+  const [openFreeEntry, setOpenFreeEntry] = useState(false)
+  const [openFullMeal, setOpenFullMeal] = useState(false)
 
   useEffect(() => {
     fetch('/api/saved-foods')
@@ -530,71 +534,113 @@ export default function LogMealPage() {
 
       {/* Ingredients card */}
       <div className="card mb-4">
-        <h2 className="font-bold text-slate-700 mb-1">🥗 What did you eat?</h2>
-        <p className="text-xs text-slate-400 mb-4">Pick from saved foods, enter freely, or both</p>
+        <h2 className="font-bold text-slate-700 mb-3">🥗 What did you eat?</h2>
 
-        {/* Saved foods section */}
-        <div className="mb-2">
-          <p className="text-xs font-semibold text-blue-600 mb-2 uppercase tracking-wide">📋 Saved Foods</p>
-          <SavedFoodsPicker
-            savedFoods={savedFoods}
-            selected={selectedFoods}
-            onAdd={addSavedFood}
-            onUpdateServings={updateServings}
-            onRemove={removeSavedFood}
-          />
-        </div>
-
-
-        {/* Divider */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex-1 h-px bg-blue-100" />
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Free entry for AI analysis</p>
-          <div className="flex-1 h-px bg-blue-100" />
-        </div>
-
-        {/* Photo */}
-        <div onClick={() => fileRef.current?.click()}
-          className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all mb-3 ${imagePreview ? 'border-blue-400 bg-blue-50' : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50'}`}>
-          {imagePreview ? (
-            <img src={imagePreview} alt="preview" className="max-h-40 mx-auto rounded-xl object-cover" />
-          ) : (
-            <>
-              <div className="text-3xl mb-1">📷</div>
-              <p className="text-slate-400 text-sm">Take a photo of your food (optional)</p>
-            </>
-          )}
-        </div>
-        <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageChange} />
-
-        <p className="text-xs text-slate-400 mb-2">
-          For each item choose: <span className="font-medium text-blue-600">Grams</span> or <span className="font-medium text-blue-600">Qty</span> (slices, cups...)
-        </p>
-
-        <div className="flex flex-col gap-2 mb-3">
-          {ingredients.map((item, index) => (
-            <IngredientRow key={index} item={item} index={index} onUpdate={updateIngredient} onRemove={removeIngredient} canRemove={ingredients.length > 1} />
-          ))}
-        </div>
-
-        <button onClick={addIngredient}
-          className="w-full py-2 border-2 border-dashed border-blue-200 rounded-xl text-blue-500 text-sm hover:border-blue-400 hover:bg-blue-50 transition-all mb-4">
-          + Add another item
+        {/* Saved foods accordion */}
+        <button
+          type="button"
+          onClick={() => setOpenSavedFoods((v) => !v)}
+          className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors mb-2"
+        >
+          <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide flex items-center gap-2">
+            📋 Saved Foods
+            {selectedFoods.length > 0 && (
+              <span className="bg-blue-600 text-white rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none">{selectedFoods.length}</span>
+            )}
+          </span>
+          <span className="text-blue-400 text-sm">{openSavedFoods ? '▲' : '▼'}</span>
         </button>
+        {openSavedFoods && (
+          <div className="mb-2 px-1">
+            <SavedFoodsPicker
+              savedFoods={savedFoods}
+              selected={selectedFoods}
+              onAdd={addSavedFood}
+              onUpdateServings={updateServings}
+              onRemove={removeSavedFood}
+            />
+          </div>
+        )}
+        {!openSavedFoods && selectedFoods.length > 0 && (
+          <div className="flex flex-col gap-1 mb-2 px-1">
+            {selectedFoods.map(({ food, servings }) => (
+              <div key={food.id} className="flex items-center justify-between text-xs text-slate-600 bg-blue-50 rounded-lg px-2.5 py-1.5">
+                <span>{food.name} × {servings.toFixed(1)}</span>
+                <span className="text-slate-400">⚡ {Math.round(food.calories * servings)} kcal</span>
+              </div>
+            ))}
+          </div>
+        )}
 
-        {/* Free text meal input */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex-1 h-px bg-blue-100" />
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Or describe a full meal</p>
-          <div className="flex-1 h-px bg-blue-100" />
-        </div>
-        <textarea
-          value={mealFreeText}
-          onChange={(e) => { setMealFreeText(e.target.value); setNutrition(null) }}
-          className="input text-sm py-2.5 w-full resize-none mb-4"
-          rows={2}
-          placeholder="e.g. a sandwich with an 80g bun and 50g tuna salad"
-        />
+        {/* Free entry accordion */}
+        <button
+          type="button"
+          onClick={() => setOpenFreeEntry((v) => !v)}
+          className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors mb-2"
+        >
+          <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide flex items-center gap-2">
+            ✏️ Free Entry for AI Analysis
+            {(ingredients.some((i) => i.name.trim()) || imageFile) && (
+              <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+            )}
+          </span>
+          <span className="text-blue-400 text-sm">{openFreeEntry ? '▲' : '▼'}</span>
+        </button>
+        {openFreeEntry && (
+          <div className="mb-2 px-1">
+            <div onClick={() => fileRef.current?.click()}
+              className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all mb-3 ${imagePreview ? 'border-blue-400 bg-blue-50' : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50'}`}>
+              {imagePreview ? (
+                <img src={imagePreview} alt="preview" className="max-h-40 mx-auto rounded-xl object-cover" />
+              ) : (
+                <>
+                  <div className="text-3xl mb-1">📷</div>
+                  <p className="text-slate-400 text-sm">Take a photo of your food (optional)</p>
+                </>
+              )}
+            </div>
+            <p className="text-xs text-slate-400 mb-2">
+              For each item choose: <span className="font-medium text-blue-600">Grams</span> or <span className="font-medium text-blue-600">Qty</span> (slices, cups...)
+            </p>
+            <div className="flex flex-col gap-2 mb-3">
+              {ingredients.map((item, index) => (
+                <IngredientRow key={index} item={item} index={index} onUpdate={updateIngredient} onRemove={removeIngredient} canRemove={ingredients.length > 1} />
+              ))}
+            </div>
+            <button onClick={addIngredient}
+              className="w-full py-2 border-2 border-dashed border-blue-200 rounded-xl text-blue-500 text-sm hover:border-blue-400 hover:bg-blue-50 transition-all">
+              + Add another item
+            </button>
+          </div>
+        )}
+
+        {/* Full meal description accordion */}
+        <button
+          type="button"
+          onClick={() => setOpenFullMeal((v) => !v)}
+          className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors mb-4"
+        >
+          <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide flex items-center gap-2">
+            💬 Describe a Full Meal
+            {mealFreeText.trim() && (
+              <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+            )}
+          </span>
+          <span className="text-blue-400 text-sm">{openFullMeal ? '▲' : '▼'}</span>
+        </button>
+        {openFullMeal && (
+          <div className="mb-4 px-1">
+            <textarea
+              value={mealFreeText}
+              onChange={(e) => { setMealFreeText(e.target.value); setNutrition(null) }}
+              className="input text-sm py-2.5 w-full resize-none"
+              rows={2}
+              placeholder="e.g. a sandwich with an 80g bun and 50g tuna salad"
+            />
+          </div>
+        )}
+
+        <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageChange} />
 
         {error && <p className="text-orange-500 text-sm mb-3">{error}</p>}
 
