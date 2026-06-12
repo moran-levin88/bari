@@ -51,11 +51,12 @@ async function analyzeTextWithGemini(mealName: string): Promise<Record<string, u
   const prompt = `You are a precise nutritionist with access to Google Search. The user describes a meal they ate. Use Google Search to find ACCURATE, REAL nutrition data for each food item, then calculate the TOTAL nutritional values for the whole meal.
 
 Rules:
-- If multiple foods are listed (separated by +, ו, עם, etc.), search for each one individually and ADD their nutritional values together to get the total.
+- If multiple foods are listed (separated by +, ו, עם, etc.), calculate each one individually and ADD their nutritional values together to get the total.
 - For branded Israeli products (e.g. "יוגורט פרו 20 דנונה", "קוטג' 5% תנובה"), search for the official nutrition label (manufacturer site, שופרסל, רמי לוי, חביבי, etc.) and use the real values per the amount eaten.
-- Use the exact quantities mentioned (grams, units, etc.). For whole fruits/vegetables with no quantity specified, assume 1 medium-sized piece.
+- For generic, unbranded foods (fruits, vegetables, plain rice, chicken breast, bread, etc.), do NOT use Google Search — use standard reference values from a nutrition database like USDA (e.g. 1 medium peach (~150g) ≈ 50 kcal, 100g cooked rice ≈ 130 kcal). This keeps results consistent.
+- Use the exact quantities mentioned (grams, units, etc.) and scale linearly — e.g. 1.5 peaches = 1.5 × the value for 1 peach. For whole fruits/vegetables with no quantity specified, assume 1 medium-sized piece.
 - Never reduce protein or calories when adding more foods — totals must always increase or stay the same.
-- Be consistent: the same input must always produce the same output.
+- Be consistent: the exact same input must always produce the exact same output, and quantities must scale exactly linearly (e.g. "1.5 X" must be exactly 1.5 times "1 X").
 - If multiple foods, populate "breakdown" with calories per individual food item.
 
 Meal: "${mealName}"
