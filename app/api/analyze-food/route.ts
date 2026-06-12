@@ -1,22 +1,9 @@
 import { NextRequest } from 'next/server'
-import OpenAI from 'openai'
+import { GoogleGenAI } from '@google/genai'
 import { getSession } from '@/lib/session'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-const USDA_API_KEY = process.env.USDA_API_KEY || 'DEMO_KEY'
-
-// USDA FoodData Central nutrient IDs (Foundation / SR Legacy data types)
-const USDA_NUTRIENT_IDS = {
-  calories: 1008,
-  protein: 1003,
-  fat: 1004,
-  carbs: 1005,
-  fiber: 1079,
-  sugar: 1063,
-} as const
-
-type NutrientTotals = { calories: number; protein: number; fat: number; carbs: number; fiber: number; sugar: number }
-type FoodItem = { englishName: string; hebrewName: string; portionGrams: number; isBranded: boolean }
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+const MODEL = 'gemini-2.5-flash'
 
 function clamp(v: unknown, min: number, max: number): number {
   const n = Number(v)
@@ -50,98 +37,69 @@ function validateNutrition(raw: Record<string, unknown>) {
   }
 }
 
-async function lookupUSDA(item: FoodItem): Promise<NutrientTotals | null> {
-  try {
-    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(item.englishName)}&api_key=${USDA_API_KEY}&dataType=SR%20Legacy&pageSize=5`
-    const res = await fetch(url, { signal: AbortSignal.timeout(4000) })
-    if (!res.ok) return null
-    const data = await res.json()
-    const foods: { description: string; foodNutrients: { nutrientId: number; value: number }[] }[] = data.foods || []
-    // Prefer whole-food entries — skip skin/fat/giblet-only and confectionery results
-    const SKIP_PATTERN = /\b(skin only|skin \(|fat only|giblets|separable fat|candies|candy|confection)\b/i
-    const food = foods.find((f) => !SKIP_PATTERN.test(f.description)) ?? foods[0]
-    if (!food?.foodNutrients?.length) return null
-
-    const scale = item.portionGrams / 100
-    const totals: NutrientTotals = { calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0 }
-    for (const [key, id] of Object.entries(USDA_NUTRIENT_IDS)) {
-      const nutrient = food.foodNutrients.find((n: { nutrientId: number; value: number }) => n.nutrientId === id)
-      totals[key as keyof NutrientTotals] = Math.round((nutrient?.value || 0) * scale)
-    }
-    return totals
-  } catch {
-    return null
-  }
+function extractJson(text: string): Record<string, unknown> {
+  const cleaned = text.replace(/```json|```/g, '').trim()
+  const start = cleaned.indexOf('{')
+  const end = cleaned.lastIndexOf('}')
+  if (start === -1 || end === -1) throw new Error('No JSON found in response')
+  return JSON.parse(cleaned.slice(start, end + 1))
 }
 
-async function lookupOpenFoodFacts(item: FoodItem): Promise<NutrientTotals | null> {
-  // Try Hebrew name first (better for Israeli products), fall back to English
-  const queries = [item.hebrewName, item.englishName].filter(Boolean)
-  for (const query of queries) {
-    try {
-      const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=1`
-      const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
-      if (!res.ok) continue
-      const data = await res.json()
-      const product = data.products?.[0]
-      const n = product?.nutriments
-      if (!n) continue
+const RESPONSE_SHAPE = `{"name":"meal name in Hebrew","description":"תיאור קצר בעברית","servingSize":"תיאור הכמות הכוללת","calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0,"sugar":0,"ingredients":[],"breakdown":[{"name":"food item in Hebrew","calories":0}],"tips":"טיפ תזונתי קצר בעברית"}`
 
-      const kcal = n['energy-kcal_100g'] ?? n['energy-kcal'] ?? (n['energy_100g'] ? n['energy_100g'] / 4.184 : null)
-      if (!kcal) continue
-
-      const scale = item.portionGrams / 100
-      return {
-        calories: Math.round((kcal || 0) * scale),
-        protein: Math.round((n['proteins_100g'] || n['proteins'] || 0) * scale),
-        fat: Math.round((n['fat_100g'] || n['fat'] || 0) * scale),
-        carbs: Math.round((n['carbohydrates_100g'] || n['carbohydrates'] || 0) * scale),
-        fiber: Math.round((n['fiber_100g'] || n['fiber'] || 0) * scale),
-        sugar: Math.round((n['sugars_100g'] || n['sugars'] || 0) * scale),
-      }
-    } catch {
-      continue
-    }
-  }
-  return null
-}
-
-async function lookupFood(item: FoodItem): Promise<NutrientTotals | null> {
-  if (item.isBranded) {
-    // Branded/packaged product (e.g. קוטג' 5%, יוגורט דנונה): OpenFoodFacts has real label data
-    const [off, usda] = await Promise.all([lookupOpenFoodFacts(item), lookupUSDA(item)])
-    return off ?? usda
-  } else {
-    // Generic food (chicken, apple, rice): USDA is curated and reliable; OpenFoodFacts can return wrong matches
-    return lookupUSDA(item)
-  }
-}
-
-async function analyzeWithAI(mealName: string): Promise<Record<string, unknown>> {
-  const prompt = `You are a precise nutritionist database. The user describes a meal they ate. Calculate the TOTAL nutritional values for everything described.
+async function analyzeTextWithGemini(mealName: string): Promise<Record<string, unknown>> {
+  const prompt = `You are a precise nutritionist with access to Google Search. The user describes a meal they ate. Use Google Search to find ACCURATE, REAL nutrition data for each food item, then calculate the TOTAL nutritional values for the whole meal.
 
 Rules:
-- If multiple foods are listed (separated by +, ו, עם, etc.), ADD their nutritional values together to get the total.
-- Use the exact quantities mentioned (e.g. "20" in a product name is the product's protein content, not grams eaten — use the full package serving).
-- For branded Israeli products (e.g. "יוגורט פרו 20 דנונה", "קוטג' 5%"), use their actual known nutritional label values.
-- For whole fruits/vegetables with no quantity specified, use 1 medium-sized piece.
+- If multiple foods are listed (separated by +, ו, עם, etc.), search for each one individually and ADD their nutritional values together to get the total.
+- For branded Israeli products (e.g. "יוגורט פרו 20 דנונה", "קוטג' 5% תנובה"), search for the official nutrition label (manufacturer site, שופרסל, רמי לוי, חביבי, etc.) and use the real values per the amount eaten.
+- Use the exact quantities mentioned (grams, units, etc.). For whole fruits/vegetables with no quantity specified, assume 1 medium-sized piece.
 - Never reduce protein or calories when adding more foods — totals must always increase or stay the same.
 - Be consistent: the same input must always produce the same output.
 - If multiple foods, populate "breakdown" with calories per individual food item.
 
 Meal: "${mealName}"
 
-Return ONLY valid JSON (no markdown, no explanation):
-{"name":"meal name in Hebrew","description":"תיאור קצר בעברית","servingSize":"תיאור הכמות הכוללת","calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0,"sugar":0,"ingredients":[],"breakdown":[{"name":"food item in Hebrew","calories":0}],"tips":"טיפ תזונתי קצר בעברית"}`
+Return ONLY valid JSON (no markdown, no explanation, no code fences):
+${RESPONSE_SHAPE}`
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    messages: [{ role: 'user', content: prompt }],
-    response_format: { type: 'json_object' },
-    max_tokens: 600,
-    temperature: 0,
+  const response = await ai.models.generateContent({
+    model: MODEL,
+    contents: prompt,
+    config: {
+      tools: [{ googleSearch: {} }],
+      temperature: 0,
+    },
   })
-  return JSON.parse(response.choices[0].message.content || '{}')
+
+  return extractJson(response.text || '')
+}
+
+async function analyzeImageWithGemini(buffer: Buffer, mimeType: string): Promise<Record<string, unknown>> {
+  const prompt = `You are a precise nutritionist with access to Google Search. Analyse the food in the image and calculate its nutritional values.
+
+Rules:
+- Estimate realistic portion sizes based on what you see.
+- If you recognise a branded/packaged product, use Google Search to find its real nutrition label values for the visible portion.
+- For whole fruits/vegetables, use 1 medium-sized piece if not obvious.
+- Be consistent: similar images must produce similar output.
+
+Return ONLY valid JSON (no markdown, no explanation, no code fences):
+${RESPONSE_SHAPE.replace('"breakdown":[{"name":"food item in Hebrew","calories":0}],', '')}`
+
+  const response = await ai.models.generateContent({
+    model: MODEL,
+    contents: [
+      { text: prompt },
+      { inlineData: { mimeType, data: buffer.toString('base64') } },
+    ],
+    config: {
+      tools: [{ googleSearch: {} }],
+      temperature: 0,
+    },
+  })
+
+  return extractJson(response.text || '')
 }
 
 export async function POST(request: NextRequest) {
@@ -161,113 +119,20 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'IMAGE_TOO_LARGE' }, { status: 400 })
     }
 
-    // Image input: AI only (databases can't process images)
     if (imageFile && imageFile.size > 0) {
       const buffer = Buffer.from(await imageFile.arrayBuffer())
-      const base64Image = buffer.toString('base64')
-      const prompt = `You are a precise nutritionist database. Analyse the food in the image and calculate its nutritional values.
-
-Rules:
-- Estimate realistic portion sizes based on what you see.
-- For whole fruits/vegetables, use 1 medium-sized piece if not obvious.
-- Be consistent: similar images must produce similar output.
-
-Return ONLY valid JSON (no markdown, no explanation):
-{"name":"meal name in Hebrew","description":"תיאור קצר בעברית","servingSize":"תיאור הכמות הכוללת","calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0,"sugar":0,"ingredients":[],"tips":"טיפ תזונתי קצר בעברית"}`
-
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o',
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'text', text: prompt },
-            { type: 'image_url', image_url: { url: `data:${imageFile.type};base64,${base64Image}`, detail: 'low' } },
-          ],
-        }],
-        response_format: { type: 'json_object' },
-        max_tokens: 600,
-        temperature: 0,
-      })
-      const raw = JSON.parse(response.choices[0].message.content || '{}')
+      const raw = await analyzeImageWithGemini(buffer, imageFile.type)
       return Response.json({ success: true, nutrition: validateNutrition(raw) })
     }
 
-    // Text input: Phase 1 — AI identifies foods with both Hebrew + English names and estimated portions
-    const identifyPrompt = `Parse this meal into individual food items for USDA SR Legacy nutrition database lookup.
-For each food provide:
-- hebrewName: the Hebrew name as written
-- englishName: specific USDA-style name (e.g. "peanuts dry roasted" not "peanuts", "chicken thigh meat roasted" not "chicken", "bulgur cooked" not "bulgur")
-- portionGrams: estimated grams
-- isBranded: true only for Israeli branded packaged products (e.g. דנונה, תנובה brands); false for whole/generic foods
-
-Meal: "${mealName}"
-
-Return ONLY valid JSON:
-{"foods":[{"hebrewName":"שם בעברית","englishName":"specific USDA food name","portionGrams":150,"isBranded":false}],"hebrewName":"שם הארוחה","description":"תיאור קצר בעברית","servingSize":"תיאור הכמות הכוללת","tips":"טיפ תזונתי קצר בעברית"}`
-
-    const identifyResponse = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [{ role: 'user', content: identifyPrompt }],
-      response_format: { type: 'json_object' },
-      max_tokens: 400,
-      temperature: 0,
-    })
-
-    const identified = JSON.parse(identifyResponse.choices[0].message.content || '{}')
-    const foods: FoodItem[] = Array.isArray(identified.foods)
-      ? identified.foods.filter(
-          (f: unknown): f is FoodItem =>
-            typeof (f as FoodItem).englishName === 'string' && Number((f as FoodItem).portionGrams) > 0
-        ).map((f: FoodItem) => ({ ...f, isBranded: f.isBranded === true }))
-      : []
-
-    // Phase 2 — OpenFoodFacts + USDA lookup for each food in parallel
-    let dbTotals: NutrientTotals | null = null
-    let breakdown: { name: string; calories: number }[] = []
-    if (foods.length > 0) {
-      const results = await Promise.all(foods.map(lookupFood))
-      const validResults = results.filter((r): r is NutrientTotals => r !== null)
-
-      if (validResults.length > 0) {
-        dbTotals = validResults.reduce(
-          (acc, r) => ({
-            calories: acc.calories + r.calories,
-            protein: acc.protein + r.protein,
-            fat: acc.fat + r.fat,
-            carbs: acc.carbs + r.carbs,
-            fiber: acc.fiber + r.fiber,
-            sugar: acc.sugar + r.sugar,
-          }),
-          { calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0 }
-        )
-        breakdown = foods
-          .map((f, i) => results[i] ? { name: `${f.hebrewName} (${f.portionGrams}g)`, calories: results[i]!.calories } : null)
-          .filter((b): b is { name: string; calories: number } => b !== null)
-      }
-    }
-
-    if (dbTotals) {
-      const nutrition = validateNutrition({
-        name: identified.hebrewName || mealName,
-        description: identified.description || '',
-        servingSize: identified.servingSize || foods.map((f) => `${f.hebrewName} ${f.portionGrams}g`).join(', '),
-        tips: identified.tips || '',
-        ingredients: foods.map((f) => `${f.hebrewName} – ${f.portionGrams}g`),
-        breakdown,
-        ...dbTotals,
-      })
-      return Response.json({ success: true, nutrition })
-    }
-
-    // Fallback: full AI analysis
-    const raw = await analyzeWithAI(mealName || '')
+    const raw = await analyzeTextWithGemini(mealName || '')
     return Response.json({ success: true, nutrition: validateNutrition(raw) })
 
   } catch (error) {
     console.error('[analyze-food]', error instanceof Error ? error.message : error)
 
     const message = error instanceof Error ? error.message : ''
-    if (message.includes('quota') || message.includes('billing')) {
+    if (message.includes('quota') || message.includes('RESOURCE_EXHAUSTED') || message.includes('429')) {
       return Response.json({ error: 'AI_QUOTA_EXCEEDED' }, { status: 503 })
     }
     if (message.includes('too large') || message.includes('image')) {
