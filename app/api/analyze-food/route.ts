@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { GoogleGenAI } from '@google/genai'
 import { getSession } from '@/lib/session'
 
+export const maxDuration = 30
+
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 const MODEL = 'gemini-2.5-flash'
 
@@ -37,6 +39,24 @@ function validateNutrition(raw: Record<string, unknown>) {
   }
 }
 
+function isRateLimitError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return message.includes('RESOURCE_EXHAUSTED') || message.includes('429') || message.includes('quota')
+}
+
+async function withRetry<T>(fn: () => Promise<T>, retries = 2, baseDelayMs = 1000): Promise<T> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn()
+    } catch (error) {
+      if (!isRateLimitError(error) || attempt === retries) throw error
+      const delay = baseDelayMs * 2 ** attempt
+      await new Promise((resolve) => setTimeout(resolve, delay))
+    }
+  }
+  throw new Error('unreachable')
+}
+
 function extractJson(text: string): Record<string, unknown> {
   const cleaned = text.replace(/```json|```/g, '').trim()
   const start = cleaned.indexOf('{')
@@ -64,14 +84,14 @@ Meal: "${mealName}"
 Return ONLY valid JSON (no markdown, no explanation, no code fences):
 ${RESPONSE_SHAPE}`
 
-  const response = await ai.models.generateContent({
+  const response = await withRetry(() => ai.models.generateContent({
     model: MODEL,
     contents: prompt,
     config: {
       tools: [{ googleSearch: {} }],
       temperature: 0,
     },
-  })
+  }))
 
   return extractJson(response.text || '')
 }
@@ -88,7 +108,7 @@ Rules:
 Return ONLY valid JSON (no markdown, no explanation, no code fences):
 ${RESPONSE_SHAPE.replace('"breakdown":[{"name":"food item in Hebrew","calories":0}],', '')}`
 
-  const response = await ai.models.generateContent({
+  const response = await withRetry(() => ai.models.generateContent({
     model: MODEL,
     contents: [
       { text: prompt },
@@ -98,7 +118,7 @@ ${RESPONSE_SHAPE.replace('"breakdown":[{"name":"food item in Hebrew","calories":
       tools: [{ googleSearch: {} }],
       temperature: 0,
     },
-  })
+  }))
 
   return extractJson(response.text || '')
 }
