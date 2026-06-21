@@ -96,14 +96,18 @@ ${RESPONSE_SHAPE}`
   return extractJson(response.text || '')
 }
 
-async function analyzeImageWithGemini(buffer: Buffer, mimeType: string): Promise<Record<string, unknown>> {
+async function analyzeImageWithGemini(buffer: Buffer, mimeType: string, portion?: string): Promise<Record<string, unknown>> {
+  const portionInstruction = portion
+    ? `\n- The user did NOT eat the whole thing shown in the image — they only ate: "${portion}". First determine the full product/portion's nutrition values (per the package or visible amount), then scale down to match exactly what the user actually ate. The returned values must reflect only the amount eaten, not the full item in the photo.`
+    : ''
+
   const prompt = `You are a precise nutritionist with access to Google Search. Analyse the food in the image and calculate its nutritional values.
 
 Rules:
 - Estimate realistic portion sizes based on what you see.
 - If you recognise a branded/packaged product, use Google Search to find its real nutrition label values for the visible portion.
 - For whole fruits/vegetables, use 1 medium-sized piece if not obvious.
-- Be consistent: similar images must produce similar output.
+- Be consistent: similar images must produce similar output.${portionInstruction}
 
 Return ONLY valid JSON (no markdown, no explanation, no code fences):
 ${RESPONSE_SHAPE.replace('"breakdown":[{"name":"food item in Hebrew","calories":0}],', '')}`
@@ -131,6 +135,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const imageFile = formData.get('image') as File | null
     const mealName = formData.get('name') as string | null
+    const portion = (formData.get('portion') as string | null)?.trim() || undefined
 
     if (!mealName && (!imageFile || imageFile.size === 0)) {
       return Response.json({ error: 'MISSING_INPUT' }, { status: 400 })
@@ -142,7 +147,7 @@ export async function POST(request: NextRequest) {
 
     if (imageFile && imageFile.size > 0) {
       const buffer = Buffer.from(await imageFile.arrayBuffer())
-      const raw = await analyzeImageWithGemini(buffer, imageFile.type)
+      const raw = await analyzeImageWithGemini(buffer, imageFile.type, portion)
       return Response.json({ success: true, nutrition: validateNutrition(raw) })
     }
 

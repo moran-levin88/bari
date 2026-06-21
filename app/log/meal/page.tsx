@@ -277,6 +277,7 @@ export default function LogMealPage() {
   const fileRef = useRef<HTMLInputElement>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imagePortion, setImagePortion] = useState('')
   const [ingredients, setIngredients] = useState<Ingredient[]>([{ name: '', grams: '', quantity: '', inputMode: 'grams' }])
   const [mealFreeText, setMealFreeText] = useState('')
   const [mealType, setMealType] = useState('')
@@ -340,6 +341,7 @@ export default function LogMealPage() {
     if (!file) return
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
+    setImagePortion('')
   }
 
   function updateIngredient(index: number, field: keyof Ingredient, value: string) {
@@ -383,6 +385,7 @@ export default function LogMealPage() {
     try {
       const fd = new FormData()
       if (imageFile) fd.append('image', imageFile)
+      if (imageFile && imagePortion.trim()) fd.append('portion', imagePortion.trim())
       if (mealDescription) fd.append('name', mealDescription)
 
       const res = await fetch('/api/analyze-food', { method: 'POST', body: fd })
@@ -599,6 +602,17 @@ export default function LogMealPage() {
                 </>
               )}
             </div>
+            {imagePreview && (
+              <div className="mb-3">
+                <input
+                  type="text"
+                  value={imagePortion}
+                  onChange={(e) => { setImagePortion(e.target.value); setNutrition(null) }}
+                  className="input text-sm py-2 w-full"
+                  placeholder="כמה אכלת מהמוצר? (לדוגמה: חצי, שליש, 75 גרם מתוך 100)"
+                />
+              </div>
+            )}
             <p className="text-xs text-slate-400 mb-2">
               For each item choose: <span className="font-medium text-blue-600">Grams</span> or <span className="font-medium text-blue-600">Qty</span> (slices, cups...)
             </p>
