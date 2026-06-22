@@ -598,7 +598,7 @@ export default function LogMealPage() {
               ) : (
                 <>
                   <div className="text-3xl mb-1">📷</div>
-                  <p className="text-slate-400 text-sm">Take a photo of your food (optional)</p>
+                  <p className="text-slate-400 text-sm">Take a photo or upload an image of your food (optional)</p>
                 </>
               )}
             </div>
@@ -654,7 +654,7 @@ export default function LogMealPage() {
           </div>
         )}
 
-        <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageChange} />
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
 
         {error && <p className="text-orange-500 text-sm mb-3">{error}</p>}
 
