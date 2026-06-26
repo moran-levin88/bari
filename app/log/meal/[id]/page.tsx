@@ -51,6 +51,7 @@ export default function EditMealPage() {
   const [analyzing, setAnalyzing] = useState(false)
   const [error, setError] = useState('')
   const [ingredients, setIngredients] = useState<string[]>([])
+  const [checkedIngredients, setCheckedIngredients] = useState<boolean[]>([])
   const [reanalyzeText, setReanalyzeText] = useState('')
   const [analysisResult, setAnalysisResult] = useState<NutritionResult | null>(null)
   const [form, setForm] = useState<FormState>({
@@ -63,7 +64,9 @@ export default function EditMealPage() {
       .then((r) => r.json())
       .then(({ meal }) => {
         if (!meal) { setError('Meal not found'); return }
-        setIngredients(parseIngredients(meal.aiAnalysis, meal.name))
+        const parsedIngredients = parseIngredients(meal.aiAnalysis, meal.name)
+        setIngredients(parsedIngredients)
+        setCheckedIngredients(parsedIngredients.map(() => true))
         setReanalyzeText(meal.name)
         setForm({
           name: meal.name, mealType: meal.mealType || '',
@@ -77,14 +80,30 @@ export default function EditMealPage() {
       .finally(() => setLoading(false))
   }, [id])
 
-  async function reanalyze() {
-    if (!reanalyzeText.trim()) return
+  function toggleIngredient(index: number) {
+    setCheckedIngredients((prev) => prev.map((c, i) => (i === index ? !c : c)))
+  }
+
+  async function recalcFromChecked() {
+    const selected = ingredients.filter((_, i) => checkedIngredients[i])
+    if (selected.length === 0) {
+      setError('Select at least one ingredient')
+      return
+    }
+    const text = selected.join(', ')
+    setReanalyzeText(text)
+    await reanalyze(text)
+  }
+
+  async function reanalyze(textOverride?: string) {
+    const text = textOverride ?? reanalyzeText
+    if (!text.trim()) return
     setAnalyzing(true)
     setError('')
     setAnalysisResult(null)
     try {
       const fd = new FormData()
-      fd.append('name', reanalyzeText)
+      fd.append('name', text)
       const res = await fetch('/api/analyze-food', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Analysis failed')
@@ -159,16 +178,33 @@ export default function EditMealPage() {
             className="input" placeholder="Meal name..." />
         </div>
 
-        {ingredients.length > 0 && !analysisResult && (
+        {ingredients.length > 0 && (
           <div className="card">
-            <p className="text-sm font-semibold text-slate-600 mb-2">🥗 Detected Ingredients</p>
-            <ul className="flex flex-col gap-1.5">
+            <p className="text-sm font-semibold text-slate-600 mb-1">🥗 Ingredients</p>
+            <p className="text-xs text-slate-400 mb-2">Didn&apos;t eat everything? Uncheck what&apos;s left, then recalculate.</p>
+            <ul className="flex flex-col gap-1.5 mb-3">
               {ingredients.map((ing, i) => (
-                <li key={i} className="flex items-center gap-2 text-sm text-slate-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />{ing}
+                <li key={i}>
+                  <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checkedIngredients[i] ?? true}
+                      onChange={() => toggleIngredient(i)}
+                      className="w-4 h-4 accent-blue-600 flex-shrink-0"
+                    />
+                    <span className={checkedIngredients[i] ?? true ? '' : 'line-through text-slate-400'}>{ing}</span>
+                  </label>
                 </li>
               ))}
             </ul>
+            <button
+              type="button"
+              onClick={recalcFromChecked}
+              disabled={analyzing || checkedIngredients.every((c) => !c)}
+              className="btn-secondary w-full py-2 text-sm disabled:opacity-40"
+            >
+              {analyzing ? '🔍 Recalculating...' : '🔄 Recalculate from checked items'}
+            </button>
           </div>
         )}
 
@@ -185,7 +221,7 @@ export default function EditMealPage() {
           />
           <button
             type="button"
-            onClick={reanalyze}
+            onClick={() => reanalyze()}
             disabled={analyzing || !reanalyzeText.trim()}
             className="btn-primary w-full py-2.5 disabled:opacity-40"
           >

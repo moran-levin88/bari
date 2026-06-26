@@ -39,6 +39,26 @@ function validateNutrition(raw: Record<string, unknown>) {
   }
 }
 
+function combineNutrition(
+  a: ReturnType<typeof validateNutrition>,
+  b: ReturnType<typeof validateNutrition>
+): ReturnType<typeof validateNutrition> {
+  return {
+    name: [a.name, b.name].filter(Boolean).join(' + '),
+    description: [a.description, b.description].filter(Boolean).join(' | '),
+    servingSize: [a.servingSize, b.servingSize].filter(Boolean).join(', '),
+    calories: a.calories + b.calories,
+    protein: a.protein + b.protein,
+    carbs: a.carbs + b.carbs,
+    fat: a.fat + b.fat,
+    fiber: a.fiber + b.fiber,
+    sugar: a.sugar + b.sugar,
+    ingredients: [...a.ingredients, ...b.ingredients].slice(0, 20),
+    tips: a.tips || b.tips,
+    breakdown: [...a.breakdown, ...b.breakdown].slice(0, 20),
+  }
+}
+
 function isRateLimitError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error)
   return message.includes('RESOURCE_EXHAUSTED') || message.includes('429') || message.includes('quota')
@@ -110,7 +130,7 @@ Rules:
 - Be consistent: similar images must produce similar output.${portionInstruction}
 
 Return ONLY valid JSON (no markdown, no explanation, no code fences):
-${RESPONSE_SHAPE.replace('"breakdown":[{"name":"food item in Hebrew","calories":0}],', '')}`
+${RESPONSE_SHAPE}`
 
   const response = await withRetry(() => ai.models.generateContent({
     model: MODEL,
@@ -147,6 +167,17 @@ export async function POST(request: NextRequest) {
 
     if (imageFile && imageFile.size > 0) {
       const buffer = Buffer.from(await imageFile.arrayBuffer())
+      const extraText = mealName?.trim()
+
+      if (extraText) {
+        const [imageRaw, textRaw] = await Promise.all([
+          analyzeImageWithGemini(buffer, imageFile.type, portion),
+          analyzeTextWithGemini(extraText),
+        ])
+        const combined = combineNutrition(validateNutrition(imageRaw), validateNutrition(textRaw))
+        return Response.json({ success: true, nutrition: combined })
+      }
+
       const raw = await analyzeImageWithGemini(buffer, imageFile.type, portion)
       return Response.json({ success: true, nutrition: validateNutrition(raw) })
     }

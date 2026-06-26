@@ -275,6 +275,7 @@ function IngredientRow({
 export default function LogMealPage() {
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imagePortion, setImagePortion] = useState('')
@@ -591,14 +592,38 @@ export default function LogMealPage() {
         </button>
         {openFreeEntry && (
           <div className="mb-2 px-1">
-            <div onClick={() => fileRef.current?.click()}
-              className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all mb-3 ${imagePreview ? 'border-blue-400 bg-blue-50' : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50'}`}>
+            <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-all mb-3 ${imagePreview ? 'border-blue-400 bg-blue-50' : 'border-blue-200'}`}>
               {imagePreview ? (
-                <img src={imagePreview} alt="preview" className="max-h-40 mx-auto rounded-xl object-cover" />
+                <>
+                  <img src={imagePreview} alt="preview" className="max-h-40 mx-auto rounded-xl object-cover mb-2" />
+                  <button
+                    type="button"
+                    onClick={() => { setImageFile(null); setImagePreview(null); setImagePortion('') }}
+                    className="text-xs text-red-400 underline"
+                  >
+                    Remove photo
+                  </button>
+                </>
               ) : (
                 <>
-                  <div className="text-3xl mb-1">📷</div>
-                  <p className="text-slate-400 text-sm">Take a photo or upload an image of your food (optional)</p>
+                  <div className="text-3xl mb-2">📷</div>
+                  <p className="text-slate-400 text-sm mb-3">Add a photo of your food (optional)</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => cameraRef.current?.click()}
+                      className="text-sm px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                    >
+                      📷 Take Photo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => fileRef.current?.click()}
+                      className="text-sm px-3 py-1.5 rounded-lg border border-blue-300 text-blue-600 hover:bg-blue-50 transition-colors"
+                    >
+                      🖼️ Choose from Gallery
+                    </button>
+                  </div>
                 </>
               )}
             </div>
@@ -655,6 +680,7 @@ export default function LogMealPage() {
         )}
 
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+        <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageChange} />
 
         {error && <p className="text-orange-500 text-sm mb-3">{error}</p>}
 

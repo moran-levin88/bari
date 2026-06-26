@@ -24,9 +24,23 @@ export async function POST(request: NextRequest) {
 
   const loggedAt = date ? new Date(date) : new Date()
 
+  const latestLog = await prisma.weightLog.findFirst({
+    where: { userId: session.userId },
+    orderBy: { loggedAt: 'desc' },
+  })
+
   const log = await prisma.weightLog.create({
     data: { userId: session.userId, weight: Number(weight), loggedAt, isPublic },
   })
+
+  // Keep User.weight in sync with the most recent log so the dashboard's
+  // daily calorie target (calculated from User.weight) updates too.
+  if (!latestLog || loggedAt >= latestLog.loggedAt) {
+    await prisma.user.update({
+      where: { id: session.userId },
+      data: { weight: Number(weight) },
+    })
+  }
 
   return Response.json({ success: true, log })
 }
