@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
+import { Pencil, Pin, Trash2, ChevronDown, Utensils } from 'lucide-react'
 
 type Meal = {
   id: string; name: string; description?: string | null; imageUrl?: string | null
@@ -12,8 +13,8 @@ type Meal = {
 }
 
 const MEAL_TYPE_LABELS: Record<string, string> = {
-  breakfast: '🌅 Breakfast', lunch: '☀️ Lunch', dinner: '🌙 Dinner',
-  between: '🍎 Snack', snack: '🍎 Snack', other: '',
+  breakfast: '🌅 ארוחת בוקר', lunch: '☀️ ארוחת צהריים', dinner: '🌙 ארוחת ערב',
+  between: '🍎 ביניים', snack: '🍎 ביניים', other: '',
 }
 
 function parseIngredients(aiAnalysis: string | null | undefined, name: string): string[] {
@@ -50,7 +51,7 @@ export default function MealsList({ meals }: { meals: Meal[] }) {
 
   async function deleteMeal(id: string, e: React.MouseEvent) {
     e.stopPropagation()
-    if (!confirm('Delete this meal?')) return
+    if (!confirm('למחוק את הארוחה?')) return
     setDeletingId(id)
     try {
       await fetch(`/api/meals/${id}`, { method: 'DELETE' })
@@ -63,8 +64,9 @@ export default function MealsList({ meals }: { meals: Meal[] }) {
   if (list.length === 0) {
     return (
       <div className="text-center py-8 text-slate-400">
-        <div className="text-4xl mb-2">🍽️</div>
-        <p>No meals logged today yet</p>
+        <Utensils size={40} className="mx-auto mb-3 text-blue-200" />
+        <p className="mb-4">עוד לא תועדו ארוחות היום</p>
+        <Link href="/log/meal" className="btn-primary text-sm">+ תיעוד ארוחה ראשונה</Link>
       </div>
     )
   }
@@ -78,23 +80,23 @@ export default function MealsList({ meals }: { meals: Meal[] }) {
 
         return (
           <div key={meal.id} className={`rounded-xl border transition-all ${isOpen ? 'border-blue-300 bg-white' : 'border-transparent bg-blue-50'}`}>
-            <button className="w-full text-left flex items-center gap-3 p-3" onClick={() => setExpandedId(isOpen ? null : meal.id)}>
+            <button className="w-full text-start flex items-center gap-3 p-3" onClick={() => setExpandedId(isOpen ? null : meal.id)}>
               {meal.imageUrl
                 ? <img src={meal.imageUrl} alt={meal.name} className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />
-                : <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center text-2xl flex-shrink-0">🍽️</div>
+                : <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0"><Utensils size={22} className="text-blue-400" /></div>
               }
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-slate-800 truncate text-sm">{meal.name}</div>
                 <div className="flex gap-2 mt-1 flex-wrap">
-                  <span className="macro-chip bg-blue-100 text-blue-700">⚡ {Math.round(meal.calories)} kcal</span>
-                  <span className="macro-chip bg-blue-50 text-blue-600">💪 {Math.round(meal.protein)}g</span>
-                  <span className="macro-chip bg-amber-50 text-amber-600">🌾 {Math.round(meal.carbs)}g</span>
-                  <span className="macro-chip bg-green-50 text-green-600">🥑 {Math.round(meal.fat)}g</span>
+                  <span className="macro-chip bg-blue-100 text-blue-700">⚡ {Math.round(meal.calories)} קק״ל</span>
+                  <span className="macro-chip bg-blue-50 text-blue-600">💪 {Math.round(meal.protein)} ג׳</span>
+                  <span className="macro-chip bg-amber-50 text-amber-600">🌾 {Math.round(meal.carbs)} ג׳</span>
+                  <span className="macro-chip bg-green-50 text-green-600">🥑 {Math.round(meal.fat)} ג׳</span>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1 flex-shrink-0">
                 <span className="text-xs text-slate-400">{format(new Date(meal.loggedAt), 'HH:mm')}</span>
-                <span className={`text-slate-300 text-xs transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+                <ChevronDown size={14} className={`text-slate-300 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
               </div>
             </button>
 
@@ -104,7 +106,7 @@ export default function MealsList({ meals }: { meals: Meal[] }) {
 
                 {ingredients.length > 0 && (
                   <div className="mb-3">
-                    <p className="text-xs font-semibold text-slate-500 mb-1.5">Ingredients:</p>
+                    <p className="text-xs font-semibold text-slate-500 mb-1.5">מרכיבים:</p>
                     <ul className="flex flex-col gap-1">
                       {ingredients.map((ing, i) => (
                         <li key={i} className="text-sm text-slate-700 flex items-center gap-1.5">
@@ -117,12 +119,12 @@ export default function MealsList({ meals }: { meals: Meal[] }) {
 
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   {[
-                    { label: 'Calories', value: meal.calories, unit: '' },
-                    { label: 'Protein', value: meal.protein, unit: 'g' },
-                    { label: 'Carbs', value: meal.carbs, unit: 'g' },
-                    { label: 'Fat', value: meal.fat, unit: 'g' },
-                    ...(meal.fiber ? [{ label: 'Fiber', value: meal.fiber, unit: 'g' }] : []),
-                    ...(meal.sugar ? [{ label: 'Sugar', value: meal.sugar, unit: 'g' }] : []),
+                    { label: 'קלוריות', value: meal.calories, unit: '' },
+                    { label: 'חלבון', value: meal.protein, unit: ' ג׳' },
+                    { label: 'פחמימות', value: meal.carbs, unit: ' ג׳' },
+                    { label: 'שומן', value: meal.fat, unit: ' ג׳' },
+                    ...(meal.fiber ? [{ label: 'סיבים', value: meal.fiber, unit: ' ג׳' }] : []),
+                    ...(meal.sugar ? [{ label: 'סוכר', value: meal.sugar, unit: ' ג׳' }] : []),
                   ].map(({ label, value, unit }) => (
                     <div key={label} className="bg-blue-50 rounded-xl p-2 text-center">
                       <div className="text-xs text-slate-400 mb-0.5">{label}</div>
@@ -133,18 +135,19 @@ export default function MealsList({ meals }: { meals: Meal[] }) {
 
                 <div className="flex gap-2">
                   <Link href={`/log/meal/${meal.id}`}
-                    className="flex-1 text-center text-sm font-medium bg-blue-600 text-white py-2 rounded-xl hover:bg-blue-700 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 text-sm font-medium bg-blue-600 text-white py-2 rounded-xl hover:bg-blue-700 transition-colors"
                     onClick={(e) => e.stopPropagation()}>
-                    ✏️ Edit
+                    <Pencil size={14} /> עריכה
                   </Link>
                   <button onClick={(e) => pinMeal(meal, e)} disabled={pinningId === meal.id || pinnedId === meal.id}
-                    className={`px-3 py-2 text-sm rounded-xl transition-colors disabled:opacity-60 ${pinnedId === meal.id ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600 hover:bg-amber-50 hover:text-amber-600'}`}
-                    title="Pin as template">
-                    {pinningId === meal.id ? '...' : pinnedId === meal.id ? '📌 Pinned!' : '📌 Pin'}
+                    className={`flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl transition-colors disabled:opacity-60 ${pinnedId === meal.id ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600 hover:bg-amber-50 hover:text-amber-600'}`}
+                    title="הצמדה כתבנית">
+                    <Pin size={14} />
+                    {pinningId === meal.id ? '...' : pinnedId === meal.id ? 'הוצמד!' : 'הצמדה'}
                   </button>
                   <button onClick={(e) => deleteMeal(meal.id, e)} disabled={deletingId === meal.id}
                     className="px-3 py-2 text-sm text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-40">
-                    {deletingId === meal.id ? '...' : '🗑️'}
+                    {deletingId === meal.id ? '...' : <Trash2 size={15} />}
                   </button>
                 </div>
               </div>

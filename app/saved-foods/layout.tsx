@@ -9,7 +9,7 @@ export default async function SavedFoodsLayout({ children }: { children: React.R
   return (
     <div className="min-h-screen bg-blue-50">
       <Navigation userName={user.name} />
-      <main className="max-w-3xl mx-auto p-4 md:p-6">{children}</main>
+      <main className="max-w-3xl mx-auto p-4 md:p-6 pb-28 lg:pb-6">{children}</main>
     </div>
   )
 }

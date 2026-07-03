@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { calculateDailyTargets, DEFAULT_TARGETS } from '@/lib/nutrition'
@@ -28,7 +27,7 @@ function getTargets(profile: {
   return DEFAULT_TARGETS
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const session = await getSession()
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -109,5 +108,39 @@ export async function GET(request: NextRequest) {
     ...withTargets(stepLogs).map((s) => ({ ...s, type: 'steps' as const, reactions: [], comments: [] })),
   ].sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())
 
-  return Response.json({ feed })
+  const streaks = await computeStreaks(groupMateIds)
+
+  return Response.json({ feed, streaks })
+}
+
+// Consecutive days (ending today, or yesterday if today has no log yet) with at least one logged meal
+async function computeStreaks(userIds: string[]): Promise<Record<string, number>> {
+  const since = new Date()
+  since.setDate(since.getDate() - 60)
+  since.setHours(0, 0, 0, 0)
+
+  const mealDates = await prisma.meal.findMany({
+    where: { userId: { in: userIds }, loggedAt: { gte: since } },
+    select: { userId: true, loggedAt: true },
+  })
+
+  const daysByUser = new Map<string, Set<string>>()
+  for (const { userId, loggedAt } of mealDates) {
+    if (!daysByUser.has(userId)) daysByUser.set(userId, new Set())
+    daysByUser.get(userId)!.add(loggedAt.toISOString().slice(0, 10))
+  }
+
+  const streaks: Record<string, number> = {}
+  for (const [userId, days] of daysByUser) {
+    const cursor = new Date()
+    // A streak survives until the day is over, so an empty today doesn't break it
+    if (!days.has(cursor.toISOString().slice(0, 10))) cursor.setDate(cursor.getDate() - 1)
+    let count = 0
+    while (days.has(cursor.toISOString().slice(0, 10))) {
+      count++
+      cursor.setDate(cursor.getDate() - 1)
+    }
+    streaks[userId] = count
+  }
+  return streaks
 }

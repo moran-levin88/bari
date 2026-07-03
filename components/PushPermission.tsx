@@ -44,17 +44,21 @@ export default function PushPermission() {
   const [state, setState] = useState<'idle' | 'prompt' | 'subscribed' | 'denied' | 'unsupported'>('idle')
 
   useEffect(() => {
-    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-      setState('unsupported'); return
-    }
-    if (Notification.permission === 'granted') {
-      ensureSubscribed(); setState('subscribed')
-    } else if (Notification.permission === 'denied') {
-      setState('denied')
-    } else {
-      const dismissed = localStorage.getItem('push_dismissed')
-      if (!dismissed) setTimeout(() => setState('prompt'), 3000)
-    }
+    // Defer to a task so state updates never run synchronously inside the effect
+    const timer = setTimeout(() => {
+      if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+        setState('unsupported'); return
+      }
+      if (Notification.permission === 'granted') {
+        ensureSubscribed(); setState('subscribed')
+      } else if (Notification.permission === 'denied') {
+        setState('denied')
+      } else {
+        const dismissed = localStorage.getItem('push_dismissed')
+        if (!dismissed) setTimeout(() => setState('prompt'), 3000)
+      }
+    }, 0)
+    return () => clearTimeout(timer)
   }, [])
 
   async function requestPermission() {
@@ -77,14 +81,14 @@ export default function PushPermission() {
         <div className="flex items-start gap-3">
           <span className="text-2xl flex-shrink-0">🔔</span>
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-slate-800 text-sm">Enable notifications</p>
+            <p className="font-bold text-slate-800 text-sm">הפעלת התראות</p>
             <p className="text-slate-500 text-xs mt-0.5">
-              Get notified when a group member logs activity, and receive water reminders
+              קבלת עדכון כשחבר בקבוצה מתעד פעילות, ותזכורות לשתיית מים
             </p>
             <div className="flex gap-2 mt-3">
-              <button onClick={requestPermission} className="btn-primary text-xs py-1.5 px-3 flex-1">Enable</button>
+              <button onClick={requestPermission} className="btn-primary text-xs py-1.5 px-3 flex-1">הפעלה</button>
               <button onClick={() => { setState('idle'); localStorage.setItem('push_dismissed', '1') }}
-                className="btn-secondary text-xs py-1.5 px-3">Later</button>
+                className="btn-secondary text-xs py-1.5 px-3">אחר כך</button>
             </div>
           </div>
         </div>

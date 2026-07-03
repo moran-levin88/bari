@@ -5,12 +5,12 @@ export default function ShareToggle({ value, onChange }: { value: boolean; onCha
     <div className="card">
       <div className="flex items-center justify-between">
         <div>
-          <p className="font-medium text-slate-700">Share in group feed</p>
-          <p className="text-sm text-slate-400">Group members can see and encourage you</p>
+          <p className="font-medium text-slate-700">שיתוף בפיד הקבוצתי</p>
+          <p className="text-sm text-slate-400">חברי הקבוצה יוכלו לראות ולעודד</p>
         </div>
         <button type="button" onClick={() => onChange(!value)}
-          className={`w-12 h-6 rounded-full transition-colors ${value ? 'bg-blue-500' : 'bg-slate-300'}`}>
-          <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${value ? 'translate-x-6' : 'translate-x-0'}`} />
+          className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${value ? 'bg-blue-500' : 'bg-slate-300'}`}>
+          <div className={`absolute top-0.5 start-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${value ? '-translate-x-6' : 'translate-x-0'}`} />
         </button>
       </div>
     </div>

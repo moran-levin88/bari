@@ -4,7 +4,9 @@ import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { calculateDailyTargets, DEFAULT_TARGETS } from '@/lib/nutrition'
 import { format } from 'date-fns'
+import { he } from 'date-fns/locale'
 import MealsList from '@/components/MealsList'
+import QuickWaterButtons from '@/components/QuickWaterButtons'
 
 function MacroBar({ label, value, target, color }: { label: string; value: number; target: number; color: string }) {
   const pct = Math.min(100, Math.round((value / target) * 100))
@@ -12,7 +14,7 @@ function MacroBar({ label, value, target, color }: { label: string; value: numbe
     <div>
       <div className="flex justify-between text-sm mb-1">
         <span className="font-medium text-slate-700">{label}</span>
-        <span className="text-slate-500">{Math.round(value)} / {target}g</span>
+        <span className="text-slate-500" dir="ltr">{Math.round(value)} / {target}g</span>
       </div>
       <div className="progress-bar">
         <div className="progress-fill" style={{ width: `${pct}%`, background: color }} />
@@ -61,18 +63,18 @@ export default async function DashboardPage() {
   const stepPct = Math.min(100, Math.round((totalSteps / stepGoal) * 100))
   const caloriePct = Math.min(100, Math.round((totalCalories / targets.calories) * 100))
   const waterPct = Math.min(100, Math.round((totalWater / targets.water) * 100))
-  const dateStr = format(today, 'EEEE, MMMM d, yyyy')
+  const dateStr = format(today, 'EEEE, d בMMMM yyyy', { locale: he })
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-blue-700">Hi, {user.name}! 👋</h1>
+          <h1 className="text-2xl font-bold text-blue-700">שלום, {user.name}! 👋</h1>
           <p className="text-slate-500 text-sm mt-1">{dateStr}</p>
         </div>
         <div className="flex gap-2">
-          <Link href="/log/meal" className="btn-primary text-sm">+ Meal</Link>
-          <Link href="/log/water" className="btn-secondary text-sm">+ Water</Link>
+          <Link href="/log/meal" className="btn-primary text-sm">+ ארוחה</Link>
+          <Link href="/log/water" className="btn-secondary text-sm hidden sm:inline-block">+ מים</Link>
         </div>
       </div>
 
@@ -87,17 +89,21 @@ export default async function DashboardPage() {
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-xl font-bold text-blue-700">{Math.round(totalCalories)}</span>
-              <span className="text-xs text-slate-500">kcal</span>
+              <span className="text-xs text-slate-500">קק״ל</span>
             </div>
           </div>
-          <p className="text-sm text-slate-500">Target: {targets.calories} kcal</p>
-          <p className="text-sm font-medium text-blue-600">{targets.calories - Math.round(totalCalories)} kcal left</p>
+          <p className="text-sm text-slate-500">יעד: {targets.calories} קק״ל</p>
+          <p className="text-sm font-medium text-blue-600">
+            {targets.calories - Math.round(totalCalories) > 0
+              ? `נותרו ${targets.calories - Math.round(totalCalories)} קק״ל`
+              : 'הגעת ליעד היומי! 🎉'}
+          </p>
         </div>
 
         <div className="card col-span-2 flex flex-col gap-4 justify-center">
-          <MacroBar label="Protein 💪" value={totalProtein} target={targets.protein} color="#3b82f6" />
-          <MacroBar label="Carbs 🌾" value={totalCarbs} target={targets.carbs} color="#f59e0b" />
-          <MacroBar label="Fat 🥑" value={totalFat} target={targets.fat} color="#10b981" />
+          <MacroBar label="חלבון 💪" value={totalProtein} target={targets.protein} color="#3b82f6" />
+          <MacroBar label="פחמימות 🌾" value={totalCarbs} target={targets.carbs} color="#f59e0b" />
+          <MacroBar label="שומן 🥑" value={totalFat} target={targets.fat} color="#10b981" />
         </div>
       </div>
 
@@ -105,37 +111,38 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="card">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-slate-700">💧 Water Today</h2>
-            <Link href="/log/water" className="text-blue-600 text-sm hover:underline">+ Add</Link>
+            <h2 className="font-bold text-slate-700">💧 מים היום</h2>
+            <Link href="/log/water" className="text-blue-600 text-sm hover:underline">עוד אפשרויות</Link>
           </div>
           <div className="text-3xl font-bold text-blue-700 mb-1">
-            {(totalWater / 1000).toFixed(1)}L
-            <span className="text-base font-normal text-slate-400"> / {(targets.water / 1000).toFixed(1)}L</span>
+            {(totalWater / 1000).toFixed(1)} ל׳
+            <span className="text-base font-normal text-slate-400"> / {(targets.water / 1000).toFixed(1)} ל׳</span>
           </div>
           <div className="progress-bar mt-2">
             <div className="progress-fill" style={{ width: `${waterPct}%`, background: '#0ea5e9' }} />
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            {targets.water - totalWater > 0 ? `${targets.water - totalWater}ml to go` : 'Goal reached! 🎉'}
+            {targets.water - totalWater > 0 ? `נותרו ${targets.water - totalWater} מ״ל ליעד` : 'הגעת ליעד! 🎉'}
           </p>
+          <QuickWaterButtons />
         </div>
 
         <div className="card">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-slate-700">🏃 Exercise Today</h2>
-            <Link href="/log/exercise" className="text-blue-600 text-sm hover:underline">+ Add</Link>
+            <h2 className="font-bold text-slate-700">🏃 פעילות היום</h2>
+            <Link href="/log/exercise" className="text-blue-600 text-sm hover:underline">+ הוספה</Link>
           </div>
           {todayExercise.length === 0 ? (
-            <p className="text-slate-400 text-sm">No activity logged yet</p>
+            <p className="text-slate-400 text-sm">עוד לא תועדה פעילות היום</p>
           ) : (
             <div className="flex flex-col gap-2">
               {todayExercise.map((ex) => (
                 <div key={ex.id} className="flex justify-between text-sm">
                   <span className="font-medium">{ex.name}</span>
-                  <span className="text-slate-500">{ex.duration} min</span>
+                  <span className="text-slate-500">{ex.duration} דק׳</span>
                 </div>
               ))}
-              <p className="text-blue-700 font-bold mt-1">{totalExerciseMin} min total</p>
+              <p className="text-blue-700 font-bold mt-1">סה״כ {totalExerciseMin} דקות</p>
             </div>
           )}
         </div>
@@ -144,22 +151,22 @@ export default async function DashboardPage() {
       {/* Steps */}
       <div className="card mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-bold text-slate-700">👟 Steps Today</h2>
-          <Link href="/log/steps" className="text-blue-600 text-sm hover:underline">+ Update</Link>
+          <h2 className="font-bold text-slate-700">👟 צעדים היום</h2>
+          <Link href="/log/steps" className="text-blue-600 text-sm hover:underline">+ עדכון</Link>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex-1">
             <div className="text-3xl font-bold text-blue-700 mb-1">
-              {totalSteps > 0 ? totalSteps.toLocaleString() : '—'}
-              <span className="text-base font-normal text-slate-400"> / {stepGoal.toLocaleString()}</span>
+              {totalSteps > 0 ? totalSteps.toLocaleString('he-IL') : '—'}
+              <span className="text-base font-normal text-slate-400"> / {stepGoal.toLocaleString('he-IL')}</span>
             </div>
             <div className="progress-bar mt-2">
               <div className="progress-fill" style={{ width: `${stepPct}%`, background: '#6366f1' }} />
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              {totalSteps === 0 ? 'No steps logged yet'
-                : stepPct >= 100 ? 'Goal reached! 🎉'
-                : `${(stepGoal - totalSteps).toLocaleString()} steps to go`}
+              {totalSteps === 0 ? 'עוד לא תועדו צעדים היום'
+                : stepPct >= 100 ? 'הגעת ליעד! 🎉'
+                : `נותרו ${(stepGoal - totalSteps).toLocaleString('he-IL')} צעדים ליעד`}
             </p>
           </div>
           <div className="text-4xl">{stepPct >= 100 ? '🏆' : totalSteps > 5000 ? '🚶' : '👟'}</div>
@@ -169,8 +176,8 @@ export default async function DashboardPage() {
       {/* Today's meals */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-slate-700 text-lg">🍽️ Today&apos;s Meals</h2>
-          <Link href="/log/meal" className="btn-primary text-sm">+ Add Meal</Link>
+          <h2 className="font-bold text-slate-700 text-lg">🍽️ הארוחות של היום</h2>
+          <Link href="/log/meal" className="btn-primary text-sm">+ ארוחה</Link>
         </div>
         <MealsList meals={todayMeals} />
       </div>
@@ -179,11 +186,11 @@ export default async function DashboardPage() {
         <div className="mt-4 card bg-blue-600 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-bold">Complete your profile</p>
-              <p className="text-blue-200 text-sm">Add age, weight and height for personalised targets</p>
+              <p className="font-bold">השלימו את הפרופיל</p>
+              <p className="text-blue-200 text-sm">הוסיפו גיל, משקל וגובה ליעדים מותאמים אישית</p>
             </div>
             <Link href="/profile" className="bg-white text-blue-600 font-bold px-4 py-2 rounded-xl text-sm hover:bg-blue-50 whitespace-nowrap">
-              Update Profile
+              לעדכון הפרופיל
             </Link>
           </div>
         </div>

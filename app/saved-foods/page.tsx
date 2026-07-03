@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Pencil, Trash2, Salad } from 'lucide-react'
 
 type SavedFood = {
   id: string
@@ -26,12 +27,12 @@ const emptyForm = () => ({
 })
 
 const MACROS = [
-  { key: 'calories', label: 'Calories', unit: '', emoji: '⚡' },
-  { key: 'protein', label: 'Protein', unit: 'g', emoji: '💪' },
-  { key: 'carbs', label: 'Carbs', unit: 'g', emoji: '🌾' },
-  { key: 'fat', label: 'Fat', unit: 'g', emoji: '🥑' },
-  { key: 'fiber', label: 'Fiber', unit: 'g', emoji: '' },
-  { key: 'sugar', label: 'Sugar', unit: 'g', emoji: '' },
+  { key: 'calories', label: 'קלוריות', unit: '', emoji: '⚡' },
+  { key: 'protein', label: 'חלבון', unit: 'ג׳', emoji: '💪' },
+  { key: 'carbs', label: 'פחמימות', unit: 'ג׳', emoji: '🌾' },
+  { key: 'fat', label: 'שומן', unit: 'ג׳', emoji: '🥑' },
+  { key: 'fiber', label: 'סיבים', unit: 'ג׳', emoji: '' },
+  { key: 'sugar', label: 'סוכר', unit: 'ג׳', emoji: '' },
 ]
 
 export default function SavedFoodsPage() {
@@ -79,8 +80,8 @@ export default function SavedFoodsPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.name.trim()) { setError('Food name is required'); return }
-    if (!form.servingName.trim()) { setError('Serving name required (e.g. slice, cup, 100g)'); return }
+    if (!form.name.trim()) { setError('צריך שם למזון'); return }
+    if (!form.servingName.trim()) { setError('צריך שם יחידה (למשל: פרוסה, כוס, 100 גרם)'); return }
     setSaving(true)
     setError('')
 
@@ -117,14 +118,14 @@ export default function SavedFoodsPage() {
       }
       cancelForm()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save')
+      setError(err instanceof Error ? err.message : 'השמירה נכשלה')
     } finally {
       setSaving(false)
     }
   }
 
   async function deleteFood(id: string) {
-    if (!confirm('Delete this food?')) return
+    if (!confirm('למחוק את המזון?')) return
     setDeletingId(id)
     await fetch(`/api/saved-foods/${id}`, { method: 'DELETE' })
     setFoods((prev) => prev.filter((f) => f.id !== id))
@@ -134,10 +135,10 @@ export default function SavedFoodsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-blue-700">🗂️ Saved Foods</h1>
+        <h1 className="text-2xl font-bold text-blue-700">🗂️ מזונות שמורים</h1>
         {!showForm && (
           <button onClick={() => { setShowForm(true); setEditingId(null); setForm(emptyForm()) }} className="btn-primary text-sm">
-            + Add Food
+            + הוספת מזון
           </button>
         )}
       </div>
@@ -145,32 +146,32 @@ export default function SavedFoodsPage() {
       {showForm && (
         <div className="card mb-6 border-blue-300">
           <h2 className="font-bold text-blue-700 text-lg mb-4">
-            {editingId ? '✏️ Edit Food' : '➕ New Food'}
+            {editingId ? '✏️ עריכת מזון' : '➕ מזון חדש'}
           </h2>
           <form onSubmit={submit} className="flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Food name *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">שם המזון *</label>
                 <input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   className="input"
-                  placeholder="Rye bread, yogurt..."
+                  placeholder="לחם שיפון, יוגורט..."
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">What is one unit? *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">מהי יחידה אחת? *</label>
                 <input
                   value={form.servingName}
                   onChange={(e) => setForm({ ...form, servingName: e.target.value })}
                   className="input"
-                  placeholder="slice / cup / bottle / 100g..."
+                  placeholder="פרוסה / כוס / בקבוק / 100 גרם..."
                 />
               </div>
             </div>
 
             <p className="text-xs text-slate-400 -mt-2">
-              Values are <strong>per unit</strong> — per slice, per cup, per 100g etc.
+              הערכים הם <strong>ליחידה אחת</strong> — לפרוסה, לכוס, ל-100 גרם וכו׳.
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -196,10 +197,10 @@ export default function SavedFoodsPage() {
 
             <div className="flex gap-2">
               <button type="submit" disabled={saving} className="btn-primary flex-1 py-2.5">
-                {saving ? 'Saving...' : editingId ? '✅ Update Food' : '✅ Add Food'}
+                {saving ? 'שומר...' : editingId ? '✅ עדכון מזון' : '✅ הוספת מזון'}
               </button>
               <button type="button" onClick={cancelForm} className="btn-secondary px-4">
-                Cancel
+                ביטול
               </button>
             </div>
           </form>
@@ -207,12 +208,21 @@ export default function SavedFoodsPage() {
       )}
 
       {loading ? (
-        <p className="text-slate-400 text-center py-10">Loading...</p>
+        <div className="flex flex-col gap-3">
+          <div className="skeleton h-24 w-full" />
+          <div className="skeleton h-24 w-full" />
+          <div className="skeleton h-24 w-full" />
+        </div>
       ) : foods.length === 0 ? (
         <div className="card text-center py-12">
-          <div className="text-5xl mb-3">🍽️</div>
-          <p className="text-slate-500 mb-2">No saved foods yet</p>
-          <p className="text-slate-400 text-sm">Add frequently eaten foods to speed up meal logging</p>
+          <Salad size={48} className="mx-auto mb-3 text-blue-200" />
+          <p className="text-slate-500 mb-2">אין עדיין מזונות שמורים</p>
+          <p className="text-slate-400 text-sm mb-4">מוסיפים מזונות שאוכלים לעיתים קרובות כדי לתעד ארוחות מהר יותר</p>
+          {!showForm && (
+            <button onClick={() => { setShowForm(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }} className="btn-primary text-sm">
+              + הוספת המזון הראשון
+            </button>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -221,30 +231,31 @@ export default function SavedFoodsPage() {
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <h3 className="font-bold text-slate-800">{food.name}</h3>
-                  <p className="text-xs text-slate-400">values per {food.servingName}</p>
+                  <p className="text-xs text-slate-400">ערכים ל{food.servingName}</p>
                 </div>
                 <div className="flex gap-1">
                   <button
                     onClick={() => startEdit(food)}
-                    className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+                    className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
                   >
-                    ✏️ Edit
+                    <Pencil size={13} /> עריכה
                   </button>
                   <button
                     onClick={() => deleteFood(food.id)}
                     disabled={deletingId === food.id}
                     className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-40"
+                    aria-label="מחיקה"
                   >
-                    {deletingId === food.id ? '...' : '🗑️'}
+                    {deletingId === food.id ? '...' : <Trash2 size={13} />}
                   </button>
                 </div>
               </div>
               <div className="flex gap-2 flex-wrap">
-                <span className="macro-chip bg-blue-100 text-blue-700">⚡ {food.calories} kcal</span>
-                <span className="macro-chip bg-blue-50 text-blue-600">💪 {food.protein}g protein</span>
-                <span className="macro-chip bg-amber-50 text-amber-600">🌾 {food.carbs}g carbs</span>
-                <span className="macro-chip bg-green-50 text-green-600">🥑 {food.fat}g fat</span>
-                {food.fiber > 0 && <span className="macro-chip bg-slate-50 text-slate-500">{food.fiber}g fiber</span>}
+                <span className="macro-chip bg-blue-100 text-blue-700">⚡ {food.calories} קק״ל</span>
+                <span className="macro-chip bg-blue-50 text-blue-600">💪 {food.protein} ג׳ חלבון</span>
+                <span className="macro-chip bg-amber-50 text-amber-600">🌾 {food.carbs} ג׳ פחמימות</span>
+                <span className="macro-chip bg-green-50 text-green-600">🥑 {food.fat} ג׳ שומן</span>
+                {food.fiber > 0 && <span className="macro-chip bg-slate-50 text-slate-500">{food.fiber} ג׳ סיבים</span>}
               </div>
             </div>
           ))}

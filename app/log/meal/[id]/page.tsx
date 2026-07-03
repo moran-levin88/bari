@@ -2,21 +2,23 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import { ArrowRight } from 'lucide-react'
+import ShareToggle from '@/components/ShareToggle'
 
 const MEAL_TYPES = [
-  { value: 'breakfast', label: '🌅 Breakfast' },
-  { value: 'lunch', label: '☀️ Lunch' },
-  { value: 'dinner', label: '🌙 Dinner' },
-  { value: 'between', label: '🍎 Snack' },
+  { value: 'breakfast', label: '🌅 ארוחת בוקר' },
+  { value: 'lunch', label: '☀️ ארוחת צהריים' },
+  { value: 'dinner', label: '🌙 ארוחת ערב' },
+  { value: 'between', label: '🍎 ביניים' },
 ]
 
 const MACROS = [
-  { key: 'calories', label: 'Calories', unit: '', emoji: '⚡' },
-  { key: 'protein', label: 'Protein', unit: 'g', emoji: '💪' },
-  { key: 'carbs', label: 'Carbs', unit: 'g', emoji: '🌾' },
-  { key: 'fat', label: 'Fat', unit: 'g', emoji: '🥑' },
-  { key: 'fiber', label: 'Fiber', unit: 'g', emoji: '' },
-  { key: 'sugar', label: 'Sugar', unit: 'g', emoji: '' },
+  { key: 'calories', label: 'קלוריות', unit: '', emoji: '⚡' },
+  { key: 'protein', label: 'חלבון', unit: 'ג׳', emoji: '💪' },
+  { key: 'carbs', label: 'פחמימות', unit: 'ג׳', emoji: '🌾' },
+  { key: 'fat', label: 'שומן', unit: 'ג׳', emoji: '🥑' },
+  { key: 'fiber', label: 'סיבים', unit: 'ג׳', emoji: '' },
+  { key: 'sugar', label: 'סוכר', unit: 'ג׳', emoji: '' },
 ]
 
 type FormState = {
@@ -63,7 +65,7 @@ export default function EditMealPage() {
     fetch(`/api/meals/${id}`)
       .then((r) => r.json())
       .then(({ meal }) => {
-        if (!meal) { setError('Meal not found'); return }
+        if (!meal) { setError('הארוחה לא נמצאה'); return }
         const parsedIngredients = parseIngredients(meal.aiAnalysis, meal.name)
         setIngredients(parsedIngredients)
         setCheckedIngredients(parsedIngredients.map(() => true))
@@ -76,7 +78,7 @@ export default function EditMealPage() {
           isPublic: meal.isPublic,
         })
       })
-      .catch(() => setError('Failed to load'))
+      .catch(() => setError('הטעינה נכשלה'))
       .finally(() => setLoading(false))
   }, [id])
 
@@ -87,7 +89,7 @@ export default function EditMealPage() {
   async function recalcFromChecked() {
     const selected = ingredients.filter((_, i) => checkedIngredients[i])
     if (selected.length === 0) {
-      setError('Select at least one ingredient')
+      setError('נא לבחור לפחות מרכיב אחד')
       return
     }
     const text = selected.join(', ')
@@ -106,7 +108,7 @@ export default function EditMealPage() {
       fd.append('name', text)
       const res = await fetch('/api/analyze-food', { method: 'POST', body: fd })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Analysis failed')
+      if (!res.ok) throw new Error(data.error || 'הניתוח נכשל')
       const n: NutritionResult = data.nutrition
       setAnalysisResult(n)
       setForm((prev) => ({
@@ -120,7 +122,7 @@ export default function EditMealPage() {
         sugar: String(Math.round(n.sugar)),
       }))
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Analysis failed')
+      setError(err instanceof Error ? err.message : 'הניתוח נכשל')
     } finally {
       setAnalyzing(false)
     }
@@ -128,7 +130,7 @@ export default function EditMealPage() {
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.name.trim()) { setError('Meal name is required'); return }
+    if (!form.name.trim()) { setError('נא להזין שם ארוחה'); return }
     setSaving(true); setError('')
     try {
       const res = await fetch(`/api/meals/${id}`, {
@@ -147,41 +149,46 @@ export default function EditMealPage() {
       if (!data.success) throw new Error(data.error)
       router.push('/dashboard')
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save')
+      setError(err instanceof Error ? err.message : 'השמירה נכשלה')
     } finally { setSaving(false) }
   }
 
   if (loading) return (
-    <div className="flex items-center justify-center py-20">
-      <div className="text-center"><div className="text-4xl mb-2 animate-bounce">🍽️</div><p className="text-slate-400">Loading...</p></div>
+    <div className="flex flex-col gap-4 py-4">
+      <div className="skeleton h-8 w-40" />
+      <div className="skeleton h-20 w-full" />
+      <div className="skeleton h-32 w-full" />
+      <div className="skeleton h-40 w-full" />
     </div>
   )
 
   if (error && !form.name) return (
     <div className="card text-center py-12">
       <p className="text-red-500">{error}</p>
-      <button onClick={() => router.back()} className="btn-secondary mt-4">Back</button>
+      <button onClick={() => router.back()} className="btn-secondary mt-4">חזרה</button>
     </div>
   )
 
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => router.back()} className="text-slate-400 hover:text-slate-600 text-xl leading-none">←</button>
-        <h1 className="text-2xl font-bold text-blue-700">✏️ Edit Meal</h1>
+        <button onClick={() => router.back()} className="text-slate-400 hover:text-slate-600 leading-none" aria-label="חזרה">
+          <ArrowRight size={22} />
+        </button>
+        <h1 className="text-2xl font-bold text-blue-700">✏️ עריכת ארוחה</h1>
       </div>
 
       <form onSubmit={save} className="flex flex-col gap-4">
         <div className="card">
-          <label className="block text-sm font-medium text-slate-700 mb-1">Meal name / description</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">שם / תיאור הארוחה</label>
           <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="input" placeholder="Meal name..." />
+            className="input" placeholder="שם הארוחה..." />
         </div>
 
         {ingredients.length > 0 && (
           <div className="card">
-            <p className="text-sm font-semibold text-slate-600 mb-1">🥗 Ingredients</p>
-            <p className="text-xs text-slate-400 mb-2">Didn&apos;t eat everything? Uncheck what&apos;s left, then recalculate.</p>
+            <p className="text-sm font-semibold text-slate-600 mb-1">🥗 מרכיבים</p>
+            <p className="text-xs text-slate-400 mb-2">לא אכלת הכל? מבטלים סימון של מה שנשאר ומחשבים מחדש.</p>
             <ul className="flex flex-col gap-1.5 mb-3">
               {ingredients.map((ing, i) => (
                 <li key={i}>
@@ -203,21 +210,21 @@ export default function EditMealPage() {
               disabled={analyzing || checkedIngredients.every((c) => !c)}
               className="btn-secondary w-full py-2 text-sm disabled:opacity-40"
             >
-              {analyzing ? '🔍 Recalculating...' : '🔄 Recalculate from checked items'}
+              {analyzing ? '🔍 מחשב מחדש...' : '🔄 חישוב מחדש לפי המסומנים'}
             </button>
           </div>
         )}
 
         {/* Re-analyze section */}
         <div className="card border-blue-200">
-          <h2 className="font-bold text-slate-700 mb-1">🔍 Re-analyze with AI</h2>
-          <p className="text-xs text-slate-400 mb-3">Edit the description below and re-run AI analysis to update the nutrition values</p>
+          <h2 className="font-bold text-slate-700 mb-1">🔍 ניתוח מחדש עם AI</h2>
+          <p className="text-xs text-slate-400 mb-3">אפשר לערוך את התיאור ולהריץ ניתוח מחדש לעדכון הערכים התזונתיים</p>
           <textarea
             value={reanalyzeText}
             onChange={(e) => setReanalyzeText(e.target.value)}
             className="input text-sm mb-3 resize-none"
             rows={2}
-            placeholder="e.g. chicken breast 150g, rice 100g..."
+            placeholder="למשל: חזה עוף 150 גרם, אורז 100 גרם..."
           />
           <button
             type="button"
@@ -225,18 +232,18 @@ export default function EditMealPage() {
             disabled={analyzing || !reanalyzeText.trim()}
             className="btn-primary w-full py-2.5 disabled:opacity-40"
           >
-            {analyzing ? '🔍 Analyzing...' : '🔍 Re-analyze with AI'}
+            {analyzing ? '🔍 מנתח...' : '🔍 ניתוח מחדש עם AI'}
           </button>
 
           {analysisResult && (
             <div className="mt-3 bg-green-50 border border-green-200 rounded-xl p-3">
-              <p className="text-xs font-semibold text-green-700 mb-1">✅ Analysis complete — values updated below</p>
+              <p className="text-xs font-semibold text-green-700 mb-1">✅ הניתוח הושלם — הערכים עודכנו למטה</p>
               {(analysisResult.breakdown?.length ?? 0) >= 2 && (
                 <ul className="flex flex-col gap-1 mt-2">
                   {analysisResult.breakdown!.map((item, i) => (
                     <li key={i} className="flex items-center justify-between text-xs text-slate-600">
                       <span>{item.name}</span>
-                      <span className="font-semibold text-blue-700">{item.calories} kcal</span>
+                      <span className="font-semibold text-blue-700">{item.calories} קק״ל</span>
                     </li>
                   ))}
                 </ul>
@@ -249,7 +256,7 @@ export default function EditMealPage() {
         </div>
 
         <div className="card">
-          <h2 className="font-bold text-slate-700 mb-3">Meal type</h2>
+          <h2 className="font-bold text-slate-700 mb-3">סוג ארוחה</h2>
           <div className="grid grid-cols-2 gap-2">
             {MEAL_TYPES.map((t) => (
               <button key={t.value} type="button"
@@ -262,7 +269,7 @@ export default function EditMealPage() {
         </div>
 
         <div className="card">
-          <h2 className="font-bold text-slate-700 mb-3">Nutrition values</h2>
+          <h2 className="font-bold text-slate-700 mb-3">ערכים תזונתיים</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {MACROS.map(({ key, label, unit, emoji }) => (
               <div key={key} className="bg-blue-50 rounded-xl p-3">
@@ -277,23 +284,12 @@ export default function EditMealPage() {
           </div>
         </div>
 
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-slate-700">Share in group feed</p>
-              <p className="text-sm text-slate-400">Group members can see</p>
-            </div>
-            <button type="button" onClick={() => setForm({ ...form, isPublic: !form.isPublic })}
-              className={`w-12 h-6 rounded-full transition-colors ${form.isPublic ? 'bg-blue-500' : 'bg-slate-300'}`}>
-              <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${form.isPublic ? 'translate-x-6' : 'translate-x-0'}`} />
-            </button>
-          </div>
-        </div>
+        <ShareToggle value={form.isPublic} onChange={(v) => setForm({ ...form, isPublic: v })} />
 
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
         <button type="submit" disabled={saving} className="btn-primary w-full py-3 text-base">
-          {saving ? 'Saving...' : '✅ Save Changes'}
+          {saving ? 'שומר...' : '✅ שמירת שינויים'}
         </button>
       </form>
     </div>

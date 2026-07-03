@@ -15,7 +15,7 @@ export default function LogStepsPage() {
 
   async function save() {
     const val = parseInt(steps)
-    if (!val || val <= 0) { setError('Please enter a valid step count'); return }
+    if (!val || val <= 0) { setError('נא להזין מספר צעדים תקין'); return }
     setSaving(true)
     try {
       const res = await fetch('/api/steps', {
@@ -26,7 +26,7 @@ export default function LogStepsPage() {
       if (!res.ok) throw new Error()
       router.push('/dashboard')
     } catch {
-      setError('Failed to save')
+      setError('השמירה נכשלה')
     } finally {
       setSaving(false)
     }
@@ -38,8 +38,8 @@ export default function LogStepsPage() {
 
   return (
     <div className="max-w-md mx-auto">
-      <h1 className="text-2xl font-bold text-blue-700 mb-2">👟 Today&apos;s Steps</h1>
-      <p className="text-slate-400 text-sm mb-6">How many steps did you walk today?</p>
+      <h1 className="text-2xl font-bold text-blue-700 mb-2">👟 הצעדים של היום</h1>
+      <p className="text-slate-400 text-sm mb-6">כמה צעדים הלכת היום?</p>
 
       <div className="card mb-4">
         <div className="flex flex-col items-center py-4 mb-4">
@@ -50,27 +50,27 @@ export default function LogStepsPage() {
                 strokeDasharray={`${(pct / 100) * 314} 314`} strokeLinecap="round" className="transition-all duration-300" />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-2xl font-bold text-blue-700">{val > 0 ? val.toLocaleString() : '—'}</span>
-              <span className="text-xs text-slate-400">steps</span>
+              <span className="text-2xl font-bold text-blue-700">{val > 0 ? val.toLocaleString('he-IL') : '—'}</span>
+              <span className="text-xs text-slate-400">צעדים</span>
             </div>
           </div>
-          <p className="text-sm text-slate-500">Goal: {goal.toLocaleString()} steps · {pct}%</p>
+          <p className="text-sm text-slate-500">יעד: {goal.toLocaleString('he-IL')} צעדים · {pct}%</p>
         </div>
 
-        <p className="text-xs text-slate-400 mb-2 text-center">Quick select</p>
+        <p className="text-xs text-slate-400 mb-2 text-center">בחירה מהירה</p>
         <div className="grid grid-cols-3 gap-2 mb-4">
           {QUICK_OPTIONS.map((opt) => (
             <button key={opt} onClick={() => setSteps(String(opt))}
               className={`py-2 rounded-xl border-2 text-sm font-medium transition-all ${val === opt ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-blue-100 bg-white text-slate-600 hover:border-blue-300'}`}>
-              {opt.toLocaleString()}
+              {opt.toLocaleString('he-IL')}
             </button>
           ))}
         </div>
 
         <div className="mb-2">
-          <label className="block text-sm font-medium text-slate-700 mb-1">Or enter exact number</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">או הזנת מספר מדויק</label>
           <input type="number" value={steps} onChange={(e) => setSteps(e.target.value)}
-            className="input text-center text-xl font-bold" placeholder="e.g. 8500" min={0} max={100000} />
+            className="input text-center text-xl font-bold" placeholder="למשל 8500" min={0} max={100000} />
         </div>
         {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
       </div>
@@ -79,7 +79,7 @@ export default function LogStepsPage() {
 
       <button onClick={save} disabled={saving || !steps}
         className="btn-primary w-full py-3 text-base disabled:opacity-50 mt-4">
-        {saving ? 'Saving...' : '✅ Save Steps'}
+        {saving ? 'שומר...' : '✅ שמירת צעדים'}
       </button>
     </div>
   )

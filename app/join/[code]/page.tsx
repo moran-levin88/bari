@@ -28,9 +28,9 @@ export default function JoinGroupPage() {
       .then((r) => r.json())
       .then((data) => {
         if (data.group) { setGroup(data.group); setIsMember(data.isMember); setLoggedIn(data.loggedIn) }
-        else { setError('Group not found') }
+        else { setError('הקבוצה לא נמצאה') }
       })
-      .catch(() => setError('Failed to load group'))
+      .catch(() => setError('טעינת הקבוצה נכשלה'))
       .finally(() => setLoading(false))
   }, [code])
 
@@ -45,12 +45,12 @@ export default function JoinGroupPage() {
     const data = await res.json()
     setJoining(false)
     if (data.success) { setJoined(true); setTimeout(() => router.push('/feed'), 2000) }
-    else { setError(data.error || 'Failed to join') }
+    else { setError(data.error || 'ההצטרפות נכשלה') }
   }
 
   if (loading) return (
     <div className="min-h-screen bg-blue-50 flex items-center justify-center">
-      <div className="text-center"><div className="text-5xl mb-3 animate-bounce">🤝</div><p className="text-slate-400">Loading...</p></div>
+      <div className="text-center"><div className="text-5xl mb-3 animate-bounce">🤝</div><p className="text-slate-400">טוען...</p></div>
     </div>
   )
 
@@ -59,8 +59,8 @@ export default function JoinGroupPage() {
       <div className="card max-w-sm w-full text-center">
         <div className="text-5xl mb-3">😕</div>
         <h2 className="text-xl font-bold text-slate-700 mb-2">{error}</h2>
-        <p className="text-slate-400 mb-6 text-sm">The link is invalid or the group was deleted</p>
-        <Link href="/groups" className="btn-primary w-full block text-center">Go to My Groups</Link>
+        <p className="text-slate-400 mb-6 text-sm">הקישור שגוי או שהקבוצה נמחקה</p>
+        <Link href="/groups" className="btn-primary w-full block text-center">לקבוצות שלי</Link>
       </div>
     </div>
   )
@@ -69,9 +69,9 @@ export default function JoinGroupPage() {
     <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
       <div className="card max-w-sm w-full text-center">
         <div className="text-6xl mb-3">🎉</div>
-        <h2 className="text-2xl font-bold text-blue-700 mb-2">Welcome!</h2>
-        <p className="text-slate-600">You joined <strong>{group?.name}</strong></p>
-        <p className="text-slate-400 text-sm mt-2">Redirecting to feed...</p>
+        <h2 className="text-2xl font-bold text-blue-700 mb-2">ברוכים הבאים!</h2>
+        <p className="text-slate-600">הצטרפת אל <strong>{group?.name}</strong></p>
+        <p className="text-slate-400 text-sm mt-2">עוברים לפיד...</p>
       </div>
     </div>
   )
@@ -81,14 +81,14 @@ export default function JoinGroupPage() {
       <div className="card max-w-sm w-full">
         <div className="text-center mb-6">
           <div className="text-6xl mb-3">🤝</div>
-          <h1 className="text-2xl font-bold text-blue-700 mb-1">Group Invite</h1>
-          <p className="text-slate-500 text-sm">You&apos;ve been invited to join</p>
+          <h1 className="text-2xl font-bold text-blue-700 mb-1">הזמנה לקבוצה</h1>
+          <p className="text-slate-500 text-sm">הוזמנת להצטרף לקבוצה</p>
         </div>
 
         <div className="bg-blue-50 rounded-2xl p-5 mb-5 text-center border-2 border-blue-200">
           <h2 className="text-2xl font-bold text-slate-800 mb-1">{group?.name}</h2>
           {group?.description && <p className="text-slate-500 text-sm mb-3">{group.description}</p>}
-          <p className="text-slate-400 text-xs">{group?.members.length} members already in the group</p>
+          <p className="text-slate-400 text-xs">{group?.members.length} חברים כבר בקבוצה</p>
           {group && group.members.length > 0 && (
             <div className="flex justify-center gap-1 mt-3 flex-wrap">
               {group.members.slice(0, 5).map((m) => (
@@ -109,16 +109,16 @@ export default function JoinGroupPage() {
 
         {isMember ? (
           <div className="text-center">
-            <p className="text-green-600 font-medium mb-4">✅ You&apos;re already a member!</p>
-            <Link href="/feed" className="btn-primary w-full block text-center">📱 Go to Feed</Link>
+            <p className="text-green-600 font-medium mb-4">✅ את/ה כבר בקבוצה!</p>
+            <Link href="/feed" className="btn-primary w-full block text-center">📱 לפיד הקבוצתי</Link>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
             <button onClick={joinGroup} disabled={joining} className="btn-primary w-full py-3 text-base disabled:opacity-50">
-              {joining ? '...' : loggedIn ? '🤝 Join Group' : '🔐 Sign in to Join'}
+              {joining ? '...' : loggedIn ? '🤝 הצטרפות לקבוצה' : '🔐 התחברות והצטרפות'}
             </button>
-            {!loggedIn && <p className="text-center text-slate-400 text-xs">You&apos;ll need to sign in first</p>}
-            <Link href="/" className="text-center text-slate-400 text-sm hover:text-slate-600">Back to home</Link>
+            {!loggedIn && <p className="text-center text-slate-400 text-xs">צריך להתחבר קודם</p>}
+            <Link href="/" className="text-center text-slate-400 text-sm hover:text-slate-600">חזרה לדף הבית</Link>
           </div>
         )}
       </div>

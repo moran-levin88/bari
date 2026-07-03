@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
+import { he } from 'date-fns/locale'
+import { Megaphone, Send } from 'lucide-react'
 
 const TOPIC_LABELS: Record<string, { emoji: string; label: string }> = {
-  water: { emoji: '💧', label: 'Water' },
-  exercise: { emoji: '🏃', label: 'Exercise' },
-  food: { emoji: '🍽️', label: 'Food' },
+  water: { emoji: '💧', label: 'מים' },
+  exercise: { emoji: '🏃', label: 'פעילות' },
+  food: { emoji: '🍽️', label: 'אוכל' },
 }
 
 type Ping = {
@@ -22,7 +24,7 @@ type Ping = {
 }
 
 function timeStr(dateStr: string) {
-  return format(new Date(dateStr), 'HH:mm · MMM d')
+  return format(new Date(dateStr), 'HH:mm · d בMMM', { locale: he })
 }
 
 function ReceivedPing({ ping, onReply, onRead }: {
@@ -51,16 +53,16 @@ function ReceivedPing({ ping, onReply, onRead }: {
   }
 
   return (
-    <div className={`card mb-3 ${!ping.isRead ? 'border-l-4 border-blue-500' : ''}`}>
-      <button onClick={toggle} className="w-full text-right">
+    <div className={`card mb-3 ${!ping.isRead ? 'border-s-4 border-blue-500' : ''}`}>
+      <button onClick={toggle} className="w-full text-start">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {!ping.isRead && <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5" />}
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-slate-800 text-sm">
-                {topic.emoji} Ping from {ping.sender?.name} — {topic.label}
+                {topic.emoji} פינג מאת {ping.sender?.name} — {topic.label}
               </p>
-              <p className="text-slate-600 text-sm truncate">"{ping.message}"</p>
+              <p className="text-slate-600 text-sm truncate">{`"${ping.message}"`}</p>
               <p className="text-xs text-slate-400 mt-0.5">{timeStr(ping.createdAt)}</p>
             </div>
           </div>
@@ -71,12 +73,12 @@ function ReceivedPing({ ping, onReply, onRead }: {
       {open && (
         <div className="mt-3 border-t border-blue-50 pt-3">
           <p className="text-slate-700 text-sm mb-3 bg-blue-50 rounded-xl px-3 py-2">
-            "{ping.message}"
+            {`"${ping.message}"`}
           </p>
 
           {ping.reply ? (
             <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2">
-              <p className="text-xs text-green-600 mb-0.5">Your reply:</p>
+              <p className="text-xs text-green-600 mb-0.5">התגובה שלך:</p>
               <p className="text-slate-700 text-sm">{ping.reply}</p>
             </div>
           ) : (
@@ -85,10 +87,10 @@ function ReceivedPing({ ping, onReply, onRead }: {
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 className="input text-sm flex-1"
-                placeholder="Write a reply..."
+                placeholder="כתיבת תגובה..."
               />
               <button type="submit" disabled={sending || !replyText.trim()} className="btn-primary text-sm px-4 disabled:opacity-40">
-                {sending ? '...' : 'Send'}
+                {sending ? '...' : <Send size={15} />}
               </button>
             </form>
           )}
@@ -105,19 +107,19 @@ function SentPing({ ping }: { ping: Ping }) {
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-slate-800 text-sm">
-            {topic.emoji} Ping to {ping.recipient?.name} — {topic.label}
+            {topic.emoji} פינג אל {ping.recipient?.name} — {topic.label}
           </p>
-          <p className="text-slate-500 text-sm">"{ping.message}"</p>
+          <p className="text-slate-500 text-sm">{`"${ping.message}"`}</p>
           <p className="text-xs text-slate-400 mt-0.5">{timeStr(ping.createdAt)}</p>
         </div>
         {ping.reply
-          ? <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex-shrink-0">Replied ✓</span>
-          : <span className="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full flex-shrink-0">Pending</span>
+          ? <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex-shrink-0">התקבלה תגובה ✓</span>
+          : <span className="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full flex-shrink-0">ממתין</span>
         }
       </div>
       {ping.reply && (
         <div className="mt-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
-          <p className="text-xs text-green-600 mb-0.5">{ping.recipient?.name}&apos;s reply:</p>
+          <p className="text-xs text-green-600 mb-0.5">התגובה של {ping.recipient?.name}:</p>
           <p className="text-slate-700 text-sm">{ping.reply}</p>
         </div>
       )}
@@ -131,15 +133,15 @@ export default function PingsPage() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'received' | 'sent'>('received')
 
-  async function load() {
-    const res = await fetch('/api/pings')
-    const data = await res.json()
-    setReceived(data.received || [])
-    setSent(data.sent || [])
-    setLoading(false)
-  }
-
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    fetch('/api/pings')
+      .then((r) => r.json())
+      .then((data) => {
+        setReceived(data.received || [])
+        setSent(data.sent || [])
+      })
+      .finally(() => setLoading(false))
+  }, [])
 
   async function handleReply(pingId: string, reply: string) {
     const res = await fetch(`/api/pings/${pingId}`, {
@@ -165,17 +167,17 @@ export default function PingsPage() {
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-blue-700">📣 Pings</h1>
+        <h1 className="text-2xl font-bold text-blue-700">📣 פינגים</h1>
         {unread > 0 && (
           <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{unread}</span>
         )}
       </div>
 
       <div className="flex gap-2 mb-5">
-        {[['received', 'Received', unread], ['sent', 'Sent', 0]].map(([key, label, badge]) => (
+        {([['received', 'התקבלו', unread], ['sent', 'נשלחו', 0]] as const).map(([key, label, badge]) => (
           <button
             key={key}
-            onClick={() => setTab(key as 'received' | 'sent')}
+            onClick={() => setTab(key)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-medium text-sm transition-all ${
               tab === key ? 'bg-blue-600 text-white' : 'bg-white border border-blue-200 text-slate-600 hover:border-blue-400'
             }`}
@@ -191,13 +193,16 @@ export default function PingsPage() {
       </div>
 
       {loading ? (
-        <p className="text-center text-slate-400 py-10">Loading...</p>
+        <div className="flex flex-col gap-3">
+          <div className="skeleton h-24 w-full" />
+          <div className="skeleton h-24 w-full" />
+        </div>
       ) : tab === 'received' ? (
         received.length === 0 ? (
           <div className="card text-center py-10">
-            <div className="text-5xl mb-3">📣</div>
-            <p className="text-slate-500">No pings yet</p>
-            <p className="text-slate-400 text-sm mt-1">When a friend pings you, it will appear here</p>
+            <Megaphone size={44} className="mx-auto mb-3 text-blue-200" />
+            <p className="text-slate-500">אין עדיין פינגים</p>
+            <p className="text-slate-400 text-sm mt-1">כשחבר ישלח לך פינג, הוא יופיע כאן</p>
           </div>
         ) : (
           received.map((p) => (
@@ -207,9 +212,9 @@ export default function PingsPage() {
       ) : (
         sent.length === 0 ? (
           <div className="card text-center py-10">
-            <div className="text-5xl mb-3">📤</div>
-            <p className="text-slate-500">No pings sent yet</p>
-            <p className="text-slate-400 text-sm mt-1">Tap a friend&apos;s circle in the feed and send a ping</p>
+            <Send size={40} className="mx-auto mb-3 text-blue-200" />
+            <p className="text-slate-500">עוד לא נשלחו פינגים</p>
+            <p className="text-slate-400 text-sm mt-1">לוחצים על עיגול של חבר בפיד ושולחים פינג</p>
           </div>
         ) : (
           sent.map((p) => <SentPing key={p.id} ping={p} />)

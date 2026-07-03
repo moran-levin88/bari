@@ -3,12 +3,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import ShareToggle from '@/components/ShareToggle'
 
 const MEAL_TYPES = [
-  { value: 'breakfast', label: '🌅 Breakfast' },
-  { value: 'lunch', label: '☀️ Lunch' },
-  { value: 'dinner', label: '🌙 Dinner' },
-  { value: 'between', label: '🍎 Snack' },
+  { value: 'breakfast', label: '🌅 ארוחת בוקר' },
+  { value: 'lunch', label: '☀️ ארוחת צהריים' },
+  { value: 'dinner', label: '🌙 ארוחת ערב' },
+  { value: 'between', label: '🍎 ביניים' },
 ]
 
 type InputMode = 'grams' | 'quantity'
@@ -117,7 +118,7 @@ function SavedFoodsPicker({
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-slate-800 text-sm truncate">{food.name}</p>
                 <p className="text-xs text-slate-400">
-                  ⚡ {Math.round(food.calories * servings)} kcal · 💪 {Math.round(food.protein * servings)}g · 🌾 {Math.round(food.carbs * servings)}g
+                  ⚡ {Math.round(food.calories * servings)} קק״ל · 💪 {Math.round(food.protein * servings)} ג׳ · 🌾 {Math.round(food.carbs * servings)} ג׳
                 </p>
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -154,7 +155,7 @@ function SavedFoodsPicker({
             className="w-full py-3 border-2 border-dashed border-blue-300 rounded-xl text-blue-600 text-sm font-medium hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 block text-center"
           >
             <span>🗂️</span>
-            <span>Set up saved foods for quick selection</span>
+            <span>הגדרת מזונות שמורים לבחירה מהירה</span>
             <span className="text-blue-400">←</span>
           </Link>
         ) : (
@@ -163,7 +164,7 @@ function SavedFoodsPicker({
           onClick={() => setShowList(true)}
           className="w-full py-2 border-2 border-dashed border-blue-300 rounded-xl text-blue-600 text-sm font-medium hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-1.5"
         >
-          🗂️ Pick from saved foods
+          🗂️ בחירה מהמזונות השמורים
         </button>
         )
       ) : (
@@ -175,19 +176,19 @@ function SavedFoodsPicker({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="flex-1 bg-transparent text-sm outline-none placeholder-slate-400"
-              placeholder="Search food..."
+              placeholder="חיפוש מזון..."
             />
-            <button type="button" onClick={() => { setShowList(false); setSearch('') }} className="text-slate-400 hover:text-slate-600 text-xs">Close</button>
+            <button type="button" onClick={() => { setShowList(false); setSearch('') }} className="text-slate-400 hover:text-slate-600 text-xs">סגירה</button>
           </div>
           {savedFoods.length === 0 ? (
             <div className="text-center py-4 px-3">
-              <p className="text-slate-400 text-sm mb-2">No saved foods yet</p>
+              <p className="text-slate-400 text-sm mb-2">אין עדיין מזונות שמורים</p>
               <Link href="/saved-foods" className="text-blue-500 text-sm underline">
-                Go to Saved Foods
+                למזונות השמורים
               </Link>
             </div>
           ) : filtered.length === 0 ? (
-            <p className="text-center text-slate-400 text-sm py-4">No results found</p>
+            <p className="text-center text-slate-400 text-sm py-4">לא נמצאו תוצאות</p>
           ) : (
             <div className="max-h-48 overflow-y-auto">
               {filtered.map((food) => (
@@ -196,15 +197,15 @@ function SavedFoodsPicker({
                   type="button"
                   onClick={() => { if (!selectedIds.has(food.id)) { onAdd(food); setShowList(false); setSearch('') } }}
                   disabled={selectedIds.has(food.id)}
-                  className="w-full text-right flex items-center gap-2 px-3 py-2.5 hover:bg-blue-50 border-b border-blue-50 last:border-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full text-start flex items-center gap-2 px-3 py-2.5 hover:bg-blue-50 border-b border-blue-50 last:border-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-slate-800 text-sm">{food.name}</p>
-                    <p className="text-xs text-slate-400">per {food.servingName}: ⚡ {food.calories} kcal · 💪 {food.protein}g · 🌾 {food.carbs}g</p>
+                    <p className="text-xs text-slate-400">ל{food.servingName}: ⚡ {food.calories} קק״ל · 💪 {food.protein} ג׳ · 🌾 {food.carbs} ג׳</p>
                   </div>
                   {selectedIds.has(food.id)
-                    ? <span className="text-xs text-green-500">✓ Added</span>
-                    : <span className="text-blue-400 text-xs">+ Add</span>
+                    ? <span className="text-xs text-green-500">✓ נוסף</span>
+                    : <span className="text-blue-400 text-xs">+ הוספה</span>
                   }
                 </button>
               ))}
@@ -215,7 +216,7 @@ function SavedFoodsPicker({
 
       <div className="text-center mt-1.5">
         <Link href="/saved-foods" className="text-xs text-slate-400 hover:text-blue-500 transition-colors">
-          {savedFoods.length === 0 ? '➕ Add saved foods' : '✏️ Manage saved foods'}
+          {savedFoods.length === 0 ? '➕ הוספת מזונות שמורים' : '✏️ ניהול מזונות שמורים'}
         </Link>
       </div>
     </div>
@@ -239,17 +240,17 @@ function IngredientRow({
         value={item.name}
         onChange={(e) => onUpdate(index, 'name', e.target.value)}
         className="input text-sm py-2 bg-white"
-        placeholder="Food name: yogurt, chicken, bread..."
+        placeholder="שם המזון: יוגורט, עוף, לחם..."
       />
       <div className="flex items-center gap-2">
         <div className="flex rounded-lg overflow-hidden border border-blue-200 text-xs font-medium flex-shrink-0">
           <button type="button" onClick={() => onUpdate(index, 'inputMode', 'grams')}
             className={`px-2.5 py-1.5 transition-colors ${item.inputMode === 'grams' ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 hover:bg-blue-50'}`}>
-            Grams
+            גרמים
           </button>
           <button type="button" onClick={() => onUpdate(index, 'inputMode', 'quantity')}
             className={`px-2.5 py-1.5 transition-colors ${item.inputMode === 'quantity' ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 hover:bg-blue-50'}`}>
-            Qty
+            כמות
           </button>
         </div>
         {item.inputMode === 'grams' ? (
@@ -260,7 +261,7 @@ function IngredientRow({
             className="input text-sm py-1.5 text-center flex-1 bg-white" placeholder="2" min={0} step={0.5} />
         )}
         <span className="text-xs text-slate-400 w-8 text-center flex-shrink-0">
-          {item.inputMode === 'grams' ? 'g' : 'pcs'}
+          {item.inputMode === 'grams' ? 'ג׳' : 'יח׳'}
         </span>
         <button onClick={() => onRemove(index)} disabled={!canRemove}
           className="w-7 h-7 flex items-center justify-center text-slate-300 hover:text-red-400 disabled:opacity-0 transition-colors rounded-lg hover:bg-red-50 flex-shrink-0">
@@ -378,7 +379,7 @@ export default function LogMealPage() {
     const ingredientsDesc = buildMealDescription(ingredients)
     const mealDescription = [ingredientsDesc, mealFreeText.trim()].filter(Boolean).join(', ')
     if (!imageFile && !mealDescription) {
-      setError('Please enter at least one item')
+      setError('נא להזין לפחות פריט אחד')
       return
     }
     setError('')
@@ -391,11 +392,11 @@ export default function LogMealPage() {
 
       const res = await fetch('/api/analyze-food', { method: 'POST', body: fd })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Analysis failed')
+      if (!res.ok) throw new Error(data.error || 'הניתוח נכשל')
       setNutrition(data.nutrition)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown error'
-      setError(`Analysis failed: ${msg}`)
+      const msg = err instanceof Error ? err.message : 'שגיאה לא ידועה'
+      setError(`הניתוח נכשל: ${msg}`)
       const combined = combinedWithSF(emptyNutrition())
       setManualMode(true)
       setManualData({ ...emptyNutrition(), ...combined, name: mealDescription })
@@ -406,13 +407,13 @@ export default function LogMealPage() {
 
   async function saveMeal() {
     if (!mealType) {
-      setError('Please select a meal type before saving')
+      setError('נא לבחור סוג ארוחה לפני השמירה')
       window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     }
     // Warn if free-text ingredients were entered but not analyzed
     if (hasIngredients && !nutrition && !manualMode) {
-      setError('You entered ingredients but haven\'t analysed them — tap "Analyse nutrition" or "Enter manually"')
+      setError('הזנת מרכיבים אבל הם עוד לא נותחו — יש ללחוץ על "ניתוח תזונתי" או "הזנה ידנית"')
       return
     }
     const mealDescription = [buildMealDescription(ingredients), mealFreeText.trim()].filter(Boolean).join(', ')
@@ -428,10 +429,10 @@ export default function LogMealPage() {
     // Name always combines saved food names + AI/manual name
     const sfNames = selectedFoods.map((s) => `${s.servings} ${s.food.servingName} ${s.food.name}`).join(', ')
     const aiName = (manualMode ? manualData.name : nutrition?.name) || mealDescription
-    const name = [sfNames, aiName].filter(Boolean).join(' + ') || 'Meal'
+    const name = [sfNames, aiName].filter(Boolean).join(' + ') || 'ארוחה'
 
     if (!name.trim() && !hasSavedFoods) {
-      setError('Please enter at least one item')
+      setError('נא להזין לפחות פריט אחד')
       return
     }
 
@@ -453,7 +454,7 @@ export default function LogMealPage() {
         body: JSON.stringify(payload),
       })
 
-      if (!res.ok) throw new Error('Failed to save')
+      if (!res.ok) throw new Error('השמירה נכשלה')
       if (isPublic) {
         setSavedShared(true)
         setTimeout(() => router.push('/feed'), 2000)
@@ -461,7 +462,7 @@ export default function LogMealPage() {
         router.push('/dashboard')
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save')
+      setError(err instanceof Error ? err.message : 'השמירה נכשלה')
     } finally {
       setSaving(false)
     }
@@ -474,28 +475,28 @@ export default function LogMealPage() {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <div className="text-7xl mb-4 animate-bounce">🎉</div>
-        <h2 className="text-2xl font-bold text-blue-700 mb-2">Meal shared!</h2>
-        <p className="text-slate-500 mb-1">Your group can see and cheer you on</p>
-        <p className="text-slate-400 text-sm">Redirecting to feed...</p>
+        <h2 className="text-2xl font-bold text-blue-700 mb-2">הארוחה שותפה!</h2>
+        <p className="text-slate-500 mb-1">הקבוצה שלך יכולה לראות ולפרגן</p>
+        <p className="text-slate-400 text-sm">עוברים לפיד...</p>
       </div>
     )
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-blue-700 mb-6">🍽️ Log Meal</h1>
+      <h1 className="text-2xl font-bold text-blue-700 mb-6">🍽️ תיעוד ארוחה</h1>
 
       {/* Pinned meal templates */}
       {templates.length > 0 && (
         <div className="card mb-4">
-          <h2 className="font-bold text-slate-700 mb-3">📌 Pinned Meals</h2>
+          <h2 className="font-bold text-slate-700 mb-3">📌 ארוחות מוצמדות</h2>
           <div className="flex flex-col gap-2">
             {templates.map((t) => (
               <div key={t.id} className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-slate-800 text-sm truncate">{t.name}</p>
                   <p className="text-xs text-slate-400">
-                    ⚡ {Math.round(t.calories)} kcal · 💪 {Math.round(t.protein)}g · 🌾 {Math.round(t.carbs)}g · 🥑 {Math.round(t.fat)}g
+                    ⚡ {Math.round(t.calories)} קק״ל · 💪 {Math.round(t.protein)} ג׳ · 🌾 {Math.round(t.carbs)} ג׳ · 🥑 {Math.round(t.fat)} ג׳
                   </p>
                 </div>
                 <button
@@ -507,12 +508,12 @@ export default function LogMealPage() {
                       : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
                   }`}
                 >
-                  {loggingTemplateId === t.id ? '...' : loggedTemplateId === t.id ? '✅ Logged!' : 'Log Now'}
+                  {loggingTemplateId === t.id ? '...' : loggedTemplateId === t.id ? '✅ תועד!' : 'תיעוד מהיר'}
                 </button>
                 <button
                   onClick={(e) => deleteTemplate(t.id, e)}
                   className="flex-shrink-0 text-slate-300 hover:text-red-400 text-lg leading-none transition-colors"
-                  title="Remove pin"
+                  title="הסרת הצמדה"
                 >
                   ✕
                 </button>
@@ -524,8 +525,8 @@ export default function LogMealPage() {
 
       {/* Meal type */}
       <div className={`card mb-4 ${!mealType && error ? 'border-2 border-red-400' : ''}`}>
-        <h2 className="font-bold text-slate-700 mb-1">Meal type <span className="text-red-400">*</span></h2>
-        {!mealType && error && <p className="text-red-400 text-xs mb-2">Please select a meal type</p>}
+        <h2 className="font-bold text-slate-700 mb-1">סוג ארוחה <span className="text-red-400">*</span></h2>
+        {!mealType && error && <p className="text-red-400 text-xs mb-2">נא לבחור סוג ארוחה</p>}
         <div className="grid grid-cols-2 gap-2">
           {MEAL_TYPES.map((t) => (
             <button key={t.value} onClick={() => setMealType(mealType === t.value ? '' : t.value)}
@@ -538,7 +539,7 @@ export default function LogMealPage() {
 
       {/* Ingredients card */}
       <div className="card mb-4">
-        <h2 className="font-bold text-slate-700 mb-3">🥗 What did you eat?</h2>
+        <h2 className="font-bold text-slate-700 mb-3">🥗 מה אכלת?</h2>
 
         {/* Saved foods accordion */}
         <button
@@ -546,8 +547,8 @@ export default function LogMealPage() {
           onClick={() => setOpenSavedFoods((v) => !v)}
           className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors mb-2"
         >
-          <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide flex items-center gap-2">
-            📋 Saved Foods
+          <span className="text-xs font-semibold text-blue-600 tracking-wide flex items-center gap-2">
+            📋 מזונות שמורים
             {selectedFoods.length > 0 && (
               <span className="bg-blue-600 text-white rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none">{selectedFoods.length}</span>
             )}
@@ -570,7 +571,7 @@ export default function LogMealPage() {
             {selectedFoods.map(({ food, servings }) => (
               <div key={food.id} className="flex items-center justify-between text-xs text-slate-600 bg-blue-50 rounded-lg px-2.5 py-1.5">
                 <span>{food.name} × {servings.toFixed(1)}</span>
-                <span className="text-slate-400">⚡ {Math.round(food.calories * servings)} kcal</span>
+                <span className="text-slate-400">⚡ {Math.round(food.calories * servings)} קק״ל</span>
               </div>
             ))}
           </div>
@@ -582,8 +583,8 @@ export default function LogMealPage() {
           onClick={() => setOpenFreeEntry((v) => !v)}
           className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors mb-2"
         >
-          <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide flex items-center gap-2">
-            ✏️ Free Entry for AI Analysis
+          <span className="text-xs font-semibold text-blue-600 tracking-wide flex items-center gap-2">
+            ✏️ הזנה חופשית לניתוח AI
             {(ingredients.some((i) => i.name.trim()) || imageFile) && (
               <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
             )}
@@ -595,33 +596,33 @@ export default function LogMealPage() {
             <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-all mb-3 ${imagePreview ? 'border-blue-400 bg-blue-50' : 'border-blue-200'}`}>
               {imagePreview ? (
                 <>
-                  <img src={imagePreview} alt="preview" className="max-h-40 mx-auto rounded-xl object-cover mb-2" />
+                  <img src={imagePreview} alt="תצוגה מקדימה" className="max-h-40 mx-auto rounded-xl object-cover mb-2" />
                   <button
                     type="button"
                     onClick={() => { setImageFile(null); setImagePreview(null); setImagePortion('') }}
                     className="text-xs text-red-400 underline"
                   >
-                    Remove photo
+                    הסרת התמונה
                   </button>
                 </>
               ) : (
                 <>
                   <div className="text-3xl mb-2">📷</div>
-                  <p className="text-slate-400 text-sm mb-3">Add a photo of your food (optional)</p>
+                  <p className="text-slate-400 text-sm mb-3">אפשר להוסיף תמונה של האוכל (לא חובה)</p>
                   <div className="flex items-center justify-center gap-2">
                     <button
                       type="button"
                       onClick={() => cameraRef.current?.click()}
                       className="text-sm px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
                     >
-                      📷 Take Photo
+                      📷 צילום
                     </button>
                     <button
                       type="button"
                       onClick={() => fileRef.current?.click()}
                       className="text-sm px-3 py-1.5 rounded-lg border border-blue-300 text-blue-600 hover:bg-blue-50 transition-colors"
                     >
-                      🖼️ Choose from Gallery
+                      🖼️ בחירה מהגלריה
                     </button>
                   </div>
                 </>
@@ -639,7 +640,7 @@ export default function LogMealPage() {
               </div>
             )}
             <p className="text-xs text-slate-400 mb-2">
-              For each item choose: <span className="font-medium text-blue-600">Grams</span> or <span className="font-medium text-blue-600">Qty</span> (slices, cups...)
+              לכל פריט בוחרים: <span className="font-medium text-blue-600">גרמים</span> או <span className="font-medium text-blue-600">כמות</span> (פרוסות, כוסות...)
             </p>
             <div className="flex flex-col gap-2 mb-3">
               {ingredients.map((item, index) => (
@@ -648,7 +649,7 @@ export default function LogMealPage() {
             </div>
             <button onClick={addIngredient}
               className="w-full py-2 border-2 border-dashed border-blue-200 rounded-xl text-blue-500 text-sm hover:border-blue-400 hover:bg-blue-50 transition-all">
-              + Add another item
+              + הוספת פריט נוסף
             </button>
           </div>
         )}
@@ -659,8 +660,8 @@ export default function LogMealPage() {
           onClick={() => setOpenFullMeal((v) => !v)}
           className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors mb-4"
         >
-          <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide flex items-center gap-2">
-            💬 Describe a Full Meal
+          <span className="text-xs font-semibold text-blue-600 tracking-wide flex items-center gap-2">
+            💬 תיאור ארוחה מלאה
             {mealFreeText.trim() && (
               <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
             )}
@@ -674,7 +675,7 @@ export default function LogMealPage() {
               onChange={(e) => { setMealFreeText(e.target.value); setNutrition(null) }}
               className="input text-sm py-2.5 w-full resize-none"
               rows={2}
-              placeholder="e.g. a sandwich with an 80g bun and 50g tuna salad"
+              placeholder="למשל: כריך עם לחמנייה 80 גרם וסלט טונה 50 גרם"
             />
           </div>
         )}
@@ -687,7 +688,7 @@ export default function LogMealPage() {
         {!manualMode && (
           <button onClick={analyzeFood} disabled={analyzing || (!hasIngredients && !imageFile)}
             className="btn-primary w-full py-3 text-base disabled:opacity-40">
-            {analyzing ? '🔍 Analysing...' : nutrition ? '🔄 Re-analyze' : '🔍 Analyse Nutrition (AI)'}
+            {analyzing ? '🔍 מנתח...' : nutrition ? '🔄 ניתוח מחדש' : '🔍 ניתוח תזונתי (AI)'}
           </button>
         )}
       </div>
@@ -702,7 +703,7 @@ export default function LogMealPage() {
           }}
           className="w-full text-blue-500 text-sm underline mb-4"
         >
-          Enter values manually without AI analysis
+          הזנת ערכים ידנית בלי ניתוח AI
         </button>
       )}
 
@@ -713,14 +714,14 @@ export default function LogMealPage() {
             <div className="mb-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs text-slate-400 mb-0.5">Detected:</p>
+                  <p className="text-xs text-slate-400 mb-0.5">זוהה:</p>
                   <h2 className="font-bold text-slate-800 text-base leading-tight">{nutrition.name}</h2>
                   {nutrition.servingSize && (
-                    <p className="text-xs text-slate-400 mt-0.5">Serving: {nutrition.servingSize}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">מנה: {nutrition.servingSize}</p>
                   )}
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">✨ AI estimate</span>
+                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">✨ הערכת AI</span>
                   <button
                     onClick={() => {
                       const combined = combinedWithSF(nutrition)
@@ -729,26 +730,26 @@ export default function LogMealPage() {
                     }}
                     className="text-xs text-blue-500 hover:text-blue-700"
                   >
-                    Edit manually
+                    עריכה ידנית
                   </button>
                 </div>
               </div>
 
               {hasSavedFoods && (
                 <p className="text-xs text-slate-400 mt-2 bg-blue-50 rounded-lg px-2 py-1">
-                  Saved foods: {Math.round(sfNutrition.calories)} kcal
-                  {' · '}AI: {Math.round(nutrition.calories)} kcal
+                  מזונות שמורים: {Math.round(sfNutrition.calories)} קק״ל
+                  {' · '}AI: {Math.round(nutrition.calories)} קק״ל
                   {' · '}
-                  <span className="text-blue-600 font-semibold">Total: {Math.round(sfNutrition.calories + nutrition.calories)} kcal</span>
+                  <span className="text-blue-600 font-semibold">סה״כ: {Math.round(sfNutrition.calories + nutrition.calories)} קק״ל</span>
                 </p>
               )}
             </div>
           ) : (
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-blue-700 text-lg">✏️ Manual entry</h2>
+              <h2 className="font-bold text-blue-700 text-lg">✏️ הזנה ידנית</h2>
               {nutrition && (
                 <button onClick={() => setManualMode(false)} className="text-sm text-blue-500 underline">
-                  Back to AI analysis
+                  חזרה לניתוח ה-AI
                 </button>
               )}
             </div>
@@ -756,12 +757,12 @@ export default function LogMealPage() {
 
           <div className="grid grid-cols-2 gap-3 mb-3">
             {[
-              { key: 'calories', label: 'Calories ⚡' },
-              { key: 'protein', label: 'Protein (g) 💪' },
-              { key: 'carbs', label: 'Carbs (g) 🌾' },
-              { key: 'fat', label: 'Fat (g) 🥑' },
-              { key: 'fiber', label: 'Fiber (g)' },
-              { key: 'sugar', label: 'Sugar (g)' },
+              { key: 'calories', label: 'קלוריות ⚡' },
+              { key: 'protein', label: 'חלבון (ג׳) 💪' },
+              { key: 'carbs', label: 'פחמימות (ג׳) 🌾' },
+              { key: 'fat', label: 'שומן (ג׳) 🥑' },
+              { key: 'fiber', label: 'סיבים (ג׳)' },
+              { key: 'sugar', label: 'סוכר (ג׳)' },
             ].map(({ key, label }) => {
               // Always show combined total
               const displayVal = manualMode
@@ -788,17 +789,17 @@ export default function LogMealPage() {
 
           {nutrition && !manualMode && (nutrition.breakdown?.length ?? 0) >= 2 && (
             <div className="mb-3 bg-blue-50 rounded-xl p-3">
-              <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Calories per item</p>
+              <p className="text-xs font-semibold text-slate-500 mb-2 tracking-wide">קלוריות לפי פריט</p>
               <ul className="flex flex-col gap-1.5">
                 {nutrition.breakdown!.map((item, i) => (
                   <li key={i} className="flex items-center justify-between text-sm">
                     <span className="text-slate-700">{item.name}</span>
-                    <span className="font-semibold text-blue-700">{item.calories} kcal</span>
+                    <span className="font-semibold text-blue-700">{item.calories} קק״ל</span>
                   </li>
                 ))}
                 <li className="flex items-center justify-between text-sm border-t border-blue-200 pt-1.5 mt-0.5">
-                  <span className="font-semibold text-slate-700">Total</span>
-                  <span className="font-bold text-blue-700">{Math.round(nutrition.calories + sfNutrition.calories)} kcal</span>
+                  <span className="font-semibold text-slate-700">סה״כ</span>
+                  <span className="font-bold text-blue-700">{Math.round(nutrition.calories + sfNutrition.calories)} קק״ל</span>
                 </li>
               </ul>
             </div>
@@ -806,7 +807,7 @@ export default function LogMealPage() {
 
           {nutrition && !manualMode && nutrition.ingredients?.length > 0 && (
             <details className="mb-3">
-              <summary className="text-xs text-blue-500 cursor-pointer select-none">Breakdown by ingredient ▾</summary>
+              <summary className="text-xs text-blue-500 cursor-pointer select-none">פירוט לפי מרכיבים ▾</summary>
               <ul className="mt-2 flex flex-col gap-1">
                 {nutrition.ingredients.map((ing, i) => (
                   <li key={i} className="flex items-center gap-1.5 text-sm text-slate-600">
@@ -827,22 +828,13 @@ export default function LogMealPage() {
       )}
 
       {/* Share toggle */}
-      <div className="card mb-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium text-slate-700">Share in group feed</p>
-            <p className="text-sm text-slate-400">Group members can see and encourage you</p>
-          </div>
-          <button onClick={() => setIsPublic(!isPublic)}
-            className={`w-12 h-6 rounded-full transition-colors ${isPublic ? 'bg-blue-500' : 'bg-slate-300'}`}>
-            <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${isPublic ? 'translate-x-6' : 'translate-x-0'}`} />
-          </button>
-        </div>
+      <div className="mb-4">
+        <ShareToggle value={isPublic} onChange={setIsPublic} />
       </div>
 
       <button onClick={saveMeal} disabled={saving || !canSave}
         className="btn-primary w-full py-3 text-base disabled:opacity-50">
-        {saving ? 'Saving...' : '✅ Save Meal'}
+        {saving ? 'שומר...' : '✅ שמירת ארוחה'}
       </button>
     </div>
   )

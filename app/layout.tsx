@@ -6,7 +6,7 @@ import PushPermission from '@/components/PushPermission'
 
 export const metadata: Metadata = {
   title: "Bari",
-  description: "Your smart nutrition & health companion",
+  description: "המלווה החכם שלך לתזונה ובריאות",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -38,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="he" dir="rtl" className="h-full">
       <body className="min-h-full bg-blue-50">
         {children}
         <ServiceWorkerRegistrar />

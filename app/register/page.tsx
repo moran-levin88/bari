@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Eye, EyeOff } from 'lucide-react'
 import { signup } from '@/lib/auth'
 
 export default function RegisterPage() {
@@ -21,7 +22,7 @@ export default function RegisterPage() {
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     if (password !== confirm) {
       e.preventDefault()
-      setConfirmError('Passwords do not match')
+      setConfirmError('הסיסמאות אינן זהות')
       return
     }
     setConfirmError('')
@@ -34,56 +35,60 @@ export default function RegisterPage() {
       <div className="card w-full max-w-md">
         <div className="text-center mb-6">
           <div className="text-4xl mb-2">🌿</div>
-          <h1 className="text-2xl font-bold text-blue-700">Join Bari</h1>
-          <p className="text-slate-500 text-sm mt-1">Create your account and start your journey</p>
+          <h1 className="text-2xl font-bold text-blue-700">הצטרפות ל-Bari</h1>
+          <p className="text-slate-500 text-sm mt-1">יוצרים חשבון ומתחילים את המסע</p>
         </div>
 
         <form action={action} onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Full name</label>
-            <input name="name" type="text" required className="input" placeholder="Your name" />
+            <label className="block text-sm font-medium text-slate-700 mb-1">שם מלא</label>
+            <input name="name" type="text" required className="input" placeholder="השם שלך" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-            <input name="email" type="email" required className="input" placeholder="example@email.com" />
+            <label className="block text-sm font-medium text-slate-700 mb-1">אימייל</label>
+            <input name="email" type="email" required className="input" placeholder="example@email.com" dir="ltr" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">סיסמה</label>
             <div className="relative">
               <input
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 required
-                className="input pr-10"
-                placeholder="At least 6 characters"
+                className="input pe-10"
+                placeholder="לפחות 6 תווים"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                dir="ltr"
               />
               <button type="button" onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-lg leading-none" tabIndex={-1}>
-                {showPassword ? '🙈' : '👁️'}
+                className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 leading-none" tabIndex={-1}
+                aria-label={showPassword ? 'הסתרת סיסמה' : 'הצגת סיסמה'}>
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Confirm password</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">אימות סיסמה</label>
             <div className="relative">
               <input
                 type={showConfirm ? 'text' : 'password'}
                 required
-                className={`input pr-10 ${mismatch ? 'border-red-300 focus:ring-red-200' : ''}`}
-                placeholder="Enter password again"
+                className={`input pe-10 ${mismatch ? 'border-red-300 focus:ring-red-200' : ''}`}
+                placeholder="הסיסמה שוב"
                 value={confirm}
                 onChange={(e) => { setConfirm(e.target.value); setConfirmError('') }}
+                dir="ltr"
               />
               <button type="button" onClick={() => setShowConfirm((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-lg leading-none" tabIndex={-1}>
-                {showConfirm ? '🙈' : '👁️'}
+                className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 leading-none" tabIndex={-1}
+                aria-label={showConfirm ? 'הסתרת סיסמה' : 'הצגת סיסמה'}>
+                {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
-            {mismatch && <p className="text-red-500 text-xs mt-1">Passwords do not match</p>}
+            {mismatch && <p className="text-red-500 text-xs mt-1">הסיסמאות אינן זהות</p>}
             {!mismatch && confirm.length > 0 && password === confirm && (
-              <p className="text-green-500 text-xs mt-1">✓ Passwords match</p>
+              <p className="text-green-500 text-xs mt-1">✓ הסיסמאות זהות</p>
             )}
             {confirmError && <p className="text-red-500 text-xs mt-1">{confirmError}</p>}
           </div>
@@ -95,13 +100,13 @@ export default function RegisterPage() {
           )}
 
           <button type="submit" disabled={pending} className="btn-primary py-3 text-base mt-2">
-            {pending ? 'Creating account...' : 'Create Account'}
+            {pending ? 'יוצרים חשבון...' : 'יצירת חשבון'}
           </button>
         </form>
 
         <p className="text-center text-sm text-slate-500 mt-4">
-          Already have an account?{' '}
-          <Link href="/login" className="text-blue-600 font-medium hover:underline">Sign in</Link>
+          כבר יש לך חשבון?{' '}
+          <Link href="/login" className="text-blue-600 font-medium hover:underline">התחברות</Link>
         </p>
       </div>
     </main>
