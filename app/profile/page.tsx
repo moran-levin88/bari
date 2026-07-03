@@ -151,7 +151,7 @@ export default function ProfilePage() {
         </div>
 
         {targets && (
-          <div className="card mb-4 bg-blue-600 text-white">
+          <div className="card-primary mb-4">
             <h2 className="font-bold mb-3">📊 היעדים היומיים שלך</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="text-center bg-white/10 rounded-xl p-3">

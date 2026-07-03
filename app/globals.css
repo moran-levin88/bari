@@ -38,6 +38,16 @@ body {
   box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08);
 }
 
+/* Blue variant of .card — needed because .card's unlayered background beats Tailwind bg-* utilities */
+.card-primary {
+  background: linear-gradient(135deg, var(--primary), #3b82f6);
+  border-radius: 16px;
+  border: 1px solid var(--primary-dark);
+  padding: 1.5rem;
+  color: white;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
 .btn-primary {
   background: var(--primary);
   color: white;

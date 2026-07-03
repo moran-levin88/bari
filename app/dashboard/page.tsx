@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { calculateDailyTargets, DEFAULT_TARGETS } from '@/lib/nutrition'
 import { format } from 'date-fns'
 import { he } from 'date-fns/locale'
+import { Sparkles, ChevronLeft } from 'lucide-react'
 import MealsList from '@/components/MealsList'
 import QuickWaterButtons from '@/components/QuickWaterButtons'
 
@@ -77,6 +78,19 @@ export default async function DashboardPage() {
           <Link href="/log/water" className="btn-secondary text-sm hidden sm:inline-block">+ מים</Link>
         </div>
       </div>
+
+      {/* AI review */}
+      <Link href="/review"
+        className="card-primary mb-6 flex items-center gap-3 py-3.5 px-4 hover:brightness-110 transition-all group">
+        <span className="flex-shrink-0 w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+          <Sparkles size={20} />
+        </span>
+        <span className="flex-1">
+          <span className="block font-bold">סקירה חכמה</span>
+          <span className="block text-blue-100 text-sm">ניתוח AI של האכילה, השתייה והפעילות שלך — עם המלצות</span>
+        </span>
+        <ChevronLeft size={20} className="text-blue-200 group-hover:-translate-x-0.5 transition-transform" />
+      </Link>
 
       {/* Calories ring */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -183,7 +197,7 @@ export default async function DashboardPage() {
       </div>
 
       {!user.age && (
-        <div className="mt-4 card bg-blue-600 text-white">
+        <div className="mt-4 card-primary">
           <div className="flex items-center justify-between">
             <div>
               <p className="font-bold">השלימו את הפרופיל</p>

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'bari-v5'
+const CACHE_VERSION = 'bari-v6'
 const STATIC_CACHE = `${CACHE_VERSION}-static`
 
 // Static assets safe to cache (no user data)

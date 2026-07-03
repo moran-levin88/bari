@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Pencil, Trash2, Salad } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Pencil, Trash2, Salad, Camera, Image as ImageIcon, Sparkles, X } from 'lucide-react'
 
 type SavedFood = {
   id: string
@@ -44,6 +44,47 @@ export default function SavedFoodsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [analyzedFromPhoto, setAnalyzedFromPhoto] = useState(false)
+  const cameraRef = useRef<HTMLInputElement>(null)
+  const galleryRef = useRef<HTMLInputElement>(null)
+
+  async function analyzeProductPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setAnalyzing(true)
+    setAnalyzedFromPhoto(false)
+    setError('')
+    try {
+      const fd = new FormData()
+      fd.append('image', file)
+      const res = await fetch('/api/analyze-product', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        setError(data.error === 'PRODUCT_NOT_RECOGNIZED'
+          ? 'לא הצלחנו לזהות את המוצר — נסו לצלם את טבלת הערכים מקרוב, או מלאו ידנית'
+          : 'הניתוח נכשל — אפשר לנסות שוב או למלא ידנית')
+        return
+      }
+      const p = data.product
+      setForm({
+        name: p.name,
+        servingName: p.servingName,
+        calories: String(p.calories),
+        protein: String(p.protein),
+        carbs: String(p.carbs),
+        fat: String(p.fat),
+        fiber: String(p.fiber),
+        sugar: String(p.sugar),
+      })
+      setAnalyzedFromPhoto(true)
+    } catch {
+      setError('הניתוח נכשל — אפשר לנסות שוב או למלא ידנית')
+    } finally {
+      setAnalyzing(false)
+    }
+  }
 
   async function load() {
     const res = await fetch('/api/saved-foods')
@@ -76,6 +117,7 @@ export default function SavedFoodsPage() {
     setEditingId(null)
     setForm(emptyForm())
     setError('')
+    setAnalyzedFromPhoto(false)
   }
 
   async function submit(e: React.FormEvent) {
@@ -148,6 +190,45 @@ export default function SavedFoodsPage() {
           <h2 className="font-bold text-blue-700 text-lg mb-4">
             {editingId ? '✏️ עריכת מזון' : '➕ מזון חדש'}
           </h2>
+
+          {!editingId && (
+            <div className={`rounded-xl border-2 border-dashed p-4 mb-4 text-center transition-all ${analyzedFromPhoto ? 'border-green-300 bg-green-50' : 'border-blue-300 bg-blue-50/50'}`}>
+              {analyzing ? (
+                <div className="py-2">
+                  <Sparkles size={26} className="mx-auto mb-2 text-blue-500 animate-pulse" />
+                  <p className="text-sm font-medium text-blue-700">מזהה את המוצר וקורא את הערכים...</p>
+                  <p className="text-xs text-slate-400 mt-1">זה לוקח כמה שניות</p>
+                </div>
+              ) : analyzedFromPhoto ? (
+                <div className="flex items-center justify-center gap-2 text-green-700 text-sm font-medium">
+                  <Sparkles size={16} />
+                  <span>הערכים מולאו מהתמונה — בדקו אותם ושמרו</span>
+                  <button type="button" onClick={() => { setForm(emptyForm()); setAnalyzedFromPhoto(false) }}
+                    className="text-slate-400 hover:text-slate-600 ms-1" aria-label="ניקוי">
+                    <X size={15} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-slate-700 mb-1">✨ מילוי אוטומטי מתמונה</p>
+                  <p className="text-xs text-slate-400 mb-3">מצלמים את המוצר או את טבלת הערכים התזונתיים — וכל השדות יתמלאו לבד</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <button type="button" onClick={() => cameraRef.current?.click()}
+                      className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+                      <Camera size={15} /> צילום
+                    </button>
+                    <button type="button" onClick={() => galleryRef.current?.click()}
+                      className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-blue-300 text-blue-600 hover:bg-blue-50 transition-colors">
+                      <ImageIcon size={15} /> מהגלריה
+                    </button>
+                  </div>
+                </>
+              )}
+              <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={analyzeProductPhoto} />
+              <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={analyzeProductPhoto} />
+            </div>
+          )}
+
           <form onSubmit={submit} className="flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-3">
               <div>

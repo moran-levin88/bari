@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import {
   LayoutDashboard, Users, Utensils, GlassWater, Dumbbell, Footprints,
-  Scale, HeartHandshake, Salad, Megaphone, UserRound, LogOut, Plus, X, Menu,
+  Scale, HeartHandshake, Salad, Megaphone, UserRound, LogOut, Plus, X, Menu, Sparkles,
 } from 'lucide-react'
 import { logout } from '@/lib/auth'
 
@@ -17,6 +17,7 @@ const navItems = [
   { href: '/log/exercise', label: 'פעילות', Icon: Dumbbell },
   { href: '/log/steps', label: 'צעדים', Icon: Footprints },
   { href: '/weight', label: 'משקל', Icon: Scale },
+  { href: '/review', label: 'סקירה', Icon: Sparkles },
   { href: '/groups', label: 'קבוצות', Icon: HeartHandshake },
   { href: '/saved-foods', label: 'מזונות שמורים', Icon: Salad },
   { href: '/pings', label: 'פינגים', Icon: Megaphone },
@@ -31,6 +32,7 @@ const quickLogItems = [
 ]
 
 const moreItems = [
+  { href: '/review', label: 'סקירה חכמה', Icon: Sparkles },
   { href: '/groups', label: 'קבוצות', Icon: HeartHandshake },
   { href: '/saved-foods', label: 'מזונות שמורים', Icon: Salad },
   { href: '/pings', label: 'פינגים', Icon: Megaphone },
