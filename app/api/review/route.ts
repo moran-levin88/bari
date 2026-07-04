@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const daysParam = Number(request.nextUrl.searchParams.get('days'))
-  const days = [1, 2, 7].includes(daysParam) ? daysParam : 1
+  const days = Number.isFinite(daysParam) ? Math.min(30, Math.max(1, Math.round(daysParam))) : 1
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
     return Response.json({ success: true, stats, analysis: null, empty: true })
   }
 
-  const periodLabel = days === 1 ? 'היום' : days === 2 ? 'היומיים האחרונים' : '7 הימים האחרונים'
+  const periodLabel = days === 1 ? 'היום' : days === 2 ? 'היומיים האחרונים' : `${days} הימים האחרונים`
   const weightNote = weightLogs.length >= 2
     ? `Recent weight trend: ${weightLogs.map((w) => `${w.weight}kg (${dayOf(w.loggedAt)})`).reverse().join(' → ')}`
     : ''

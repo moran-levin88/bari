@@ -11,7 +11,10 @@ const PERIODS = [
   { days: 1, label: 'היום' },
   { days: 2, label: 'יומיים' },
   { days: 7, label: '7 ימים' },
-] as const
+]
+const PRESET_DAYS = PERIODS.map((p) => p.days)
+const MAX_DAYS = 30
+const CUSTOM_DAYS = Array.from({ length: MAX_DAYS - 2 }, (_, i) => i + 3).filter((d) => !PRESET_DAYS.includes(d))
 
 type Stats = {
   days: number
@@ -60,7 +63,7 @@ function AnalysisSection({ icon, title, text }: { icon: React.ReactNode; title: 
 }
 
 export default function ReviewPage() {
-  const [days, setDays] = useState<1 | 2 | 7>(1)
+  const [days, setDays] = useState(1)
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<Stats | null>(null)
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
@@ -113,6 +116,18 @@ export default function ReviewPage() {
             {p.label}
           </button>
         ))}
+        <select
+          value={PRESET_DAYS.includes(days) ? '' : days}
+          onChange={(e) => e.target.value && setDays(Number(e.target.value))}
+          aria-label="בחירת מספר ימים אחורה"
+          className={`flex-1 py-2.5 rounded-xl font-medium text-sm text-center transition-all cursor-pointer appearance-none ${
+            !PRESET_DAYS.includes(days) ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-blue-200 text-slate-600 hover:border-blue-400'
+          }`}>
+          <option value="" disabled>אחר ▾</option>
+          {CUSTOM_DAYS.map((d) => (
+            <option key={d} value={d}>{d} ימים</option>
+          ))}
+        </select>
       </div>
 
       {loading && (
