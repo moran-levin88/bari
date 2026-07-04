@@ -19,8 +19,14 @@ export async function POST(request: NextRequest) {
   const session = await getSession()
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { weight, date, isPublic = true } = await request.json()
+  const { weight, date, isPublic = true, waist, hips, chest, arm, thigh } = await request.json()
   if (!weight || weight <= 0) return Response.json({ error: 'משקל לא תקין' }, { status: 400 })
+
+  // Optional circumference measurements (cm); ignore empty/invalid values
+  const cm = (v: unknown) => {
+    const n = Number(v)
+    return isFinite(n) && n > 0 && n <= 300 ? n : null
+  }
 
   const loggedAt = date ? new Date(date) : new Date()
 
@@ -30,7 +36,10 @@ export async function POST(request: NextRequest) {
   })
 
   const log = await prisma.weightLog.create({
-    data: { userId: session.userId, weight: Number(weight), loggedAt, isPublic },
+    data: {
+      userId: session.userId, weight: Number(weight), loggedAt, isPublic,
+      waist: cm(waist), hips: cm(hips), chest: cm(chest), arm: cm(arm), thigh: cm(thigh),
+    },
   })
 
   // Keep User.weight in sync with the most recent log so the dashboard's

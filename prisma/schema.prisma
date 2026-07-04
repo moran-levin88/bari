@@ -146,6 +146,12 @@ model WeightLog {
   id       String   @id @default(cuid())
   userId   String
   weight   Float
+  // Optional body circumference measurements, in cm
+  waist    Float?
+  hips     Float?
+  chest    Float?
+  arm      Float?
+  thigh    Float?
   isPublic Boolean  @default(true)
   loggedAt DateTime @default(now())
 
