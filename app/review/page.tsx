@@ -63,8 +63,8 @@ function AnalysisSection({ icon, title, text }: { icon: React.ReactNode; title: 
 }
 
 export default function ReviewPage() {
-  const [days, setDays] = useState(1)
-  const [loading, setLoading] = useState(true)
+  const [days, setDays] = useState<number | null>(null)
+  const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState<Stats | null>(null)
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [empty, setEmpty] = useState(false)
@@ -94,7 +94,8 @@ export default function ReviewPage() {
     }
   }, [])
 
-  useEffect(() => { load(days) }, [days, load])
+  // Analysis starts only after the user picks a period
+  useEffect(() => { if (days !== null) load(days) }, [days, load])
 
   const scoreColor = (s: number) => s >= 8 ? 'text-green-600' : s >= 5 ? 'text-blue-600' : 'text-orange-500'
 
@@ -104,7 +105,7 @@ export default function ReviewPage() {
         <Sparkles size={22} className="text-blue-600" />
         <h1 className="text-2xl font-bold text-blue-700">סקירה חכמה</h1>
       </div>
-      <p className="text-slate-400 text-sm mb-5">ניתוח AI של התזונה, השתייה, הפעילות והצעדים שלך</p>
+      <p className="text-slate-400 text-sm mb-5">בוחרים כמה ימים אחורה לבדוק — וה-AI מנתח את התזונה, השתייה, הפעילות והצעדים שלך</p>
 
       {/* Period selector */}
       <div className="flex gap-2 mb-5">
@@ -117,11 +118,11 @@ export default function ReviewPage() {
           </button>
         ))}
         <select
-          value={PRESET_DAYS.includes(days) ? '' : days}
+          value={days !== null && !PRESET_DAYS.includes(days) ? days : ''}
           onChange={(e) => e.target.value && setDays(Number(e.target.value))}
           aria-label="בחירת מספר ימים אחורה"
           className={`flex-1 py-2.5 rounded-xl font-medium text-sm text-center transition-all cursor-pointer appearance-none ${
-            !PRESET_DAYS.includes(days) ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-blue-200 text-slate-600 hover:border-blue-400'
+            days !== null && !PRESET_DAYS.includes(days) ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-blue-200 text-slate-600 hover:border-blue-400'
           }`}>
           <option value="" disabled>אחר ▾</option>
           {CUSTOM_DAYS.map((d) => (
@@ -129,6 +130,14 @@ export default function ReviewPage() {
           ))}
         </select>
       </div>
+
+      {days === null && (
+        <div className="card text-center py-12">
+          <Sparkles size={36} className="mx-auto mb-3 text-blue-300" />
+          <p className="font-medium text-slate-600 mb-1">איזו תקופה לנתח?</p>
+          <p className="text-slate-400 text-sm">בוחרים למעלה כמה ימים אחורה — והניתוח יתחיל</p>
+        </div>
+      )}
 
       {loading && (
         <div>
@@ -149,7 +158,7 @@ export default function ReviewPage() {
         <div className="card text-center py-8">
           <p className="text-orange-500 mb-4">{error}</p>
           {stats && <StatsGrid stats={stats} />}
-          <button onClick={() => load(days)} className="btn-primary text-sm mt-4 inline-flex items-center gap-1.5">
+          <button onClick={() => days !== null && load(days)} className="btn-primary text-sm mt-4 inline-flex items-center gap-1.5">
             <RefreshCw size={14} /> ניסיון נוסף
           </button>
         </div>
@@ -207,7 +216,7 @@ export default function ReviewPage() {
             </div>
           )}
 
-          <button onClick={() => load(days)} className="w-full text-center text-xs text-slate-400 hover:text-blue-500 transition-colors mt-4 flex items-center justify-center gap-1">
+          <button onClick={() => days !== null && load(days)} className="w-full text-center text-xs text-slate-400 hover:text-blue-500 transition-colors mt-4 flex items-center justify-center gap-1">
             <RefreshCw size={12} /> רענון הניתוח
           </button>
         </>
