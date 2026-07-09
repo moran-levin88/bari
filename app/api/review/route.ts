@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { GoogleGenAI } from '@google/genai'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
-import { calculateDailyTargets, DEFAULT_TARGETS } from '@/lib/nutrition'
+import { calculateDailyTargets, getAgeGroupGuidelines, DEFAULT_TARGETS } from '@/lib/nutrition'
 
 export const maxDuration = 60
 
@@ -55,6 +55,8 @@ function validateAnalysis(raw: Record<string, unknown>) {
     water: str(raw.water),
     exercise: str(raw.exercise),
     steps: str(raw.steps),
+    weight: str(raw.weight),
+    ageInsight: str(raw.ageInsight),
     recommendations: Array.isArray(raw.recommendations)
       ? raw.recommendations.filter((r): r is string => typeof r === 'string').slice(0, 6)
       : [],
@@ -92,7 +94,12 @@ export async function GET(request: NextRequest) {
     prisma.waterLog.findMany({ where: { userId: session.userId, loggedAt: { gte: since } }, select: { amount: true, loggedAt: true } }),
     prisma.exerciseLog.findMany({ where: { userId: session.userId, loggedAt: { gte: since } }, select: { name: true, category: true, duration: true, loggedAt: true } }),
     prisma.stepLog.findMany({ where: { userId: session.userId, loggedAt: { gte: since } }, select: { steps: true, loggedAt: true } }),
-    prisma.weightLog.findMany({ where: { userId: session.userId }, select: { weight: true, loggedAt: true }, orderBy: { loggedAt: 'desc' }, take: 5 }),
+    prisma.weightLog.findMany({
+      where: { userId: session.userId },
+      select: { weight: true, waist: true, hips: true, chest: true, arm: true, thigh: true, loggedAt: true },
+      orderBy: { loggedAt: 'desc' },
+      take: 15,
+    }),
   ])
 
   // Per-day aggregation — keys use server-local dates, matching the local-midnight `since`
@@ -121,6 +128,28 @@ export async function GET(request: NextRequest) {
   const loggedDays = dayStats.filter((d) => d.calories > 0 || d.water > 0 || d.exerciseMin > 0 || d.steps > 0)
   const denom = Math.max(1, loggedDays.length)
 
+  // Weight trend — recent history (up to 15 entries), oldest first
+  const weightsAsc = [...weightLogs].reverse()
+  const firstW = weightsAsc[0]
+  const latestW = weightsAsc[weightsAsc.length - 1]
+  const weightSpanDays = weightsAsc.length >= 2
+    ? Math.max(1, Math.round((latestW.loggedAt.getTime() - firstW.loggedAt.getTime()) / 86_400_000))
+    : 0
+  const weightChange = weightsAsc.length >= 2 ? +(latestW.weight - firstW.weight).toFixed(1) : 0
+  const weightPerWeek = weightSpanDays > 0 ? +((weightChange / weightSpanDays) * 7).toFixed(2) : 0
+  const currentWeight = latestW?.weight ?? user.weight
+  const bmi = currentWeight && user.height
+    ? +(currentWeight / ((user.height / 100) ** 2)).toFixed(1)
+    : null
+
+  // Maintenance calories (goal-independent) to estimate the actual energy balance
+  const maintenanceCalories = user.age && currentWeight && user.height
+    ? calculateDailyTargets({
+        age: user.age, weight: currentWeight, height: user.height,
+        gender: user.gender ?? 'other', goal: 'maintain', activityLevel: user.activityLevel ?? 'moderate',
+      }).calories
+    : null
+
   const stats = {
     days,
     avgCalories: Math.round(dayStats.reduce((s, d) => s + d.calories, 0) / denom),
@@ -130,6 +159,14 @@ export async function GET(request: NextRequest) {
     avgSteps: Math.round(dayStats.reduce((s, d) => s + d.steps, 0) / denom),
     mealsCount: meals.length,
     targets,
+    weight: latestW
+      ? {
+          current: latestW.weight,
+          change: weightsAsc.length >= 2 ? weightChange : null,
+          spanDays: weightsAsc.length >= 2 ? weightSpanDays : null,
+          bmi,
+        }
+      : null,
   }
 
   if (meals.length === 0 && waterLogs.length === 0 && exerciseLogs.length === 0 && stepLogs.length === 0) {
@@ -137,8 +174,35 @@ export async function GET(request: NextRequest) {
   }
 
   const periodLabel = days === 1 ? 'היום' : days === 2 ? 'היומיים האחרונים' : `${days} הימים האחרונים`
-  const weightNote = weightLogs.length >= 2
-    ? `Recent weight trend: ${weightLogs.map((w) => `${w.weight}kg (${dayOf(w.loggedAt)})`).reverse().join(' → ')}`
+
+  const ageGuide = user.age ? getAgeGroupGuidelines(user.age) : null
+  const profileBlock = [
+    `User profile: age ${user.age ?? 'unknown'}, gender ${user.gender ?? 'unspecified'}, height ${user.height ?? '?'}cm, current weight ${currentWeight ?? '?'}kg${bmi ? `, BMI ${bmi}` : ''}, activity level ${user.activityLevel ?? 'moderate'}, goal "${user.goal ?? 'maintain'}".`,
+    ageGuide ? `Age-group guidance (${ageGuide.group}): ${ageGuide.notes}` : '',
+    maintenanceCalories
+      ? `Estimated maintenance: ~${maintenanceCalories} kcal/day. Average logged intake: ${stats.avgCalories} kcal/day → estimated daily balance ~${stats.avgCalories - maintenanceCalories} kcal (food logging may be incomplete — interpret cautiously).`
+      : '',
+  ].filter(Boolean).join('\n')
+
+  const weightBlock = weightsAsc.length >= 2
+    ? `Weight history (oldest → newest): ${weightsAsc.map((w) => `${w.weight}kg (${dayOf(w.loggedAt)})`).join(' → ')}
+Total change: ${weightChange > 0 ? '+' : ''}${weightChange}kg over ${weightSpanDays} days (~${weightPerWeek > 0 ? '+' : ''}${weightPerWeek}kg/week).`
+    : weightsAsc.length === 1
+      ? `Single weight entry: ${latestW.weight}kg (${dayOf(latestW.loggedAt)}) — no trend yet.`
+      : 'No weight logs yet.'
+
+  const measurementKeys = [
+    ['waist', 'waist'], ['hips', 'hips'], ['chest', 'chest'], ['arm', 'arm'], ['thigh', 'thigh'],
+  ] as const
+  const circumferenceLines = measurementKeys.flatMap(([key, label]) => {
+    const entries = weightsAsc.filter((w) => w[key] != null)
+    if (entries.length === 0) return []
+    const first = entries[0][key]
+    const last = entries[entries.length - 1][key]
+    return [`${label}: ${first}cm${entries.length > 1 && last !== first ? ` → ${last}cm` : ''}`]
+  })
+  const circumferenceBlock = circumferenceLines.length > 0
+    ? `Body measurements (oldest → newest): ${circumferenceLines.join(', ')}`
     : ''
 
   const dataBlock = dayStats.map((d) => (
@@ -146,16 +210,29 @@ export async function GET(request: NextRequest) {
   meals: ${d.meals.slice(0, 12).join('; ') || 'none logged'}`
   )).join('\n')
 
-  const prompt = `You are a supportive, professional dietitian reviewing a user's health log for ${periodLabel} (period of ${days} day(s)). The user's goal is "${user.goal ?? 'maintain'}" and their daily targets are: ${targets.calories} kcal, ${targets.protein}g protein, ${targets.water}ml water, 10,000 steps.
+  const prompt = `You are a supportive, professional dietitian and weight-management coach reviewing a user's health log for ${periodLabel} (period of ${days} day(s)). Daily targets: ${targets.calories} kcal, ${targets.protein}g protein, ${targets.water}ml water, 10,000 steps.
+
+${profileBlock}
+
+${weightBlock}
+${circumferenceBlock}
 
 Data per day (actual/target):
 ${dataBlock}
-${weightNote}
 
 Write an analysis IN HEBREW, personal (pronoun-neutral where possible), warm but honest and specific — reference actual foods and numbers from the data. Avoid generic advice that ignores the data. If something was not logged at all, gently note it might just be missing logging. In Hebrew text, write קק״ל with gershayim (״), never a straight double quote.
 
+For the weight analysis:
+- Compare the actual pace of change to a healthy, sustainable pace (about 0.5-1% of body weight per week for weight loss) and to the user's goal.
+- Connect the weight trend to the energy balance estimate — does the intake explain the trend? If intake looks too low to explain the data, suggest that meals may be under-logged.
+- If weight loss has stalled (plateau) despite a deficit, normalize it: plateaus, water retention and daily fluctuations are expected — look at the multi-week trend, not single weigh-ins.
+- If a very aggressive deficit shows (far below maintenance), warn about muscle loss and metabolic adaptation, and recommend a moderate deficit with enough protein.
+- If body measurements shrink while weight is flat, highlight it as real progress (fat loss with muscle retention).
+
+For the age insight: give guidance specific to the user's age and gender — for example muscle preservation and higher protein needs at older ages, bone health, hormonal changes where relevant, or building sustainable habits at younger ages. Anchor it to the actual data (protein intake, strength training, etc.), not generic facts.
+
 Return JSON with this exact shape:
-{"headline":"משפט סיכום אחד קליט","food":"ניתוח האכילה: איכות המזון, קלוריות מול יעד, חלבון, סוכר — 2-4 משפטים","water":"ניתוח השתייה מול היעד — 1-2 משפטים","exercise":"ניתוח הפעילות הגופנית — 1-2 משפטים","steps":"ניתוח הצעדים מול יעד 10,000 — 1-2 משפטים","recommendations":["3-5 המלצות קונקרטיות וישימות להמשך, מבוססות על הנתונים"],"score":7}
+{"headline":"משפט סיכום אחד קליט","food":"ניתוח האכילה: איכות המזון, קלוריות מול יעד, חלבון, סוכר — 2-4 משפטים","water":"ניתוח השתייה מול היעד — 1-2 משפטים","exercise":"ניתוח הפעילות הגופנית — 1-2 משפטים","steps":"ניתוח הצעדים מול יעד 10,000 — 1-2 משפטים","weight":"ניתוח מגמת המשקל: הקצב מול קצב בריא, מאזן האנרגיה, פלטו או התקדמות אמיתית — 2-4 משפטים. אם אין תיעוד משקל, עידוד עדין לשקילה שבועית","ageInsight":"תובנה אחת מותאמת לגיל ולמין של המשתמש, מעוגנת בנתונים — 1-2 משפטים","recommendations":["3-5 המלצות קונקרטיות וישימות להמשך, מבוססות על הנתונים והמגמה"],"score":7}
 score = overall adherence 1-10.`
 
   try {
@@ -173,10 +250,12 @@ score = overall adherence 1-10.`
             water: { type: 'string' },
             exercise: { type: 'string' },
             steps: { type: 'string' },
+            weight: { type: 'string' },
+            ageInsight: { type: 'string' },
             recommendations: { type: 'array', items: { type: 'string' } },
             score: { type: 'integer' },
           },
-          required: ['headline', 'food', 'water', 'exercise', 'steps', 'recommendations', 'score'],
+          required: ['headline', 'food', 'water', 'exercise', 'steps', 'weight', 'ageInsight', 'recommendations', 'score'],
         },
       },
     }))

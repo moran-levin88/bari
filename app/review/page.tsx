@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import {
   Sparkles, Utensils, GlassWater, Dumbbell, Footprints,
-  Lightbulb, RefreshCw, ClipboardList,
+  Lightbulb, RefreshCw, ClipboardList, Scale, HeartPulse,
 } from 'lucide-react'
 
 const PERIODS = [
@@ -25,6 +25,7 @@ type Stats = {
   avgSteps: number
   mealsCount: number
   targets: { calories: number; protein: number; carbs: number; fat: number; water: number }
+  weight: { current: number; change: number | null; spanDays: number | null; bmi: number | null } | null
 }
 
 type Analysis = {
@@ -33,6 +34,8 @@ type Analysis = {
   water: string
   exercise: string
   steps: string
+  weight: string
+  ageInsight: string
   recommendations: string[]
   score: number
 }
@@ -197,6 +200,8 @@ export default function ReviewPage() {
             <AnalysisSection icon={<GlassWater size={17} />} title="שתייה" text={analysis.water} />
             <AnalysisSection icon={<Dumbbell size={17} />} title="פעילות גופנית" text={analysis.exercise} />
             <AnalysisSection icon={<Footprints size={17} />} title="צעדים" text={analysis.steps} />
+            <AnalysisSection icon={<Scale size={17} />} title="מגמת משקל" text={analysis.weight} />
+            <AnalysisSection icon={<HeartPulse size={17} />} title="מותאם לך אישית" text={analysis.ageInsight} />
           </div>
 
           {/* Recommendations */}
@@ -249,6 +254,30 @@ function StatsGrid({ stats }: { stats: Stats }) {
         value={stats.avgSteps > 0 ? stats.avgSteps.toLocaleString('he-IL') : '—'}
         sub="יעד: 10,000"
       />
+      {stats.weight && (
+        <>
+          <StatCard
+            label="משקל נוכחי"
+            value={`${stats.weight.current} ק״ג`}
+            sub={stats.weight.bmi != null ? `BMI ‏${stats.weight.bmi}` : undefined}
+          />
+          <StatCard
+            label={
+              stats.weight.change == null || stats.weight.change === 0
+                ? 'שינוי משקל'
+                : stats.weight.change < 0 ? 'ירידה במשקל' : 'עלייה במשקל'
+            }
+            value={
+              stats.weight.change == null
+                ? '—'
+                : stats.weight.change === 0
+                  ? 'ללא שינוי'
+                  : `${Math.abs(stats.weight.change)} ק״ג`
+            }
+            sub={stats.weight.spanDays != null ? `ב־${stats.weight.spanDays} ימים אחרונים` : 'שקילה אחת בלבד'}
+          />
+        </>
+      )}
     </div>
   )
 }
