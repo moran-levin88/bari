@@ -3,18 +3,20 @@
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, GlassWater } from 'lucide-react'
-
-const AMOUNTS = [
-  { ml: 250, label: 'כוס' },
-  { ml: 500, label: 'בקבוק קטן' },
-  { ml: 750, label: 'בקבוק גדול' },
-]
+import { useLocale } from '@/lib/i18n/context'
 
 export default function QuickWaterButtons() {
   const router = useRouter()
+  const { t } = useLocale()
   const [savingMl, setSavingMl] = useState<number | null>(null)
   const [savedMl, setSavedMl] = useState<number | null>(null)
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const AMOUNTS = [
+    { ml: 250, label: t('quickWater.cup') },
+    { ml: 500, label: t('quickWater.smallBottle') },
+    { ml: 750, label: t('quickWater.largeBottle') },
+  ]
 
   async function log(ml: number) {
     if (savingMl) return
@@ -48,7 +50,7 @@ export default function QuickWaterButtons() {
           {savedMl === ml
             ? <Check size={16} />
             : <GlassWater size={16} className={savingMl === ml ? 'animate-pulse' : ''} />}
-          <span>{savedMl === ml ? 'נשמר!' : `${label} · ${ml} מ״ל`}</span>
+          <span>{savedMl === ml ? t('quickWater.saved') : `${label} · ${ml}ml`}</span>
         </button>
       ))}
     </div>

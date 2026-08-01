@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useLocale } from '@/lib/i18n/context'
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
   || 'BK3Pjzjgqvkmx7m-ri6XJrrgVVbIwLKM4w-RDmGW60h7sJNzFwUiLprUt0K1Wn6HdCDtMOxm39Yn9794PvaTMoM'
@@ -41,6 +42,7 @@ async function ensureSubscribed(): Promise<boolean> {
 }
 
 export default function PushPermission() {
+  const { t } = useLocale()
   const [state, setState] = useState<'idle' | 'prompt' | 'subscribed' | 'denied' | 'unsupported'>('idle')
 
   useEffect(() => {
@@ -81,14 +83,14 @@ export default function PushPermission() {
         <div className="flex items-start gap-3">
           <span className="text-2xl flex-shrink-0">🔔</span>
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-slate-800 text-sm">הפעלת התראות</p>
+            <p className="font-bold text-slate-800 text-sm">{t('system.pushTitle')}</p>
             <p className="text-slate-500 text-xs mt-0.5">
-              קבלת עדכון כשחבר בקבוצה מתעד פעילות, ותזכורות לשתיית מים
+              {t('system.pushDesc')}
             </p>
             <div className="flex gap-2 mt-3">
-              <button onClick={requestPermission} className="btn-primary text-xs py-1.5 px-3 flex-1">הפעלה</button>
+              <button onClick={requestPermission} className="btn-primary text-xs py-1.5 px-3 flex-1">{t('system.pushEnable')}</button>
               <button onClick={() => { setState('idle'); localStorage.setItem('push_dismissed', '1') }}
-                className="btn-secondary text-xs py-1.5 px-3">אחר כך</button>
+                className="btn-secondary text-xs py-1.5 px-3">{t('system.pushLater')}</button>
             </div>
           </div>
         </div>

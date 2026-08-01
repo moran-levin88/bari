@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useLocale } from '@/lib/i18n/context'
 
 type Member = { id: string; name: string; image?: string }
 type Group = {
@@ -13,6 +14,7 @@ type Group = {
 export default function JoinGroupPage() {
   const params = useParams()
   const router = useRouter()
+  const { t } = useLocale()
   const code = (params.code as string).toUpperCase()
 
   const [group, setGroup] = useState<Group | null>(null)
@@ -28,10 +30,11 @@ export default function JoinGroupPage() {
       .then((r) => r.json())
       .then((data) => {
         if (data.group) { setGroup(data.group); setIsMember(data.isMember); setLoggedIn(data.loggedIn) }
-        else { setError('הקבוצה לא נמצאה') }
+        else { setError(t('join.notFound')) }
       })
-      .catch(() => setError('טעינת הקבוצה נכשלה'))
+      .catch(() => setError(t('join.loadFailed')))
       .finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code])
 
   async function joinGroup() {
@@ -45,12 +48,12 @@ export default function JoinGroupPage() {
     const data = await res.json()
     setJoining(false)
     if (data.success) { setJoined(true); setTimeout(() => router.push('/feed'), 2000) }
-    else { setError(data.error || 'ההצטרפות נכשלה') }
+    else { setError(data.error || t('join.joinFailed')) }
   }
 
   if (loading) return (
     <div className="min-h-screen bg-blue-50 flex items-center justify-center">
-      <div className="text-center"><div className="text-5xl mb-3 animate-bounce">🤝</div><p className="text-slate-400">טוען...</p></div>
+      <div className="text-center"><div className="text-5xl mb-3 animate-bounce">🤝</div><p className="text-slate-400">{t('join.loading')}</p></div>
     </div>
   )
 
@@ -59,8 +62,8 @@ export default function JoinGroupPage() {
       <div className="card max-w-sm w-full text-center">
         <div className="text-5xl mb-3">😕</div>
         <h2 className="text-xl font-bold text-slate-700 mb-2">{error}</h2>
-        <p className="text-slate-400 mb-6 text-sm">הקישור שגוי או שהקבוצה נמחקה</p>
-        <Link href="/groups" className="btn-primary w-full block text-center">לקבוצות שלי</Link>
+        <p className="text-slate-400 mb-6 text-sm">{t('join.wrongLinkHint')}</p>
+        <Link href="/groups" className="btn-primary w-full block text-center">{t('join.myGroups')}</Link>
       </div>
     </div>
   )
@@ -69,9 +72,9 @@ export default function JoinGroupPage() {
     <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
       <div className="card max-w-sm w-full text-center">
         <div className="text-6xl mb-3">🎉</div>
-        <h2 className="text-2xl font-bold text-blue-700 mb-2">ברוכים הבאים!</h2>
-        <p className="text-slate-600">הצטרפת אל <strong>{group?.name}</strong></p>
-        <p className="text-slate-400 text-sm mt-2">עוברים לפיד...</p>
+        <h2 className="text-2xl font-bold text-blue-700 mb-2">{t('join.welcome')}</h2>
+        <p className="text-slate-600">{t('join.joinedInto')} <strong>{group?.name}</strong></p>
+        <p className="text-slate-400 text-sm mt-2">{t('join.movingToFeed')}</p>
       </div>
     </div>
   )
@@ -81,14 +84,14 @@ export default function JoinGroupPage() {
       <div className="card max-w-sm w-full">
         <div className="text-center mb-6">
           <div className="text-6xl mb-3">🤝</div>
-          <h1 className="text-2xl font-bold text-blue-700 mb-1">הזמנה לקבוצה</h1>
-          <p className="text-slate-500 text-sm">הוזמנת להצטרף לקבוצה</p>
+          <h1 className="text-2xl font-bold text-blue-700 mb-1">{t('join.invitation')}</h1>
+          <p className="text-slate-500 text-sm">{t('join.invitedToJoin')}</p>
         </div>
 
         <div className="bg-blue-50 rounded-2xl p-5 mb-5 text-center border-2 border-blue-200">
           <h2 className="text-2xl font-bold text-slate-800 mb-1">{group?.name}</h2>
           {group?.description && <p className="text-slate-500 text-sm mb-3">{group.description}</p>}
-          <p className="text-slate-400 text-xs">{group?.members.length} חברים כבר בקבוצה</p>
+          <p className="text-slate-400 text-xs">{group?.members.length} {t('join.membersAlready')}</p>
           {group && group.members.length > 0 && (
             <div className="flex justify-center gap-1 mt-3 flex-wrap">
               {group.members.slice(0, 5).map((m) => (
@@ -109,16 +112,16 @@ export default function JoinGroupPage() {
 
         {isMember ? (
           <div className="text-center">
-            <p className="text-green-600 font-medium mb-4">✅ את/ה כבר בקבוצה!</p>
-            <Link href="/feed" className="btn-primary w-full block text-center">📱 לפיד הקבוצתי</Link>
+            <p className="text-green-600 font-medium mb-4">✅ {t('join.alreadyMember')}</p>
+            <Link href="/feed" className="btn-primary w-full block text-center">{t('join.goToFeed')}</Link>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
             <button onClick={joinGroup} disabled={joining} className="btn-primary w-full py-3 text-base disabled:opacity-50">
-              {joining ? '...' : loggedIn ? '🤝 הצטרפות לקבוצה' : '🔐 התחברות והצטרפות'}
+              {joining ? '...' : loggedIn ? t('join.joinButton') : t('join.loginAndJoin')}
             </button>
-            {!loggedIn && <p className="text-center text-slate-400 text-xs">צריך להתחבר קודם</p>}
-            <Link href="/" className="text-center text-slate-400 text-sm hover:text-slate-600">חזרה לדף הבית</Link>
+            {!loggedIn && <p className="text-center text-slate-400 text-xs">{t('join.needLoginFirst')}</p>}
+            <Link href="/" className="text-center text-slate-400 text-sm hover:text-slate-600">{t('join.backHome')}</Link>
           </div>
         )}
       </div>

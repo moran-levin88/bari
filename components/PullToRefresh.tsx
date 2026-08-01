@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { useLocale } from '@/lib/i18n/context'
 
 const THRESHOLD = 72
 
@@ -10,6 +11,7 @@ const EXCLUDED = ['/login', '/register', '/onboarding']
 export default function PullToRefresh() {
   const pathname = usePathname()
   const router = useRouter()
+  const { t } = useLocale()
   const [phase, setPhase] = useState<'idle' | 'pulling' | 'ready' | 'refreshing'>('idle')
   const indicatorRef = useRef<HTMLDivElement>(null)
   const startY = useRef<number | null>(null)
@@ -89,7 +91,7 @@ export default function PullToRefresh() {
 
   if (phase === 'idle' || !active) return null
 
-  const label = phase === 'refreshing' ? 'מרעננת...' : phase === 'ready' ? 'שחררי לרענון' : 'משכי לרענון'
+  const label = phase === 'refreshing' ? t('system.pullRefreshing') : phase === 'ready' ? t('system.pullRelease') : t('system.pullDrag')
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 flex flex-col items-center pointer-events-none">

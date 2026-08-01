@@ -5,11 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { login } from '@/lib/auth'
+import { useLocale } from '@/lib/i18n/context'
 
 const REFRESH_KEY = 'bari_refresh'
 
 function LoginForm() {
   const router = useRouter()
+  const { t } = useLocale()
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/dashboard'
   const [state, action, pending] = useActionState(login, undefined)
@@ -58,7 +60,7 @@ function LoginForm() {
       <main className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-4xl mb-2 animate-pulse">🌿</div>
-          <p className="text-slate-400 text-sm">מתחברים...</p>
+          <p className="text-slate-400 text-sm">{t('auth.restoringSession')}</p>
         </div>
       </main>
     )
@@ -69,24 +71,24 @@ function LoginForm() {
       <div className="card w-full max-w-md">
         <div className="text-center mb-6">
           <div className="text-4xl mb-2">🌿</div>
-          <h1 className="text-2xl font-bold text-blue-700">התחברות ל-Bari</h1>
-          <p className="text-slate-500 text-sm mt-1">טוב לראות אותך שוב!</p>
+          <h1 className="text-2xl font-bold text-blue-700">{t('auth.loginTitle')}</h1>
+          <p className="text-slate-500 text-sm mt-1">{t('auth.loginSubtitle')}</p>
         </div>
 
         <form action={action} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">אימייל</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.email')}</label>
             <input name="email" type="email" required className="input" placeholder="example@email.com" dir="ltr" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">סיסמה</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.password')}</label>
             <div className="relative">
               <input
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 required
                 className="input pe-10"
-                placeholder="הסיסמה שלך"
+                placeholder={t('auth.passwordPlaceholderLogin')}
                 dir="ltr"
               />
               <button
@@ -94,7 +96,7 @@ function LoginForm() {
                 onClick={() => setShowPassword((v) => !v)}
                 className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 leading-none"
                 tabIndex={-1}
-                aria-label={showPassword ? 'הסתרת סיסמה' : 'הצגת סיסמה'}
+                aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -103,7 +105,7 @@ function LoginForm() {
 
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input type="checkbox" name="rememberMe" className="w-4 h-4 accent-blue-600 rounded" />
-            <span className="text-sm text-slate-600">לזכור אותי ל-30 יום</span>
+            <span className="text-sm text-slate-600">{t('auth.rememberMe')}</span>
           </label>
 
           {state?.error && (
@@ -113,14 +115,14 @@ function LoginForm() {
           )}
 
           <button type="submit" disabled={pending} className="btn-primary py-3 text-base mt-2">
-            {pending ? 'מתחברים...' : 'התחברות'}
+            {pending ? t('auth.loggingIn') : t('auth.login')}
           </button>
         </form>
 
         <p className="text-center text-sm text-slate-500 mt-4">
-          אין לך חשבון?{' '}
+          {t('auth.noAccount')}{' '}
           <Link href="/register" className="text-blue-600 font-medium hover:underline">
-            הרשמה
+            {t('auth.register')}
           </Link>
         </p>
       </div>

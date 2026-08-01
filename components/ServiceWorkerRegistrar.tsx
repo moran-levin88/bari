@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useLocale } from '@/lib/i18n/context'
 
 export default function ServiceWorkerRegistrar() {
+  const { t } = useLocale()
   const [showUpdate, setShowUpdate] = useState(false)
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null)
 
@@ -45,14 +47,14 @@ export default function ServiceWorkerRegistrar() {
     <div className="fixed bottom-4 right-4 left-4 z-50 md:left-auto md:w-80">
       <div className="bg-blue-700 text-white rounded-2xl shadow-xl p-4 flex items-center justify-between gap-3">
         <div>
-          <p className="font-bold text-sm">עדכון זמין ✨</p>
-          <p className="text-blue-200 text-xs">גרסה חדשה של Bari מוכנה</p>
+          <p className="font-bold text-sm">{t('system.updateAvailable')}</p>
+          <p className="text-blue-200 text-xs">{t('system.updateReady')}</p>
         </div>
         <button
           onClick={applyUpdate}
           className="bg-white text-blue-700 font-bold text-sm px-4 py-2 rounded-xl hover:bg-blue-50 whitespace-nowrap flex-shrink-0"
         >
-          עדכני עכשיו
+          {t('system.updateNow')}
         </button>
       </div>
     </div>

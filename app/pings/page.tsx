@@ -2,14 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
-import { he } from 'date-fns/locale'
+import { he, enUS } from 'date-fns/locale'
 import { Megaphone, Send } from 'lucide-react'
-
-const TOPIC_LABELS: Record<string, { emoji: string; label: string }> = {
-  water: { emoji: '💧', label: 'מים' },
-  exercise: { emoji: '🏃', label: 'פעילות' },
-  food: { emoji: '🍽️', label: 'אוכל' },
-}
+import { useLocale } from '@/lib/i18n/context'
+import type { TranslateFn } from '@/lib/i18n/dictionaries'
 
 type Ping = {
   id: string
@@ -23,8 +19,15 @@ type Ping = {
   recipient?: { id: string; name: string }
 }
 
-function timeStr(dateStr: string) {
-  return format(new Date(dateStr), 'HH:mm · d בMMM', { locale: he })
+function topicLabel(t: TranslateFn, topic: string) {
+  if (topic === 'water') return { emoji: '💧', label: t('pings.waterTopic') }
+  if (topic === 'exercise') return { emoji: '🏃', label: t('pings.exerciseTopic') }
+  if (topic === 'food') return { emoji: '🍽️', label: t('pings.foodTopic') }
+  return { emoji: '📣', label: topic }
+}
+
+function timeStr(dateStr: string, locale: string) {
+  return format(new Date(dateStr), 'HH:mm · d MMM', { locale: locale === 'he' ? he : enUS })
 }
 
 function ReceivedPing({ ping, onReply, onRead }: {
@@ -32,10 +35,11 @@ function ReceivedPing({ ping, onReply, onRead }: {
   onReply: (id: string, text: string) => Promise<void>
   onRead: (id: string) => void
 }) {
+  const { t, locale } = useLocale()
   const [replyText, setReplyText] = useState('')
   const [sending, setSending] = useState(false)
   const [open, setOpen] = useState(!ping.isRead)
-  const topic = TOPIC_LABELS[ping.topic] ?? { emoji: '📣', label: ping.topic }
+  const topic = topicLabel(t, ping.topic)
 
   function toggle() {
     setOpen((v) => !v)
@@ -60,10 +64,10 @@ function ReceivedPing({ ping, onReply, onRead }: {
             {!ping.isRead && <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5" />}
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-slate-800 text-sm">
-                {topic.emoji} פינג מאת {ping.sender?.name} — {topic.label}
+                {topic.emoji} {t('pings.from')} {ping.sender?.name} — {topic.label}
               </p>
               <p className="text-slate-600 text-sm truncate">{`"${ping.message}"`}</p>
-              <p className="text-xs text-slate-400 mt-0.5">{timeStr(ping.createdAt)}</p>
+              <p className="text-xs text-slate-400 mt-0.5">{timeStr(ping.createdAt, locale)}</p>
             </div>
           </div>
           <span className="text-slate-300 text-xs mt-1">{open ? '▲' : '▼'}</span>
@@ -78,7 +82,7 @@ function ReceivedPing({ ping, onReply, onRead }: {
 
           {ping.reply ? (
             <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2">
-              <p className="text-xs text-green-600 mb-0.5">התגובה שלך:</p>
+              <p className="text-xs text-green-600 mb-0.5">{t('pings.yourReply')}</p>
               <p className="text-slate-700 text-sm">{ping.reply}</p>
             </div>
           ) : (
@@ -87,7 +91,7 @@ function ReceivedPing({ ping, onReply, onRead }: {
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 className="input text-sm flex-1"
-                placeholder="כתיבת תגובה..."
+                placeholder={t('pings.replyPlaceholder')}
               />
               <button type="submit" disabled={sending || !replyText.trim()} className="btn-primary text-sm px-4 disabled:opacity-40">
                 {sending ? '...' : <Send size={15} />}
@@ -101,25 +105,26 @@ function ReceivedPing({ ping, onReply, onRead }: {
 }
 
 function SentPing({ ping }: { ping: Ping }) {
-  const topic = TOPIC_LABELS[ping.topic] ?? { emoji: '📣', label: ping.topic }
+  const { t, locale } = useLocale()
+  const topic = topicLabel(t, ping.topic)
   return (
     <div className="card mb-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-slate-800 text-sm">
-            {topic.emoji} פינג אל {ping.recipient?.name} — {topic.label}
+            {topic.emoji} {t('pings.to')} {ping.recipient?.name} — {topic.label}
           </p>
           <p className="text-slate-500 text-sm">{`"${ping.message}"`}</p>
-          <p className="text-xs text-slate-400 mt-0.5">{timeStr(ping.createdAt)}</p>
+          <p className="text-xs text-slate-400 mt-0.5">{timeStr(ping.createdAt, locale)}</p>
         </div>
         {ping.reply
-          ? <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex-shrink-0">התקבלה תגובה ✓</span>
-          : <span className="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full flex-shrink-0">ממתין</span>
+          ? <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex-shrink-0">{t('pings.gotReply')}</span>
+          : <span className="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full flex-shrink-0">{t('pings.waiting')}</span>
         }
       </div>
       {ping.reply && (
         <div className="mt-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
-          <p className="text-xs text-green-600 mb-0.5">התגובה של {ping.recipient?.name}:</p>
+          <p className="text-xs text-green-600 mb-0.5">{t('pings.repliedTo')} {ping.recipient?.name}:</p>
           <p className="text-slate-700 text-sm">{ping.reply}</p>
         </div>
       )}
@@ -128,6 +133,7 @@ function SentPing({ ping }: { ping: Ping }) {
 }
 
 export default function PingsPage() {
+  const { t } = useLocale()
   const [received, setReceived] = useState<Ping[]>([])
   const [sent, setSent] = useState<Ping[]>([])
   const [loading, setLoading] = useState(true)
@@ -167,14 +173,14 @@ export default function PingsPage() {
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-blue-700">📣 פינגים</h1>
+        <h1 className="text-2xl font-bold text-blue-700">{t('pings.title')}</h1>
         {unread > 0 && (
           <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{unread}</span>
         )}
       </div>
 
       <div className="flex gap-2 mb-5">
-        {([['received', 'התקבלו', unread], ['sent', 'נשלחו', 0]] as const).map(([key, label, badge]) => (
+        {([['received', t('pings.received'), unread], ['sent', t('pings.sent'), 0]] as const).map(([key, label, badge]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -201,8 +207,8 @@ export default function PingsPage() {
         received.length === 0 ? (
           <div className="card text-center py-10">
             <Megaphone size={44} className="mx-auto mb-3 text-blue-200" />
-            <p className="text-slate-500">אין עדיין פינגים</p>
-            <p className="text-slate-400 text-sm mt-1">כשחבר ישלח לך פינג, הוא יופיע כאן</p>
+            <p className="text-slate-500">{t('pings.noPingsYet')}</p>
+            <p className="text-slate-400 text-sm mt-1">{t('pings.willAppearHere')}</p>
           </div>
         ) : (
           received.map((p) => (
@@ -213,8 +219,8 @@ export default function PingsPage() {
         sent.length === 0 ? (
           <div className="card text-center py-10">
             <Send size={40} className="mx-auto mb-3 text-blue-200" />
-            <p className="text-slate-500">עוד לא נשלחו פינגים</p>
-            <p className="text-slate-400 text-sm mt-1">לוחצים על עיגול של חבר בפיד ושולחים פינג</p>
+            <p className="text-slate-500">{t('pings.noSentYet')}</p>
+            <p className="text-slate-400 text-sm mt-1">{t('pings.sendHint')}</p>
           </div>
         ) : (
           sent.map((p) => <SentPing key={p.id} ping={p} />)
