@@ -2,42 +2,46 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { format } from 'date-fns'
 import ShareToggle from '@/components/ShareToggle'
-
-const CATEGORIES = [
-  { value: 'cardio', label: '🏃 אירובי', examples: 'ריצה, אופניים, שחייה' },
-  { value: 'strength', label: '💪 כוח', examples: 'משקולות, TRX, גומיות' },
-  { value: 'pilates_machine', label: '🤸 פילאטיס מכשירים', examples: 'רפורמר, קדילק, בארל' },
-  { value: 'yoga', label: '🧘 יוגה / מדיטציה', examples: 'יוגה, מדיטציה, נשימות' },
-  { value: 'walking', label: '🚶 הליכה', examples: 'הליכה, טיול, מדרגות' },
-  { value: 'sports', label: '⚽ ספורט קבוצתי', examples: 'כדורגל, כדורסל, טניס' },
-  { value: 'other', label: '✨ אחר', examples: 'כל פעילות אחרת' },
-]
+import { useLocale } from '@/lib/i18n/context'
 
 export default function LogExercisePage() {
   const router = useRouter()
+  const { t } = useLocale()
   const [name, setName] = useState('')
   const [category, setCategory] = useState('other')
   const [duration, setDuration] = useState(30)
   const [notes, setNotes] = useState('')
+  const [date, setDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const [isPublic, setIsPublic] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  const CATEGORIES = [
+    { value: 'cardio', label: t('exercise.catCardio'), examples: t('exercise.catCardioEx') },
+    { value: 'strength', label: t('exercise.catStrength'), examples: t('exercise.catStrengthEx') },
+    { value: 'pilates_machine', label: t('exercise.catPilates'), examples: t('exercise.catPilatesEx') },
+    { value: 'yoga', label: t('exercise.catYoga'), examples: t('exercise.catYogaEx') },
+    { value: 'walking', label: t('exercise.catWalking'), examples: t('exercise.catWalkingEx') },
+    { value: 'sports', label: t('exercise.catSports'), examples: t('exercise.catSportsEx') },
+    { value: 'other', label: t('exercise.catOther'), examples: t('exercise.catOtherEx') },
+  ]
+
   async function save() {
-    if (!name.trim()) { setError('נא להזין שם פעילות'); return }
+    if (!name.trim()) { setError(t('exercise.nameRequired')); return }
     setSaving(true)
     setError('')
     try {
       const res = await fetch('/api/exercise', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), category, duration, notes, isPublic }),
+        body: JSON.stringify({ name: name.trim(), category, duration, notes, date, isPublic }),
       })
       if (!res.ok) throw new Error()
       router.push('/dashboard')
     } catch {
-      setError('השמירה נכשלה')
+      setError(t('exercise.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -45,16 +49,16 @@ export default function LogExercisePage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-blue-700 mb-6">🏃 תיעוד פעילות</h1>
+      <h1 className="text-2xl font-bold text-blue-700 mb-6">{t('exercise.title')}</h1>
 
       <div className="card mb-4">
-        <label className="block text-sm font-medium text-slate-700 mb-1">שם הפעילות</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1">{t('exercise.activityName')}</label>
         <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-          className="input" placeholder="למשל: ריצת בוקר" />
+          className="input" placeholder={t('exercise.activityNamePlaceholder')} />
       </div>
 
       <div className="card mb-4">
-        <h2 className="font-bold text-slate-700 mb-3">סוג פעילות</h2>
+        <h2 className="font-bold text-slate-700 mb-3">{t('exercise.category')}</h2>
         <div className="grid grid-cols-2 gap-2">
           {CATEGORIES.map((c) => (
             <button key={c.value} onClick={() => setCategory(c.value)}
@@ -67,12 +71,12 @@ export default function LogExercisePage() {
       </div>
 
       <div className="card mb-4">
-        <h2 className="font-bold text-slate-700 mb-3">משך</h2>
+        <h2 className="font-bold text-slate-700 mb-3">{t('exercise.duration')}</h2>
         <div className="flex items-center gap-4">
           <button onClick={() => setDuration(Math.max(5, duration - 5))} className="btn-secondary w-10 h-10 text-xl flex items-center justify-center p-0">-</button>
           <div className="flex-1 text-center">
             <span className="text-3xl font-bold text-blue-700">{duration}</span>
-            <span className="text-slate-500 me-1"> דק׳</span>
+            <span className="text-slate-500 me-1"> {t('exercise.minutesUnit')}</span>
           </div>
           <button onClick={() => setDuration(duration + 5)} className="btn-secondary w-10 h-10 text-xl flex items-center justify-center p-0">+</button>
         </div>
@@ -87,9 +91,15 @@ export default function LogExercisePage() {
       </div>
 
       <div className="card mb-4">
-        <label className="block text-sm font-medium text-slate-700 mb-1">הערות (לא חובה)</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1">{t('exercise.date')}</label>
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+          className="input" max={format(new Date(), 'yyyy-MM-dd')} />
+      </div>
+
+      <div className="card mb-4">
+        <label className="block text-sm font-medium text-slate-700 mb-1">{t('exercise.notes')}</label>
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
-          className="input resize-none" rows={2} placeholder="איך הרגשת? מה השגת?" />
+          className="input resize-none" rows={2} placeholder={t('exercise.notesPlaceholder')} />
       </div>
 
       <div className="mb-4">
@@ -99,7 +109,7 @@ export default function LogExercisePage() {
       {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
 
       <button onClick={save} disabled={saving} className="btn-primary w-full py-3 text-base">
-        {saving ? 'שומר...' : '✅ שמירת פעילות'}
+        {saving ? t('exercise.saving') : t('exercise.saveExercise')}
       </button>
     </div>
   )
