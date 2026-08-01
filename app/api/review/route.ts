@@ -73,27 +73,30 @@ export async function GET(request: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { name: true, age: true, weight: true, height: true, gender: true, goal: true, activityLevel: true },
+    select: { name: true, age: true, weight: true, height: true, gender: true, goal: true, activityLevel: true, locale: true },
   })
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  const isEnglish = user.locale === 'en'
 
   const targets = user.age && user.weight && user.height
     ? calculateDailyTargets({ age: user.age, weight: user.weight, height: user.height, gender: user.gender ?? 'other', goal: user.goal ?? 'maintain', activityLevel: user.activityLevel ?? 'moderate' })
     : DEFAULT_TARGETS
 
-  const since = new Date()
-  since.setHours(0, 0, 0, 0)
-  since.setDate(since.getDate() - (days - 1))
+  const until = new Date()
+  until.setHours(0, 0, 0, 0) // today at local midnight = exclusive upper bound, excludes today's still-incomplete data
+
+  const since = new Date(until)
+  since.setDate(since.getDate() - days) // 'days' full days ending yesterday
 
   const [meals, waterLogs, exerciseLogs, stepLogs, weightLogs] = await Promise.all([
     prisma.meal.findMany({
-      where: { userId: session.userId, loggedAt: { gte: since } },
+      where: { userId: session.userId, loggedAt: { gte: since, lt: until } },
       select: { name: true, mealType: true, calories: true, protein: true, carbs: true, fat: true, sugar: true, fiber: true, loggedAt: true },
       orderBy: { loggedAt: 'asc' },
     }),
-    prisma.waterLog.findMany({ where: { userId: session.userId, loggedAt: { gte: since } }, select: { amount: true, loggedAt: true } }),
-    prisma.exerciseLog.findMany({ where: { userId: session.userId, loggedAt: { gte: since } }, select: { name: true, category: true, duration: true, loggedAt: true } }),
-    prisma.stepLog.findMany({ where: { userId: session.userId, loggedAt: { gte: since } }, select: { steps: true, loggedAt: true } }),
+    prisma.waterLog.findMany({ where: { userId: session.userId, loggedAt: { gte: since, lt: until } }, select: { amount: true, loggedAt: true } }),
+    prisma.exerciseLog.findMany({ where: { userId: session.userId, loggedAt: { gte: since, lt: until } }, select: { name: true, category: true, duration: true, loggedAt: true } }),
+    prisma.stepLog.findMany({ where: { userId: session.userId, loggedAt: { gte: since, lt: until } }, select: { steps: true, loggedAt: true } }),
     prisma.weightLog.findMany({
       where: { userId: session.userId },
       select: { weight: true, waist: true, hips: true, chest: true, arm: true, thigh: true, loggedAt: true },
@@ -173,7 +176,9 @@ export async function GET(request: NextRequest) {
     return Response.json({ success: true, stats, analysis: null, empty: true })
   }
 
-  const periodLabel = days === 1 ? 'היום' : days === 2 ? 'היומיים האחרונים' : `${days} הימים האחרונים`
+  const periodLabel = isEnglish
+    ? (days === 1 ? 'yesterday' : days === 2 ? 'the last 2 days' : `the last ${days} days`)
+    : (days === 1 ? 'אתמול' : days === 2 ? 'היומיים האחרונים' : `${days} הימים האחרונים`)
 
   const ageGuide = user.age ? getAgeGroupGuidelines(user.age) : null
   const profileBlock = [
@@ -220,7 +225,7 @@ ${circumferenceBlock}
 Data per day (actual/target):
 ${dataBlock}
 
-Write an analysis IN HEBREW, personal (pronoun-neutral where possible), warm but honest and specific — reference actual foods and numbers from the data. Avoid generic advice that ignores the data. If something was not logged at all, gently note it might just be missing logging. In Hebrew text, write קק״ל with gershayim (״), never a straight double quote.
+Write an analysis ${isEnglish ? 'IN ENGLISH' : 'IN HEBREW'}, personal (pronoun-neutral where possible), warm but honest and specific — reference actual foods and numbers from the data. Avoid generic advice that ignores the data. If something was not logged at all, gently note it might just be missing logging.${isEnglish ? '' : ' In Hebrew text, write קק״ל with gershayim (״), never a straight double quote.'}
 
 For the weight analysis:
 - Compare the actual pace of change to a healthy, sustainable pace (about 0.5-1% of body weight per week for weight loss) and to the user's goal.
@@ -232,7 +237,9 @@ For the weight analysis:
 For the age insight: give guidance specific to the user's age and gender — for example muscle preservation and higher protein needs at older ages, bone health, hormonal changes where relevant, or building sustainable habits at younger ages. Anchor it to the actual data (protein intake, strength training, etc.), not generic facts.
 
 Return JSON with this exact shape:
-{"headline":"משפט סיכום אחד קליט","food":"ניתוח האכילה: איכות המזון, קלוריות מול יעד, חלבון, סוכר — 2-4 משפטים","water":"ניתוח השתייה מול היעד — 1-2 משפטים","exercise":"ניתוח הפעילות הגופנית — 1-2 משפטים","steps":"ניתוח הצעדים מול יעד 10,000 — 1-2 משפטים","weight":"ניתוח מגמת המשקל: הקצב מול קצב בריא, מאזן האנרגיה, פלטו או התקדמות אמיתית — 2-4 משפטים. אם אין תיעוד משקל, עידוד עדין לשקילה שבועית","ageInsight":"תובנה אחת מותאמת לגיל ולמין של המשתמש, מעוגנת בנתונים — 1-2 משפטים","recommendations":["3-5 המלצות קונקרטיות וישימות להמשך, מבוססות על הנתונים והמגמה"],"score":7}
+${isEnglish
+  ? '{"headline":"one catchy summary sentence","food":"eating analysis: food quality, calories vs target, protein, sugar — 2-4 sentences","water":"water intake vs target — 1-2 sentences","exercise":"exercise analysis — 1-2 sentences","steps":"steps vs the 10,000 target — 1-2 sentences","weight":"weight trend analysis: pace vs a healthy pace, energy balance, plateau or real progress — 2-4 sentences. If no weight logged, gently encourage weekly weigh-ins","ageInsight":"one insight tailored to the user\'s age and gender, grounded in the data — 1-2 sentences","recommendations":["3-5 concrete, actionable recommendations going forward, based on the data and trend"],"score":7}'
+  : '{"headline":"משפט סיכום אחד קליט","food":"ניתוח האכילה: איכות המזון, קלוריות מול יעד, חלבון, סוכר — 2-4 משפטים","water":"ניתוח השתייה מול היעד — 1-2 משפטים","exercise":"ניתוח הפעילות הגופנית — 1-2 משפטים","steps":"ניתוח הצעדים מול יעד 10,000 — 1-2 משפטים","weight":"ניתוח מגמת המשקל: הקצב מול קצב בריא, מאזן האנרגיה, פלטו או התקדמות אמיתית — 2-4 משפטים. אם אין תיעוד משקל, עידוד עדין לשקילה שבועית","ageInsight":"תובנה אחת מותאמת לגיל ולמין של המשתמש, מעוגנת בנתונים — 1-2 משפטים","recommendations":["3-5 המלצות קונקרטיות וישימות להמשך, מבוססות על הנתונים והמגמה"],"score":7}'}
 score = overall adherence 1-10.`
 
   try {
