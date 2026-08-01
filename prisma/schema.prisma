@@ -19,6 +19,7 @@ model User {
   gender        String?
   goal          String?
   activityLevel String?
+  locale        String   @default("he")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -36,6 +37,7 @@ model User {
   mealTemplates     MealTemplate[]
   sentPings         Ping[]             @relation("PingSender")
   receivedPings     Ping[]             @relation("PingRecipient")
+  recipes           Recipe[]
 }
 
 model Group {
@@ -80,6 +82,7 @@ model Meal {
   name        String
   description String?
   imageUrl    String?
+  imageUrl2   String?
   mealType    String
   calories    Float    @default(0)
   protein     Float    @default(0)
@@ -237,6 +240,20 @@ model MealTemplate {
   createdAt  DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Recipe {
+  id           String   @id @default(cuid())
+  userId       String
+  name         String
+  ingredients  String
+  instructions String
+  imageUrl     String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 model Ping {

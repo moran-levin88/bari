@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { GoogleGenAI } from '@google/genai'
 import { getSession } from '@/lib/session'
 
-export const maxDuration = 30
+export const maxDuration = 60
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 const MODEL = 'gemini-2.5-flash'
@@ -13,9 +13,9 @@ function clamp(v: unknown, min: number, max: number): number {
   return Math.max(min, Math.min(max, n))
 }
 
-function validateNutrition(raw: Record<string, unknown>) {
+function validateNutrition(raw: Record<string, unknown>, isEnglish: boolean) {
   return {
-    name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : 'ארוחה',
+    name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : (isEnglish ? 'Meal' : 'ארוחה'),
     description: typeof raw.description === 'string' ? raw.description : '',
     servingSize: typeof raw.servingSize === 'string' ? raw.servingSize : '',
     calories: clamp(raw.calories, 0, 5000),
@@ -31,8 +31,9 @@ function validateNutrition(raw: Record<string, unknown>) {
     breakdown: Array.isArray(raw.breakdown)
       ? raw.breakdown
           .filter((b: unknown): b is { name: string; calories: number } =>
-            typeof (b as { name: string }).name === 'string' &&
-            typeof (b as { calories: number }).calories === 'number'
+            typeof b === 'object' && b !== null &&
+            typeof (b as { name: unknown }).name === 'string' &&
+            typeof (b as { calories: unknown }).calories === 'number'
           )
           .slice(0, 20)
       : [],
@@ -85,24 +86,26 @@ function extractJson(text: string): Record<string, unknown> {
   return JSON.parse(cleaned.slice(start, end + 1))
 }
 
-const RESPONSE_SHAPE = `{"name":"meal name in Hebrew","description":"תיאור קצר בעברית","servingSize":"תיאור הכמות הכוללת","calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0,"sugar":0,"ingredients":[],"breakdown":[{"name":"food item in Hebrew","calories":0}],"tips":"טיפ תזונתי קצר בעברית"}`
+const RESPONSE_SHAPE_HE = `{"name":"meal name in Hebrew","description":"תיאור קצר בעברית","servingSize":"תיאור הכמות הכוללת","calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0,"sugar":0,"ingredients":[],"breakdown":[{"name":"food item in Hebrew","calories":0}],"tips":"טיפ תזונתי קצר בעברית"}`
+const RESPONSE_SHAPE_EN = `{"name":"meal name in English","description":"short description in English","servingSize":"description of the total portion","calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0,"sugar":0,"ingredients":[],"breakdown":[{"name":"food item in English","calories":0}],"tips":"short nutrition tip in English"}`
 
-async function analyzeTextWithGemini(mealName: string): Promise<Record<string, unknown>> {
+async function analyzeTextWithGemini(mealName: string, isEnglish: boolean): Promise<Record<string, unknown>> {
   const prompt = `You are a precise nutritionist with access to Google Search. The user describes a meal they ate. Use Google Search to find ACCURATE, REAL nutrition data for each food item, then calculate the TOTAL nutritional values for the whole meal.
 
 Rules:
-- If multiple foods are listed (separated by +, ו, עם, etc.), calculate each one individually and ADD their nutritional values together to get the total.
+- If multiple foods are listed (separated by +, ו, עם, and, with, etc.), calculate each one individually and ADD their nutritional values together to get the total.
 - For branded Israeli products (e.g. "יוגורט פרו 20 דנונה", "קוטג' 5% תנובה"), search for the official nutrition label (manufacturer site, שופרסל, רמי לוי, חביבי, etc.) and use the real values per the amount eaten.
 - For generic, unbranded foods (fruits, vegetables, plain rice, chicken breast, bread, etc.), do NOT use Google Search — use standard reference values from a nutrition database like USDA (e.g. 1 medium peach (~150g) ≈ 50 kcal, 100g cooked rice ≈ 130 kcal). This keeps results consistent.
 - Use the exact quantities mentioned (grams, units, etc.) and scale linearly — e.g. 1.5 peaches = 1.5 × the value for 1 peach. For whole fruits/vegetables with no quantity specified, assume 1 medium-sized piece.
 - Never reduce protein or calories when adding more foods — totals must always increase or stay the same.
 - Be consistent: the exact same input must always produce the exact same output, and quantities must scale exactly linearly (e.g. "1.5 X" must be exactly 1.5 times "1 X").
 - If multiple foods, populate "breakdown" with calories per individual food item.
+- Write all text fields (name, description, servingSize, breakdown item names, tips) ${isEnglish ? 'IN ENGLISH' : 'IN HEBREW'}.
 
 Meal: "${mealName}"
 
 Return ONLY valid JSON (no markdown, no explanation, no code fences):
-${RESPONSE_SHAPE}`
+${isEnglish ? RESPONSE_SHAPE_EN : RESPONSE_SHAPE_HE}`
 
   const response = await withRetry(() => ai.models.generateContent({
     model: MODEL,
@@ -116,7 +119,7 @@ ${RESPONSE_SHAPE}`
   return extractJson(response.text || '')
 }
 
-async function analyzeImageWithGemini(buffer: Buffer, mimeType: string, portion?: string): Promise<Record<string, unknown>> {
+async function analyzeImageWithGemini(buffer: Buffer, mimeType: string, isEnglish: boolean, portion?: string): Promise<Record<string, unknown>> {
   const portionInstruction = portion
     ? `\n- The user did NOT eat the whole thing shown in the image — they only ate: "${portion}". First determine the full product/portion's nutrition values (per the package or visible amount), then scale down to match exactly what the user actually ate. The returned values must reflect only the amount eaten, not the full item in the photo.`
     : ''
@@ -127,10 +130,11 @@ Rules:
 - Estimate realistic portion sizes based on what you see.
 - If you recognise a branded/packaged product, use Google Search to find its real nutrition label values for the visible portion.
 - For whole fruits/vegetables, use 1 medium-sized piece if not obvious.
-- Be consistent: similar images must produce similar output.${portionInstruction}
+- Be consistent: similar images must produce similar output.
+- Write all text fields (name, description, servingSize, breakdown item names, tips) ${isEnglish ? 'IN ENGLISH' : 'IN HEBREW'}.${portionInstruction}
 
 Return ONLY valid JSON (no markdown, no explanation, no code fences):
-${RESPONSE_SHAPE}`
+${isEnglish ? RESPONSE_SHAPE_EN : RESPONSE_SHAPE_HE}`
 
   const response = await withRetry(() => ai.models.generateContent({
     model: MODEL,
@@ -153,37 +157,41 @@ export async function POST(request: NextRequest) {
 
   try {
     const formData = await request.formData()
-    const imageFile = formData.get('image') as File | null
+    const image1 = formData.get('image') as File | null
+    const image2 = formData.get('image2') as File | null
     const mealName = formData.get('name') as string | null
-    const portion = (formData.get('portion') as string | null)?.trim() || undefined
+    const portion1 = (formData.get('portion') as string | null)?.trim() || undefined
+    const portion2 = (formData.get('portion2') as string | null)?.trim() || undefined
+    const isEnglish = formData.get('locale') === 'en'
+    const extraText = mealName?.trim()
 
-    if (!mealName && (!imageFile || imageFile.size === 0)) {
+    const hasImage1 = !!image1 && image1.size > 0
+    const hasImage2 = !!image2 && image2.size > 0
+
+    if (!extraText && !hasImage1 && !hasImage2) {
       return Response.json({ error: 'MISSING_INPUT' }, { status: 400 })
     }
 
-    if (imageFile && imageFile.size > 10 * 1024 * 1024) {
+    if ((image1 && image1.size > 10 * 1024 * 1024) || (image2 && image2.size > 10 * 1024 * 1024)) {
       return Response.json({ error: 'IMAGE_TOO_LARGE' }, { status: 400 })
     }
 
-    if (imageFile && imageFile.size > 0) {
-      const buffer = Buffer.from(await imageFile.arrayBuffer())
-      const extraText = mealName?.trim()
-
-      if (extraText) {
-        const [imageRaw, textRaw] = await Promise.all([
-          analyzeImageWithGemini(buffer, imageFile.type, portion),
-          analyzeTextWithGemini(extraText),
-        ])
-        const combined = combineNutrition(validateNutrition(imageRaw), validateNutrition(textRaw))
-        return Response.json({ success: true, nutrition: combined })
-      }
-
-      const raw = await analyzeImageWithGemini(buffer, imageFile.type, portion)
-      return Response.json({ success: true, nutrition: validateNutrition(raw) })
+    const analyses: Promise<Record<string, unknown>>[] = []
+    if (hasImage1) {
+      const buffer1 = Buffer.from(await image1!.arrayBuffer())
+      analyses.push(analyzeImageWithGemini(buffer1, image1!.type, isEnglish, portion1))
+    }
+    if (hasImage2) {
+      const buffer2 = Buffer.from(await image2!.arrayBuffer())
+      analyses.push(analyzeImageWithGemini(buffer2, image2!.type, isEnglish, portion2))
+    }
+    if (extraText) {
+      analyses.push(analyzeTextWithGemini(extraText, isEnglish))
     }
 
-    const raw = await analyzeTextWithGemini(mealName || '')
-    return Response.json({ success: true, nutrition: validateNutrition(raw) })
+    const raws = await Promise.all(analyses)
+    const combined = raws.map((r) => validateNutrition(r, isEnglish)).reduce((a, b) => combineNutrition(a, b))
+    return Response.json({ success: true, nutrition: combined })
 
   } catch (error) {
     console.error('[analyze-food]', error instanceof Error ? error.message : error)

@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { name, description, imageUrl, mealType, calories, protein, carbs, fat, fiber, sugar, aiAnalysis, isPublic } = body
+    const { name, description, imageUrl, imageUrl2, mealType, calories, protein, carbs, fat, fiber, sugar, aiAnalysis, isPublic } = body
 
     const meal = await prisma.meal.create({
       data: {
@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
         name,
         description,
         imageUrl,
+        imageUrl2,
         mealType: mealType || 'snack',
         calories: calories || 0,
         protein: protein || 0,
