@@ -101,7 +101,7 @@ export default function OnboardingPage() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">{t('onboarding.weight')}</label>
               <input type="number" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })}
-                className="input" placeholder={t('onboarding.weightPlaceholder')} min={20} max={300} step={0.5} />
+                className="input" placeholder={t('onboarding.weightPlaceholder')} min={20} max={300} step={0.1} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">{t('onboarding.height')}</label>

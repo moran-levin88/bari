@@ -156,7 +156,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">{t('profile.weight')}</label>
-                <input type="number" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="input" placeholder={t('profile.weightUnit')} min={20} max={300} step={0.5} />
+                <input type="number" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="input" placeholder={t('profile.weightUnit')} min={20} max={300} step={0.1} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">{t('profile.height')}</label>
