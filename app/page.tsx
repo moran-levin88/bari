@@ -10,8 +10,8 @@ export default async function HomePage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-6">
       <div className="max-w-2xl w-full text-center">
-        <div className="text-7xl mb-6">🥗</div>
-        <h1 className="text-4xl font-bold text-blue-700 mb-3">Bari 🌿</h1>
+        <img src="/logo.png" alt="Bari" className="w-28 h-28 mx-auto mb-6 rounded-full" />
+        <h1 className="text-4xl font-bold text-blue-700 mb-3">Bari</h1>
         <p className="text-xl text-slate-600 mb-2">{t('home.tagline')}</p>
         <p className="text-slate-500 mb-10 max-w-lg mx-auto">
           {t('home.description')}

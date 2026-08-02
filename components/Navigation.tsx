@@ -89,7 +89,7 @@ export default function Navigation({ userName }: { userName: string }) {
       <nav className="bg-white border-b border-blue-100 px-4 py-3 sticky top-0 z-10 shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Link href="/dashboard" className="text-blue-700 font-bold text-xl flex items-center gap-2">
-            <span>🌿</span> Bari
+            <img src="/logo.png" alt="Bari" className="w-8 h-8 rounded-full" /> Bari
           </Link>
 
           <div className="hidden lg:flex gap-1">

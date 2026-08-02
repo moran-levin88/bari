@@ -80,7 +80,7 @@ export default function OnboardingPage() {
 
       {step === 1 && (
         <div className="text-center py-4">
-          <div className="text-6xl mb-4">🌿</div>
+          <img src="/logo.png" alt="Bari" className="w-24 h-24 mx-auto mb-4 rounded-full" />
           <h1 className="text-2xl font-bold text-blue-700 mb-2">{t('onboarding.welcomeTitle')}</h1>
           <p className="text-slate-500 mb-2">{t('onboarding.welcomeText')}</p>
           <p className="text-slate-400 text-sm mb-8">{t('onboarding.welcomeSub')}</p>

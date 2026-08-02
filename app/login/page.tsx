@@ -59,7 +59,7 @@ function LoginForm() {
     return (
       <main className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-2 animate-pulse">🌿</div>
+          <img src="/logo.png" alt="Bari" className="w-16 h-16 mx-auto mb-2 rounded-full animate-pulse" />
           <p className="text-slate-400 text-sm">{t('auth.restoringSession')}</p>
         </div>
       </main>
@@ -70,7 +70,7 @@ function LoginForm() {
     <main className="min-h-screen flex items-center justify-center p-6">
       <div className="card w-full max-w-md">
         <div className="text-center mb-6">
-          <div className="text-4xl mb-2">🌿</div>
+          <img src="/logo.png" alt="Bari" className="w-16 h-16 mx-auto mb-2 rounded-full" />
           <h1 className="text-2xl font-bold text-blue-700">{t('auth.loginTitle')}</h1>
           <p className="text-slate-500 text-sm mt-1">{t('auth.loginSubtitle')}</p>
         </div>
