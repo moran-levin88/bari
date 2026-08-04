@@ -16,7 +16,7 @@ export async function createSession(
   payload: Omit<SessionPayload, 'expiresAt'>,
   rememberMe = false
 ) {
-  const days = rememberMe ? 30 : 7
+  const days = rememberMe ? 365 : 7
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
 
   const session = await new SignJWT({ ...payload, expiresAt })
@@ -61,7 +61,7 @@ export async function createRefreshToken(userId: string): Promise<string> {
   return new SignJWT({ userId, type: 'refresh' })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('30d')
+    .setExpirationTime('365d')
     .sign(encodedKey)
 }
 

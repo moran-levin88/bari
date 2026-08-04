@@ -48,7 +48,7 @@ function LoginForm() {
       if (state.refreshToken) {
         localStorage.setItem(REFRESH_KEY, JSON.stringify({
           token: state.refreshToken,
-          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
         }))
       }
       router.push(redirect)
