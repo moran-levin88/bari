@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Salad, ChevronLeft, HeartPulse, Sparkles, Languages } from 'lucide-react'
+import { Salad, ChevronLeft, HeartPulse, Sparkles, Languages, Watch, Copy, Check } from 'lucide-react'
 import { calculateDailyTargets } from '@/lib/nutrition'
 import { useLocale } from '@/lib/i18n/context'
 import type { Locale } from '@/lib/i18n/dictionaries'
@@ -30,6 +30,14 @@ export default function ProfilePage() {
   const [ageGroup, setAgeGroup] = useState('')
   const [loadingInsights, setLoadingInsights] = useState(false)
   const [insightsError, setInsightsError] = useState('')
+
+  const [stepsToken, setStepsToken] = useState<string | null>(null)
+  const [loadingToken, setLoadingToken] = useState(true)
+  const [generatingToken, setGeneratingToken] = useState(false)
+  const [copiedField, setCopiedField] = useState<'url' | 'token' | null>(null)
+  const [showIosSteps, setShowIosSteps] = useState(false)
+  const [showAndroidSteps, setShowAndroidSteps] = useState(false)
+  const webhookUrl = typeof window !== 'undefined' ? `${window.location.origin}/api/steps/sync` : '/api/steps/sync'
 
   const GENDERS = [
     { value: 'female', label: t('profile.genderFemale') },
@@ -79,6 +87,32 @@ export default function ProfilePage() {
       })
     })
   }, [])
+
+  useEffect(() => {
+    fetch('/api/profile/steps-token')
+      .then((r) => r.json())
+      .then((d) => setStepsToken(d.token))
+      .catch(() => {})
+      .finally(() => setLoadingToken(false))
+  }, [])
+
+  async function generateStepsToken() {
+    if (stepsToken && !confirm(t('profile.watchSyncRegenerateConfirm'))) return
+    setGeneratingToken(true)
+    try {
+      const res = await fetch('/api/profile/steps-token', { method: 'POST' })
+      const data = await res.json()
+      if (res.ok) setStepsToken(data.token)
+    } finally {
+      setGeneratingToken(false)
+    }
+  }
+
+  function copyToClipboard(text: string, field: 'url' | 'token') {
+    navigator.clipboard.writeText(text)
+    setCopiedField(field)
+    setTimeout(() => setCopiedField(null), 1500)
+  }
 
   async function loadInsights() {
     setLoadingInsights(true)
@@ -247,6 +281,77 @@ export default function ProfilePage() {
           </div>
           <ChevronLeft size={20} className="text-slate-300 group-hover:text-blue-500 transition-colors" />
         </Link>
+      </div>
+
+      <div className="glass-card mt-4">
+        <h2 className="font-bold text-slate-700 mb-1 flex items-center gap-2">
+          <Watch size={19} className="text-blue-500" /> {t('profile.watchSyncTitle')}
+        </h2>
+        <p className="text-slate-400 text-sm mb-3">{t('profile.watchSyncDesc')}</p>
+
+        {loadingToken ? (
+          <p className="text-slate-400 text-sm">{t('profile.watchSyncLoading')}</p>
+        ) : !stepsToken ? (
+          <button onClick={generateStepsToken} disabled={generatingToken} className="btn-primary w-full py-2.5 text-sm disabled:opacity-60">
+            {generatingToken ? t('common.saving') : t('profile.watchSyncGenerate')}
+          </button>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">{t('profile.watchSyncUrlLabel')}</label>
+              <div className="flex items-center gap-2">
+                <code dir="ltr" className="flex-1 bg-blue-50 rounded-lg px-2.5 py-2 text-xs text-slate-700 overflow-x-auto whitespace-nowrap">{webhookUrl}</code>
+                <button type="button" onClick={() => copyToClipboard(webhookUrl, 'url')}
+                  aria-label={t('profile.watchSyncCopy')}
+                  className="flex-shrink-0 w-9 h-9 rounded-full bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors">
+                  {copiedField === 'url' ? <Check size={15} /> : <Copy size={15} />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">{t('profile.watchSyncTokenLabel')}</label>
+              <div className="flex items-center gap-2">
+                <code dir="ltr" className="flex-1 bg-blue-50 rounded-lg px-2.5 py-2 text-xs text-slate-700 overflow-x-auto whitespace-nowrap">{stepsToken}</code>
+                <button type="button" onClick={() => copyToClipboard(stepsToken, 'token')}
+                  aria-label={t('profile.watchSyncCopy')}
+                  className="flex-shrink-0 w-9 h-9 rounded-full bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors">
+                  {copiedField === 'token' ? <Check size={15} /> : <Copy size={15} />}
+                </button>
+              </div>
+            </div>
+
+            <button onClick={generateStepsToken} disabled={generatingToken} className="text-xs text-slate-400 hover:text-blue-500 transition-colors self-start">
+              {generatingToken ? t('common.saving') : t('profile.watchSyncRegenerate')}
+            </button>
+
+            <div className="flex flex-col gap-2 mt-1">
+              <button type="button" onClick={() => setShowIosSteps((v) => !v)}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors">
+                <span className="text-xs font-semibold text-blue-600 tracking-wide">{t('profile.watchSyncIosTitle')}</span>
+                <span className="text-blue-400 text-sm">{showIosSteps ? '▲' : '▼'}</span>
+              </button>
+              {showIosSteps && (
+                <ol className="list-decimal ps-5 flex flex-col gap-1.5 text-sm text-slate-600 mb-1">
+                  {t('profile.watchSyncIosSteps').split('\n').map((step, i) => <li key={i}>{step}</li>)}
+                </ol>
+              )}
+
+              <button type="button" onClick={() => setShowAndroidSteps((v) => !v)}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors">
+                <span className="text-xs font-semibold text-blue-600 tracking-wide">{t('profile.watchSyncAndroidTitle')}</span>
+                <span className="text-blue-400 text-sm">{showAndroidSteps ? '▲' : '▼'}</span>
+              </button>
+              {showAndroidSteps && (
+                <>
+                  <ol className="list-decimal ps-5 flex flex-col gap-1.5 text-sm text-slate-600">
+                    {t('profile.watchSyncAndroidSteps').split('\n').map((step, i) => <li key={i}>{step}</li>)}
+                  </ol>
+                  <p className="text-xs text-slate-400 mt-1">{t('profile.watchSyncAndroidNote')}</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="glass-card mt-4">

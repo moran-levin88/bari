@@ -20,6 +20,7 @@ model User {
   goal          String?
   activityLevel String?
   locale        String   @default("he")
+  stepsApiToken String?  @unique
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -137,6 +138,7 @@ model StepLog {
   id       String   @id @default(cuid())
   userId   String
   steps    Int
+  source   String   @default("manual")
   isPublic Boolean  @default(true)
   loggedAt DateTime @default(now())
 
