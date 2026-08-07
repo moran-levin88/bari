@@ -88,16 +88,16 @@ export default function MealsList({ meals }: { meals: Meal[] }) {
           <div key={meal.id} className={`rounded-xl border transition-all ${isOpen ? 'border-blue-300 bg-white' : 'border-transparent bg-blue-50'}`}>
             <button className="w-full text-start flex items-center gap-3 p-3" onClick={() => setExpandedId(isOpen ? null : meal.id)}>
               {meal.imageUrl
-                ? <img src={meal.imageUrl} alt={meal.name} className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />
-                : <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0"><Utensils size={22} className="text-blue-400" /></div>
+                ? <img src={meal.imageUrl} alt={meal.name} className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
+                : <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center flex-shrink-0"><Utensils size={22} className="text-blue-400" /></div>
               }
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-slate-800 truncate text-sm">{meal.name}</div>
                 <div className="flex gap-2 mt-1 flex-wrap">
                   <span className="macro-chip bg-blue-100 text-blue-700">⚡ {Math.round(meal.calories)}</span>
                   <span className="macro-chip bg-blue-50 text-blue-600">💪 {Math.round(meal.protein)}g</span>
-                  <span className="macro-chip bg-amber-50 text-amber-600">🌾 {Math.round(meal.carbs)}g</span>
-                  <span className="macro-chip bg-green-50 text-green-600">🥑 {Math.round(meal.fat)}g</span>
+                  <span className="macro-chip bg-purple-50 text-purple-600">🌾 {Math.round(meal.carbs)}g</span>
+                  <span className="macro-chip bg-pink-50 text-pink-600">🥑 {Math.round(meal.fat)}g</span>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1 flex-shrink-0">

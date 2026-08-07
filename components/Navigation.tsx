@@ -88,8 +88,9 @@ export default function Navigation({ userName }: { userName: string }) {
     <>
       <nav className="bg-white border-b border-blue-100 px-4 py-3 sticky top-0 z-10 shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/dashboard" className="text-blue-700 font-bold text-xl flex items-center gap-2">
-            <img src="/logo.png" alt="Bari" className="w-8 h-8 rounded-full" /> Bari
+          <Link href="/dashboard" className="font-bold text-xl flex items-center gap-2">
+            <img src="/logo.png" alt="Bari" className="w-8 h-8 rounded-full" />
+            <span className="bg-gradient-to-r from-[var(--primary)] to-[var(--purple-600)] bg-clip-text text-transparent">Bari</span>
           </Link>
 
           <div className="hidden lg:flex gap-1">
@@ -126,10 +127,11 @@ export default function Navigation({ userName }: { userName: string }) {
           <p className="text-xs font-semibold text-slate-400 mb-3">{t('nav.whatToLog')}</p>
           <div className="grid grid-cols-4 gap-2">
             {quickLogItems(t).map(({ href, label, Icon }) => (
-              <Link key={href} href={href}
-                className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 active:scale-95 transition-all">
-                <Icon size={22} strokeWidth={1.8} />
-                <span className="text-xs font-medium">{label}</span>
+              <Link key={href} href={href} className="flex flex-col items-center gap-1.5 group">
+                <span className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-105 group-active:scale-95 transition-transform">
+                  <Icon size={22} strokeWidth={1.8} />
+                </span>
+                <span className="text-xs font-medium text-slate-600">{label}</span>
               </Link>
             ))}
           </div>
@@ -159,7 +161,7 @@ export default function Navigation({ userName }: { userName: string }) {
         <div className="grid grid-cols-5 items-end max-w-md mx-auto px-2">
           {bottomTabs(t).map(({ href, label, Icon }) => (
             <Link key={href} href={href} className={`bottom-nav-item ${isActive(href) && !fabOpen && !moreOpen ? 'active' : ''}`}>
-              <Icon size={22} strokeWidth={1.8} />
+              <span className="bottom-nav-icon"><Icon size={22} strokeWidth={1.8} /></span>
               <span>{label}</span>
             </Link>
           ))}
@@ -167,8 +169,9 @@ export default function Navigation({ userName }: { userName: string }) {
           <div className="flex justify-center">
             <button
               aria-label={t('nav.quickLog')}
+              aria-expanded={fabOpen}
               onClick={() => { setMoreOpen(false); setFabOpen((v) => !v) }}
-              className={`-mt-5 w-14 h-14 rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/30 flex items-center justify-center active:scale-95 transition-all ${fabOpen ? 'rotate-45 bg-blue-700' : ''}`}
+              className={`-mt-5 w-14 h-14 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--purple-600)] text-white shadow-[var(--glow-purple)] flex items-center justify-center active:scale-95 transition-transform duration-300 ${fabOpen ? 'rotate-45' : ''}`}
             >
               <Plus size={28} strokeWidth={2.2} />
             </button>
@@ -176,14 +179,14 @@ export default function Navigation({ userName }: { userName: string }) {
 
           {bottomTabsEnd(t).map(({ href, label, Icon }) => (
             <Link key={href} href={href} className={`bottom-nav-item ${isActive(href) && !fabOpen && !moreOpen ? 'active' : ''}`}>
-              <Icon size={22} strokeWidth={1.8} />
+              <span className="bottom-nav-icon"><Icon size={22} strokeWidth={1.8} /></span>
               <span>{label}</span>
             </Link>
           ))}
 
           <button onClick={() => { setFabOpen(false); setMoreOpen((v) => !v) }}
             className={`bottom-nav-item w-full ${moreOpen || (moreActive && !fabOpen) ? 'active' : ''}`}>
-            {moreOpen ? <X size={22} strokeWidth={1.8} /> : <Menu size={22} strokeWidth={1.8} />}
+            <span className="bottom-nav-icon">{moreOpen ? <X size={22} strokeWidth={1.8} /> : <Menu size={22} strokeWidth={1.8} />}</span>
             <span>{t('nav.more')}</span>
           </button>
         </div>
