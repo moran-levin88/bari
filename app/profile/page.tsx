@@ -36,7 +36,6 @@ export default function ProfilePage() {
   const [generatingToken, setGeneratingToken] = useState(false)
   const [copiedField, setCopiedField] = useState<'url' | 'token' | null>(null)
   const [showIosSteps, setShowIosSteps] = useState(false)
-  const [showAndroidSteps, setShowAndroidSteps] = useState(false)
   const webhookUrl = typeof window !== 'undefined' ? `${window.location.origin}/api/steps/sync` : '/api/steps/sync'
 
   const GENDERS = [
@@ -335,20 +334,7 @@ export default function ProfilePage() {
                   {t('profile.watchSyncIosSteps').split('\n').map((step, i) => <li key={i}>{step}</li>)}
                 </ol>
               )}
-
-              <button type="button" onClick={() => setShowAndroidSteps((v) => !v)}
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors">
-                <span className="text-xs font-semibold text-blue-600 tracking-wide">{t('profile.watchSyncAndroidTitle')}</span>
-                <span className="text-blue-400 text-sm">{showAndroidSteps ? '▲' : '▼'}</span>
-              </button>
-              {showAndroidSteps && (
-                <>
-                  <ol className="list-decimal ps-5 flex flex-col gap-1.5 text-sm text-slate-600">
-                    {t('profile.watchSyncAndroidSteps').split('\n').map((step, i) => <li key={i}>{step}</li>)}
-                  </ol>
-                  <p className="text-xs text-slate-400 mt-1">{t('profile.watchSyncAndroidNote')}</p>
-                </>
-              )}
+              <p className="text-xs text-slate-400 px-1">{t('profile.watchSyncAndroidUnavailable')}</p>
             </div>
           </div>
         )}
