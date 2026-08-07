@@ -96,19 +96,68 @@ function SavedFoodsPicker({
 }) {
   const { t } = useLocale()
   const [search, setSearch] = useState('')
-  const [showList, setShowList] = useState(false)
-
-  const filtered = savedFoods.filter((f) =>
-    f.name.toLowerCase().includes(search.toLowerCase())
-  )
 
   const selectedIds = new Set(selected.map((s) => s.food.id))
+  const showSearch = savedFoods.length > 8
+  const filtered = showSearch
+    ? savedFoods.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()))
+    : savedFoods
+
+  if (savedFoods.length === 0) {
+    return (
+      <Link
+        href="/saved-foods"
+        className="w-full py-3 border-2 border-dashed border-blue-300 rounded-xl text-blue-600 text-sm font-medium hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 block text-center"
+      >
+        <span>🗂️</span>
+        <span>{t('mealForm.setUpSavedFoods')}</span>
+      </Link>
+    )
+  }
 
   return (
-    <div className="mb-4">
-      {/* Selected foods */}
+    <div>
+      {showSearch && (
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="input text-sm py-2 mb-2"
+          placeholder={t('mealForm.searchFood')}
+        />
+      )}
+
+      {/* Circular quick-add bubbles — tap to add, tap again to remove */}
+      <div className="flex gap-3 overflow-x-auto pb-1 mb-2 -mx-1 px-1">
+        {filtered.length === 0 ? (
+          <p className="text-slate-400 text-sm py-2">{t('mealForm.noResults')}</p>
+        ) : filtered.map((food) => {
+          const isSelected = selectedIds.has(food.id)
+          return (
+            <button
+              key={food.id}
+              type="button"
+              onClick={() => isSelected ? onRemove(food.id) : onAdd(food)}
+              className="flex flex-col items-center gap-1 flex-shrink-0 w-16 group"
+            >
+              <span className={`relative w-14 h-14 rounded-full flex items-center justify-center text-xl border-2 transition-all ${
+                isSelected
+                  ? 'bg-gradient-to-br from-[var(--primary)] to-[var(--purple-500)] border-transparent text-white shadow-[var(--glow-blue)] scale-105'
+                  : 'bg-blue-50 border-blue-100 text-blue-500 group-hover:border-blue-300 group-hover:scale-105'
+              }`}>
+                🍽️
+                {isSelected && (
+                  <span className="absolute -top-1 -end-1 w-5 h-5 rounded-full bg-white text-blue-600 border border-blue-200 flex items-center justify-center text-[10px] font-bold shadow-sm">✓</span>
+                )}
+              </span>
+              <span className="text-[11px] text-slate-600 text-center leading-tight line-clamp-2">{food.name}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Selected foods — servings adjustment */}
       {selected.length > 0 && (
-        <div className="flex flex-col gap-2 mb-3">
+        <div className="flex flex-col gap-2 mb-1">
           {selected.map(({ food, servings }) => (
             <div key={food.id} className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2">
               <div className="flex-1 min-w-0">
@@ -121,7 +170,7 @@ function SavedFoodsPicker({
                 <button
                   type="button"
                   onClick={() => onUpdateServings(food.id, Math.max(0.1, Math.round((servings - 0.1) * 10) / 10))}
-                  className="w-7 h-7 rounded-lg bg-white border border-blue-200 text-blue-600 font-bold flex items-center justify-center text-sm hover:bg-blue-100 transition-colors"
+                  className="w-7 h-7 rounded-full bg-white border border-blue-200 text-blue-600 font-bold flex items-center justify-center text-sm hover:bg-blue-100 transition-colors"
                 >−</button>
                 <div className="text-center min-w-[40px]">
                   <span className="font-bold text-blue-700 text-sm">{servings.toFixed(1)}</span>
@@ -130,89 +179,22 @@ function SavedFoodsPicker({
                 <button
                   type="button"
                   onClick={() => onUpdateServings(food.id, Math.round((servings + 0.1) * 10) / 10)}
-                  className="w-7 h-7 rounded-lg bg-white border border-blue-200 text-blue-600 font-bold flex items-center justify-center text-sm hover:bg-blue-100 transition-colors"
+                  className="w-7 h-7 rounded-full bg-white border border-blue-200 text-blue-600 font-bold flex items-center justify-center text-sm hover:bg-blue-100 transition-colors"
                 >+</button>
               </div>
               <button
                 type="button"
                 onClick={() => onRemove(food.id)}
-                className="w-7 h-7 flex items-center justify-center text-slate-300 hover:text-red-400 transition-colors rounded-lg hover:bg-red-50"
+                className="w-7 h-7 flex items-center justify-center text-slate-300 hover:text-red-400 transition-colors rounded-full hover:bg-red-50"
               >✕</button>
             </div>
           ))}
         </div>
       )}
 
-      {/* Add button / search */}
-      {!showList ? (
-        savedFoods.length === 0 ? (
-          <Link
-            href="/saved-foods"
-            className="w-full py-3 border-2 border-dashed border-blue-300 rounded-xl text-blue-600 text-sm font-medium hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 block text-center"
-          >
-            <span>🗂️</span>
-            <span>{t('mealForm.setUpSavedFoods')}</span>
-            <span className="text-blue-400">←</span>
-          </Link>
-        ) : (
-        <button
-          type="button"
-          onClick={() => setShowList(true)}
-          className="w-full py-2 border-2 border-dashed border-blue-300 rounded-xl text-blue-600 text-sm font-medium hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-1.5"
-        >
-          {t('mealForm.pickFromSavedFoods')}
-        </button>
-        )
-      ) : (
-        <div className="border-2 border-blue-200 rounded-xl overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border-b border-blue-100">
-            <span className="text-slate-400">🔍</span>
-            <input
-              autoFocus
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-sm outline-none placeholder-slate-400"
-              placeholder={t('mealForm.searchFood')}
-            />
-            <button type="button" onClick={() => { setShowList(false); setSearch('') }} className="text-slate-400 hover:text-slate-600 text-xs">{t('common.close')}</button>
-          </div>
-          {savedFoods.length === 0 ? (
-            <div className="text-center py-4 px-3">
-              <p className="text-slate-400 text-sm mb-2">{t('mealForm.noSavedFoods')}</p>
-              <Link href="/saved-foods" className="text-blue-500 text-sm underline">
-                {t('mealForm.goToSavedFoods')}
-              </Link>
-            </div>
-          ) : filtered.length === 0 ? (
-            <p className="text-center text-slate-400 text-sm py-4">{t('mealForm.noResults')}</p>
-          ) : (
-            <div className="max-h-48 overflow-y-auto">
-              {filtered.map((food) => (
-                <button
-                  key={food.id}
-                  type="button"
-                  onClick={() => { if (!selectedIds.has(food.id)) { onAdd(food); setShowList(false); setSearch('') } }}
-                  disabled={selectedIds.has(food.id)}
-                  className="w-full text-start flex items-center gap-2 px-3 py-2.5 hover:bg-blue-50 border-b border-blue-50 last:border-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-800 text-sm">{food.name}</p>
-                    <p className="text-xs text-slate-400">{t('savedFoods.per')} {food.servingName}: ⚡ {food.calories} · 💪 {food.protein}g · 🌾 {food.carbs}g</p>
-                  </div>
-                  {selectedIds.has(food.id)
-                    ? <span className="text-xs text-green-500">{t('mealForm.addedCheck')}</span>
-                    : <span className="text-blue-400 text-xs">{t('mealForm.addFood')}</span>
-                  }
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="text-center mt-1.5">
+      <div className="text-center mt-1">
         <Link href="/saved-foods" className="text-xs text-slate-400 hover:text-blue-500 transition-colors">
-          {savedFoods.length === 0 ? t('mealForm.addSavedFoods') : t('mealForm.manageSavedFoods')}
+          {t('mealForm.manageSavedFoods')}
         </Link>
       </div>
     </div>
@@ -338,16 +320,14 @@ export default function MealForm({ mode, mealId, initialMeal }: MealFormProps) {
   const [templates, setTemplates] = useState<MealTemplate[]>([])
   const [loggingTemplateId, setLoggingTemplateId] = useState<string | null>(null)
   const [loggedTemplateId, setLoggedTemplateId] = useState<string | null>(null)
-  // Section accordions
-  const [openSavedFoods, setOpenSavedFoods] = useState(false)
-  const [openFreeEntry, setOpenFreeEntry] = useState(!!initialMeal?.imageUrl || !!initialMeal?.imageUrl2)
-  const [openFullMeal, setOpenFullMeal] = useState(false)
+  // Advanced (precise gram-by-gram) ingredients accordion
+  const [openPreciseEntry, setOpenPreciseEntry] = useState(false)
 
   const MEAL_TYPES = [
-    { value: 'breakfast', label: t('mealForm.breakfast') },
-    { value: 'lunch', label: t('mealForm.lunch') },
-    { value: 'dinner', label: t('mealForm.dinner') },
-    { value: 'between', label: t('mealForm.snack') },
+    { value: 'breakfast', emoji: '🌅', label: t('mealForm.breakfast') },
+    { value: 'lunch', emoji: '☀️', label: t('mealForm.lunch') },
+    { value: 'dinner', emoji: '🌙', label: t('mealForm.dinner') },
+    { value: 'between', emoji: '🍎', label: t('mealForm.snack') },
   ]
 
   useEffect(() => {
@@ -603,13 +583,23 @@ export default function MealForm({ mode, mealId, initialMeal }: MealFormProps) {
       <div className={`glass-card mb-4 ${!mealType && error ? 'border-2 border-red-400' : ''}`}>
         <h2 className="font-bold text-slate-700 mb-1">{t('mealForm.mealTypeTitle')} <span className="text-red-400">*</span></h2>
         {!mealType && error && <p className="text-red-400 text-xs mb-2">{t('mealForm.mealTypeRequired')}</p>}
-        <div className="grid grid-cols-2 gap-2">
-          {MEAL_TYPES.map((mt) => (
-            <button key={mt.value} onClick={() => setMealType(mealType === mt.value ? '' : mt.value)}
-              className={`py-2.5 px-3 rounded-xl border-2 text-sm font-medium transition-all ${mealType === mt.value ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-blue-100 bg-white text-slate-600 hover:border-blue-300'}`}>
-              {mt.label}
-            </button>
-          ))}
+        <div className="flex items-center justify-around gap-2 pt-1">
+          {MEAL_TYPES.map((mt) => {
+            const active = mealType === mt.value
+            return (
+              <button key={mt.value} type="button" onClick={() => setMealType(mealType === mt.value ? '' : mt.value)}
+                className="flex flex-col items-center gap-1.5 group">
+                <span className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl border-2 transition-all ${
+                  active
+                    ? 'bg-gradient-to-br from-[var(--primary)] to-[var(--purple-600)] border-transparent shadow-[var(--glow-purple)] scale-105'
+                    : 'bg-white border-blue-100 group-hover:border-blue-300 group-hover:scale-105'
+                }`}>
+                  {mt.emoji}
+                </span>
+                <span className={`text-xs font-medium ${active ? 'text-blue-700' : 'text-slate-500'}`}>{mt.label}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -617,103 +607,90 @@ export default function MealForm({ mode, mealId, initialMeal }: MealFormProps) {
       <div className="glass-card mb-4">
         <h2 className="font-bold text-slate-700 mb-3">{t('mealForm.whatDidYouEat')}</h2>
 
-        {/* Saved foods accordion */}
-        <button
-          type="button"
-          onClick={() => setOpenSavedFoods((v) => !v)}
-          className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors mb-2"
-        >
-          <span className="text-xs font-semibold text-blue-600 tracking-wide flex items-center gap-2">
-            {t('mealForm.savedFoodsSection')}
-            {selectedFoods.length > 0 && (
-              <span className="bg-blue-600 text-white rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none">{selectedFoods.length}</span>
-            )}
-          </span>
-          <span className="text-blue-400 text-sm">{openSavedFoods ? '▲' : '▼'}</span>
-        </button>
-        {openSavedFoods && (
-          <div className="mb-2 px-1">
-            <SavedFoodsPicker
-              savedFoods={savedFoods}
-              selected={selectedFoods}
-              onAdd={addSavedFood}
-              onUpdateServings={updateServings}
-              onRemove={removeSavedFood}
-            />
-          </div>
-        )}
-        {!openSavedFoods && selectedFoods.length > 0 && (
-          <div className="flex flex-col gap-1 mb-2 px-1">
-            {selectedFoods.map(({ food, servings }) => (
-              <div key={food.id} className="flex items-center justify-between text-xs text-slate-600 bg-blue-50 rounded-lg px-2.5 py-1.5">
-                <span>{food.name} × {servings.toFixed(1)}</span>
-                <span className="text-slate-400">⚡ {Math.round(food.calories * servings)}</span>
+        {/* Primary: natural-language description */}
+        <textarea
+          value={mealFreeText}
+          onChange={(e) => { setMealFreeText(e.target.value); setNutrition(null) }}
+          className="input text-sm py-2.5 w-full resize-none mb-3"
+          rows={2}
+          placeholder={t('mealForm.fullMealPlaceholder')}
+        />
+
+        {/* Saved foods — circular quick add */}
+        <div className="mb-3">
+          <p className="text-xs font-semibold text-blue-600 tracking-wide mb-2">{t('mealForm.savedFoodsSection')}</p>
+          <SavedFoodsPicker
+            savedFoods={savedFoods}
+            selected={selectedFoods}
+            onAdd={addSavedFood}
+            onUpdateServings={updateServings}
+            onRemove={removeSavedFood}
+          />
+        </div>
+
+        {/* Photos — circular capture buttons */}
+        <div className="mb-3">
+          <div className="flex flex-wrap gap-3 mb-2">
+            {images.map((img, i) => (
+              <div key={i} className="relative flex-shrink-0">
+                <img src={img.preview} alt="" className="w-20 h-20 rounded-full object-cover border-2 border-blue-300" />
+                <button
+                  type="button"
+                  onClick={() => removeImage(i)}
+                  aria-label={t('mealForm.removePhoto')}
+                  className="absolute -top-1 -end-1 w-6 h-6 rounded-full bg-white border border-red-200 text-red-400 flex items-center justify-center text-xs shadow-sm hover:bg-red-50 transition-colors"
+                >✕</button>
               </div>
             ))}
+            {images.length < 2 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => cameraRef.current?.click()}
+                  className="w-20 h-20 rounded-full border-2 border-dashed border-blue-200 text-blue-500 flex flex-col items-center justify-center gap-0.5 hover:border-blue-400 hover:bg-blue-50 transition-all flex-shrink-0"
+                >
+                  <span className="text-xl">📷</span>
+                  <span className="text-[10px] font-medium">{t('mealForm.takePhoto')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="w-20 h-20 rounded-full border-2 border-dashed border-blue-200 text-blue-500 flex flex-col items-center justify-center gap-0.5 hover:border-blue-400 hover:bg-blue-50 transition-all flex-shrink-0"
+                >
+                  <span className="text-xl">🖼️</span>
+                  <span className="text-[10px] font-medium leading-tight text-center px-1">{t('mealForm.chooseFromGallery')}</span>
+                </button>
+              </>
+            )}
           </div>
-        )}
+          {images.map((img, i) => (
+            <input
+              key={i}
+              type="text"
+              value={img.portion}
+              onChange={(e) => updateImagePortion(i, e.target.value)}
+              className="input text-sm py-2 w-full mb-2"
+              placeholder={t('mealForm.portionPlaceholder')}
+            />
+          ))}
+        </div>
 
-        {/* Free entry accordion */}
+        {/* Advanced: precise per-ingredient grams entry */}
         <button
           type="button"
-          onClick={() => setOpenFreeEntry((v) => !v)}
+          onClick={() => setOpenPreciseEntry((v) => !v)}
           className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors mb-2"
         >
           <span className="text-xs font-semibold text-blue-600 tracking-wide flex items-center gap-2">
-            {t('mealForm.freeEntrySection')}
-            {(ingredients.some((i) => i.name.trim()) || images.length > 0) && (
+            {t('mealForm.preciseEntrySection')}
+            {ingredients.some((i) => i.name.trim()) && (
               <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
             )}
           </span>
-          <span className="text-blue-400 text-sm">{openFreeEntry ? '▲' : '▼'}</span>
+          <span className="text-blue-400 text-sm">{openPreciseEntry ? '▲' : '▼'}</span>
         </button>
-        {openFreeEntry && (
+        {openPreciseEntry && (
           <div className="mb-2 px-1">
-            <div className="flex flex-col gap-3 mb-3">
-              {images.map((img, i) => (
-                <div key={i} className="border-2 border-blue-400 bg-blue-50 rounded-xl p-4 text-center transition-all">
-                  <img src={img.preview} alt="" className="max-h-40 mx-auto rounded-xl object-cover mb-2" />
-                  <input
-                    type="text"
-                    value={img.portion}
-                    onChange={(e) => updateImagePortion(i, e.target.value)}
-                    className="input text-sm py-2 w-full mb-2"
-                    placeholder={t('mealForm.portionPlaceholder')}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(i)}
-                    className="text-xs text-red-400 underline"
-                  >
-                    {t('mealForm.removePhoto')}
-                  </button>
-                </div>
-              ))}
-              {images.length < 2 && (
-                <div className="border-2 border-dashed border-blue-200 rounded-xl p-4 text-center transition-all">
-                  <div className="text-3xl mb-2">📷</div>
-                  <p className="text-slate-400 text-sm mb-3">
-                    {images.length === 0 ? t('mealForm.addPhotoHint') : t('mealForm.addAnotherPhotoHint')}
-                  </p>
-                  <div className="flex items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => cameraRef.current?.click()}
-                      className="text-sm px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                    >
-                      {t('mealForm.takePhoto')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => fileRef.current?.click()}
-                      className="text-sm px-3 py-1.5 rounded-lg border border-blue-300 text-blue-600 hover:bg-blue-50 transition-colors"
-                    >
-                      {t('mealForm.chooseFromGallery')}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
             <p className="text-xs text-slate-400 mb-2">
               {t('mealForm.unitsHint')} <span className="font-medium text-blue-600">{t('mealForm.grams')}</span> {t('mealForm.orWord')} <span className="font-medium text-blue-600">{t('mealForm.units')}</span> {t('mealForm.unitsExamples')}
             </p>
@@ -726,32 +703,6 @@ export default function MealForm({ mode, mealId, initialMeal }: MealFormProps) {
               className="w-full py-2 border-2 border-dashed border-blue-200 rounded-xl text-blue-500 text-sm hover:border-blue-400 hover:bg-blue-50 transition-all">
               {t('mealForm.addIngredient')}
             </button>
-          </div>
-        )}
-
-        {/* Full meal description accordion */}
-        <button
-          type="button"
-          onClick={() => setOpenFullMeal((v) => !v)}
-          className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors mb-4"
-        >
-          <span className="text-xs font-semibold text-blue-600 tracking-wide flex items-center gap-2">
-            {t('mealForm.fullMealSection')}
-            {mealFreeText.trim() && (
-              <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-            )}
-          </span>
-          <span className="text-blue-400 text-sm">{openFullMeal ? '▲' : '▼'}</span>
-        </button>
-        {openFullMeal && (
-          <div className="mb-4 px-1">
-            <textarea
-              value={mealFreeText}
-              onChange={(e) => { setMealFreeText(e.target.value); setNutrition(null) }}
-              className="input text-sm py-2.5 w-full resize-none"
-              rows={2}
-              placeholder={t('mealForm.fullMealPlaceholder')}
-            />
           </div>
         )}
 
