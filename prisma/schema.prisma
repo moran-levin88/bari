@@ -123,6 +123,7 @@ model ExerciseLog {
   duration  Int
   calories  Float?
   notes     String?
+  source    String   @default("manual")
   isPublic  Boolean  @default(true)
   loggedAt  DateTime @default(now())
   createdAt DateTime @default(now())

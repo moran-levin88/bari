@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import ShareToggle from '@/components/ShareToggle'
@@ -50,6 +51,14 @@ export default function LogExercisePage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-blue-700 mb-6">{t('exercise.title')}</h1>
+
+      <div className="glass-card mb-4 flex items-start gap-3">
+        <span className="text-xl flex-shrink-0">⌚</span>
+        <div className="flex-1">
+          <p className="text-sm text-slate-600">{t('exercise.syncHint')}</p>
+          <Link href="/profile" className="text-blue-600 text-sm font-medium hover:underline">{t('exercise.syncHintLink')}</Link>
+        </div>
+      </div>
 
       <div className="glass-card mb-4">
         <label className="block text-sm font-medium text-slate-700 mb-1">{t('exercise.activityName')}</label>
