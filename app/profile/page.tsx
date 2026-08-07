@@ -13,6 +13,25 @@ type Insights = {
   recommendations: string[]
 }
 
+// Splits a "\n"-separated instructions string into groups at "— Heading —" divider
+// lines, so multi-part instructions (e.g. steps vs. activity) render as distinct
+// labeled sections instead of one flat numbered list.
+function groupSyncSteps(text: string): { heading: string | null; items: string[] }[] {
+  const groups: { heading: string | null; items: string[] }[] = []
+  let current: { heading: string | null; items: string[] } = { heading: null, items: [] }
+  for (const line of text.split('\n')) {
+    const headingMatch = line.match(/^—\s*(.+?)\s*—$/)
+    if (headingMatch) {
+      if (current.items.length || current.heading) groups.push(current)
+      current = { heading: headingMatch[1], items: [] }
+    } else {
+      current.items.push(line)
+    }
+  }
+  if (current.items.length || current.heading) groups.push(current)
+  return groups
+}
+
 export default function ProfilePage() {
   const { t, locale, setLocale } = useLocale()
   const [form, setForm] = useState({
@@ -330,9 +349,18 @@ export default function ProfilePage() {
                 <span className="text-blue-400 text-sm">{showIosSteps ? '▲' : '▼'}</span>
               </button>
               {showIosSteps && (
-                <ol className="list-decimal ps-5 flex flex-col gap-1.5 text-sm text-slate-600 mb-1">
-                  {t('profile.watchSyncIosSteps').split('\n').map((step, i) => <li key={i}>{step}</li>)}
-                </ol>
+                <div className="flex flex-col gap-1 mb-1">
+                  {groupSyncSteps(t('profile.watchSyncIosSteps')).map((group, gi) => (
+                    <div key={gi}>
+                      {group.heading && (
+                        <p className="text-xs font-bold text-blue-700 mt-2.5 mb-1 first:mt-0">{group.heading}</p>
+                      )}
+                      <ol className="list-decimal ps-5 flex flex-col gap-1.5 text-sm text-slate-600">
+                        {group.items.map((step, i) => <li key={i}>{step}</li>)}
+                      </ol>
+                    </div>
+                  ))}
+                </div>
               )}
               <p className="text-xs text-slate-400 px-1">{t('profile.watchSyncAndroidUnavailable')}</p>
             </div>
