@@ -7,7 +7,7 @@ export default async function OnboardingLayout({ children }: { children: React.R
   if (user.age && user.weight && user.height) redirect('/dashboard')
 
   return (
-    <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen app-bg flex items-center justify-center p-4">
       <div className="w-full max-w-lg">{children}</div>
     </div>
   )

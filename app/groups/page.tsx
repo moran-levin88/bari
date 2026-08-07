@@ -35,7 +35,7 @@ function GroupCard({ g, onLeave, leaving, t }: { g: Group; onLeave: (id: string,
   }
 
   return (
-    <div className="card">
+    <div className="glass-card">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0 ms-2">
           <h2 className="font-bold text-lg text-slate-800 leading-tight">{g.name}</h2>
@@ -182,7 +182,7 @@ export default function GroupsPage() {
           </div>
         )
         : groups.length === 0 ? (
-          <div className="card text-center py-10">
+          <div className="glass-card text-center py-10">
             <HeartHandshake size={48} className="mx-auto mb-3 text-blue-200" />
             <p className="text-slate-500 mb-4">{t('groups.noGroupsYet')}</p>
             <div className="flex gap-2 justify-center">
@@ -198,7 +198,7 @@ export default function GroupsPage() {
       )}
 
       {tab === 'create' && (
-        <div className="card">
+        <div className="glass-card">
           <h2 className="font-bold text-slate-700 text-lg mb-4">{t('groups.createNewGroup')}</h2>
           <form onSubmit={createGroup} className="flex flex-col gap-4">
             <div>
@@ -216,7 +216,7 @@ export default function GroupsPage() {
       )}
 
       {tab === 'join' && (
-        <div className="card">
+        <div className="glass-card">
           <h2 className="font-bold text-slate-700 text-lg mb-2">{t('groups.joinGroupTitle')}</h2>
           <p className="text-slate-400 text-sm mb-4">{t('groups.joinGroupHint')}</p>
           <form onSubmit={joinGroup} className="flex flex-col gap-4">

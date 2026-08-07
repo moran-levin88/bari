@@ -46,7 +46,7 @@ export default function LogStepsPage() {
       <h1 className="text-2xl font-bold text-blue-700 mb-2">{t('steps.title')}</h1>
       <p className="text-slate-400 text-sm mb-6">{t('steps.subtitle')}</p>
 
-      <div className="card mb-4">
+      <div className="glass-card mb-4">
         <div className="flex flex-col items-center py-4 mb-4">
           <div className="relative w-36 h-36 mb-3">
             <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">

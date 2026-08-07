@@ -57,7 +57,7 @@ function ReceivedPing({ ping, onReply, onRead }: {
   }
 
   return (
-    <div className={`card mb-3 ${!ping.isRead ? 'border-s-4 border-blue-500' : ''}`}>
+    <div className={`glass-card mb-3 ${!ping.isRead ? 'border-s-4 border-blue-500' : ''}`}>
       <button onClick={toggle} className="w-full text-start">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -108,7 +108,7 @@ function SentPing({ ping }: { ping: Ping }) {
   const { t, locale } = useLocale()
   const topic = topicLabel(t, ping.topic)
   return (
-    <div className="card mb-3">
+    <div className="glass-card mb-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-slate-800 text-sm">
@@ -205,7 +205,7 @@ export default function PingsPage() {
         </div>
       ) : tab === 'received' ? (
         received.length === 0 ? (
-          <div className="card text-center py-10">
+          <div className="glass-card text-center py-10">
             <Megaphone size={44} className="mx-auto mb-3 text-blue-200" />
             <p className="text-slate-500">{t('pings.noPingsYet')}</p>
             <p className="text-slate-400 text-sm mt-1">{t('pings.willAppearHere')}</p>
@@ -217,7 +217,7 @@ export default function PingsPage() {
         )
       ) : (
         sent.length === 0 ? (
-          <div className="card text-center py-10">
+          <div className="glass-card text-center py-10">
             <Send size={40} className="mx-auto mb-3 text-blue-200" />
             <p className="text-slate-500">{t('pings.noSentYet')}</p>
             <p className="text-slate-400 text-sm mt-1">{t('pings.sendHint')}</p>

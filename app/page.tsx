@@ -18,17 +18,17 @@ export default async function HomePage() {
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-          <div className="card text-start">
+          <div className="glass-card text-start">
             <div className="text-3xl mb-2">📸</div>
             <h3 className="font-bold text-blue-700 mb-1">{t('home.feature1Title')}</h3>
             <p className="text-sm text-slate-500">{t('home.feature1Text')}</p>
           </div>
-          <div className="card text-start">
+          <div className="glass-card text-start">
             <div className="text-3xl mb-2">👥</div>
             <h3 className="font-bold text-blue-700 mb-1">{t('home.feature2Title')}</h3>
             <p className="text-sm text-slate-500">{t('home.feature2Text')}</p>
           </div>
-          <div className="card text-start">
+          <div className="glass-card text-start">
             <div className="text-3xl mb-2">📊</div>
             <h3 className="font-bold text-blue-700 mb-1">{t('home.feature3Title')}</h3>
             <p className="text-sm text-slate-500">{t('home.feature3Text')}</p>

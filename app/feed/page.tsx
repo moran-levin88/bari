@@ -331,7 +331,7 @@ function TodayComparison({ group, currentUserId, t }: { group: DateGroup; curren
   ))
 
   return (
-    <div className="card py-3 px-4 mb-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm">
+    <div className="glass-card py-3 px-4 mb-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm">
       <span className="font-bold text-blue-700 flex-shrink-0">{t('feed.meVsGroup')}</span>
       <span className="text-slate-600">
         {t('feed.waterLabel')} <b className={myWaterPct >= avgWaterPct ? 'text-green-600' : 'text-blue-700'}>{myWaterPct}%</b>

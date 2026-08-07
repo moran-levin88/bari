@@ -50,7 +50,7 @@ export default function EditMealPage() {
   )
 
   if (error || !meal) return (
-    <div className="card text-center py-12">
+    <div className="glass-card text-center py-12">
       <p className="text-red-500">{error || t('mealForm.notFound')}</p>
       <button onClick={() => router.back()} className="btn-secondary mt-4">{t('common.back')}</button>
     </div>

@@ -51,13 +51,13 @@ export default function LogExercisePage() {
     <div>
       <h1 className="text-2xl font-bold text-blue-700 mb-6">{t('exercise.title')}</h1>
 
-      <div className="card mb-4">
+      <div className="glass-card mb-4">
         <label className="block text-sm font-medium text-slate-700 mb-1">{t('exercise.activityName')}</label>
         <input type="text" value={name} onChange={(e) => setName(e.target.value)}
           className="input" placeholder={t('exercise.activityNamePlaceholder')} />
       </div>
 
-      <div className="card mb-4">
+      <div className="glass-card mb-4">
         <h2 className="font-bold text-slate-700 mb-3">{t('exercise.category')}</h2>
         <div className="grid grid-cols-2 gap-2">
           {CATEGORIES.map((c) => (
@@ -70,7 +70,7 @@ export default function LogExercisePage() {
         </div>
       </div>
 
-      <div className="card mb-4">
+      <div className="glass-card mb-4">
         <h2 className="font-bold text-slate-700 mb-3">{t('exercise.duration')}</h2>
         <div className="flex items-center gap-4">
           <button onClick={() => setDuration(Math.max(5, duration - 5))} className="btn-secondary w-10 h-10 text-xl flex items-center justify-center p-0">-</button>
@@ -90,13 +90,13 @@ export default function LogExercisePage() {
         </div>
       </div>
 
-      <div className="card mb-4">
+      <div className="glass-card mb-4">
         <label className="block text-sm font-medium text-slate-700 mb-1">{t('exercise.date')}</label>
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
           className="input" max={format(new Date(), 'yyyy-MM-dd')} />
       </div>
 
-      <div className="card mb-4">
+      <div className="glass-card mb-4">
         <label className="block text-sm font-medium text-slate-700 mb-1">{t('exercise.notes')}</label>
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
           className="input resize-none" rows={2} placeholder={t('exercise.notesPlaceholder')} />

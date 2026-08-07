@@ -564,7 +564,7 @@ export default function MealForm({ mode, mealId, initialMeal }: MealFormProps) {
 
       {/* Pinned meal templates */}
       {mode === 'create' && templates.length > 0 && (
-        <div className="card mb-4">
+        <div className="glass-card mb-4">
           <h2 className="font-bold text-slate-700 mb-3">{t('mealForm.pinnedTemplates')}</h2>
           <div className="flex flex-col gap-2">
             {templates.map((tpl) => (
@@ -600,7 +600,7 @@ export default function MealForm({ mode, mealId, initialMeal }: MealFormProps) {
       )}
 
       {/* Meal type */}
-      <div className={`card mb-4 ${!mealType && error ? 'border-2 border-red-400' : ''}`}>
+      <div className={`glass-card mb-4 ${!mealType && error ? 'border-2 border-red-400' : ''}`}>
         <h2 className="font-bold text-slate-700 mb-1">{t('mealForm.mealTypeTitle')} <span className="text-red-400">*</span></h2>
         {!mealType && error && <p className="text-red-400 text-xs mb-2">{t('mealForm.mealTypeRequired')}</p>}
         <div className="grid grid-cols-2 gap-2">
@@ -614,7 +614,7 @@ export default function MealForm({ mode, mealId, initialMeal }: MealFormProps) {
       </div>
 
       {/* Ingredients card */}
-      <div className="card mb-4">
+      <div className="glass-card mb-4">
         <h2 className="font-bold text-slate-700 mb-3">{t('mealForm.whatDidYouEat')}</h2>
 
         {/* Saved foods accordion */}
@@ -783,7 +783,7 @@ export default function MealForm({ mode, mealId, initialMeal }: MealFormProps) {
       )}
 
       {(manualMode || nutrition) && (
-        <div className="card mb-4 border-blue-300">
+        <div className="glass-card mb-4 border-blue-300">
           {/* Nutrition label header */}
           {nutrition && !manualMode ? (
             <div className="mb-4">

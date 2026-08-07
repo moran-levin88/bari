@@ -57,7 +57,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} dir={locale === 'he' ? 'rtl' : 'ltr'} className="h-full">
-      <body className="min-h-full bg-blue-50">
+      <body className="min-h-full app-bg">
         <LocaleProvider initialLocale={locale}>
           {children}
           <ServiceWorkerRegistrar />

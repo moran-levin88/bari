@@ -104,7 +104,7 @@ export default function RecipesPage() {
       <p className="text-slate-400 text-sm mb-4 -mt-3">{t('recipes.subtitle')}</p>
 
       {showForm && (
-        <div className="card mb-6 border-blue-300">
+        <div className="glass-card mb-6 border-blue-300">
           <h2 className="font-bold text-blue-700 text-lg mb-4">{t('recipes.newRecipeTitle')}</h2>
           <form onSubmit={submit} className="flex flex-col gap-4">
             <div>
@@ -184,7 +184,7 @@ export default function RecipesPage() {
           <div className="skeleton h-24 w-full" />
         </div>
       ) : recipes.length === 0 ? (
-        <div className="card text-center py-12">
+        <div className="glass-card text-center py-12">
           <ChefHat size={48} className="mx-auto mb-3 text-blue-200" />
           <p className="text-slate-500 mb-2">{t('recipes.noRecipesYet')}</p>
           <p className="text-slate-400 text-sm mb-4">{t('recipes.noRecipesDesc')}</p>
@@ -200,7 +200,7 @@ export default function RecipesPage() {
             const isOpen = expandedId === recipe.id
             const isMine = recipe.userId === currentUserId
             return (
-              <div key={recipe.id} className="card">
+              <div key={recipe.id} className="glass-card">
                 <button
                   onClick={() => setExpandedId(isOpen ? null : recipe.id)}
                   className="w-full text-start flex items-center gap-3"

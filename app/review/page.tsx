@@ -37,7 +37,7 @@ type Analysis = {
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="card py-3 px-3 text-center">
+    <div className="glass-card py-3 px-3 text-center">
       <div className="text-lg font-bold text-blue-700">{value}</div>
       <div className="text-xs text-slate-500 mt-0.5">{label}</div>
       {sub && <div className="text-[11px] text-slate-400">{sub}</div>}
@@ -138,7 +138,7 @@ export default function ReviewPage() {
       </div>
 
       {days === null && (
-        <div className="card text-center py-12">
+        <div className="glass-card text-center py-12">
           <Sparkles size={36} className="mx-auto mb-3 text-blue-300" />
           <p className="font-medium text-slate-600 mb-1">{t('review.whichPeriod')}</p>
           <p className="text-slate-400 text-sm">{t('review.choosePeriodHint')}</p>
@@ -147,7 +147,7 @@ export default function ReviewPage() {
 
       {loading && (
         <div>
-          <div className="card mb-4 text-center py-8">
+          <div className="glass-card mb-4 text-center py-8">
             <Sparkles size={30} className="mx-auto mb-3 text-blue-500 animate-pulse" />
             <p className="font-medium text-blue-700">{t('review.analyzing')}</p>
             <p className="text-xs text-slate-400 mt-1">{t('review.takesSeconds')}</p>
@@ -161,7 +161,7 @@ export default function ReviewPage() {
       )}
 
       {!loading && error && (
-        <div className="card text-center py-8">
+        <div className="glass-card text-center py-8">
           <p className="text-orange-500 mb-4">{error}</p>
           {stats && <StatsGrid stats={stats} t={t} locale={locale} />}
           <button onClick={() => days !== null && load(days)} className="btn-primary text-sm mt-4 inline-flex items-center gap-1.5">
@@ -171,7 +171,7 @@ export default function ReviewPage() {
       )}
 
       {!loading && empty && (
-        <div className="card text-center py-10">
+        <div className="glass-card text-center py-10">
           <ClipboardList size={44} className="mx-auto mb-3 text-blue-200" />
           <p className="text-slate-500 mb-2">{t('review.noDataYet')}</p>
           <p className="text-slate-400 text-sm mb-4">{t('review.logToSeeReview')}</p>
@@ -195,7 +195,7 @@ export default function ReviewPage() {
           <StatsGrid stats={stats} t={t} locale={locale} />
 
           {/* AI analysis sections */}
-          <div className="card mb-4">
+          <div className="glass-card mb-4">
             <h2 className="font-bold text-slate-700 mb-2 flex items-center gap-2">
               <Sparkles size={16} className="text-blue-500" /> {t('review.aiAnalysis')}
             </h2>
@@ -209,7 +209,7 @@ export default function ReviewPage() {
 
           {/* Recommendations */}
           {analysis.recommendations.length > 0 && (
-            <div className="card border-blue-300">
+            <div className="glass-card border-blue-300">
               <h2 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
                 <Lightbulb size={16} className="text-amber-500" /> {t('review.recommendations')}
               </h2>

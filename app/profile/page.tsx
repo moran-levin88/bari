@@ -121,7 +121,7 @@ export default function ProfilePage() {
     <div>
       <h1 className="text-2xl font-bold text-blue-700 mb-6">👤 {t('profile.title')}</h1>
 
-      <div className="card mb-4">
+      <div className="glass-card mb-4">
         <h2 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
           <Languages size={19} className="text-blue-500" /> {t('profile.language')}
         </h2>
@@ -142,7 +142,7 @@ export default function ProfilePage() {
       </div>
 
       <form onSubmit={save}>
-        <div className="card mb-4">
+        <div className="glass-card mb-4">
           <h2 className="font-bold text-slate-700 mb-4">{t('profile.personalDetails')}</h2>
           <div className="flex flex-col gap-3">
             <div>
@@ -183,7 +183,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="card mb-4">
+        <div className="glass-card mb-4">
           <h2 className="font-bold text-slate-700 mb-3">{t('profile.nutritionGoal')}</h2>
           <div className="flex flex-col gap-2">
             {GOALS.map((g) => (
@@ -195,7 +195,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="card mb-4">
+        <div className="glass-card mb-4">
           <h2 className="font-bold text-slate-700 mb-3">{t('profile.activityLevel')}</h2>
           <div className="flex flex-col gap-2">
             {ACTIVITY_LEVELS.map((a) => (
@@ -236,7 +236,7 @@ export default function ProfilePage() {
         </button>
       </form>
 
-      <div className="card mt-4">
+      <div className="glass-card mt-4">
         <Link href="/saved-foods" className="flex items-center justify-between py-1 group">
           <div className="flex items-center gap-3">
             <Salad size={20} className="text-blue-500" />
@@ -249,7 +249,7 @@ export default function ProfilePage() {
         </Link>
       </div>
 
-      <div className="card mt-4">
+      <div className="glass-card mt-4">
         <h2 className="font-bold text-slate-700 mb-1 flex items-center gap-2">
           <HeartPulse size={19} className="text-blue-500" /> {t('profile.insightsTitle')}
         </h2>

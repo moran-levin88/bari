@@ -186,7 +186,7 @@ export default function SavedFoodsPage() {
       </div>
 
       {showForm && (
-        <div className="card mb-6 border-blue-300">
+        <div className="glass-card mb-6 border-blue-300">
           <h2 className="font-bold text-blue-700 text-lg mb-4">
             {editingId ? t('savedFoods.editFood') : t('savedFoods.newFood')}
           </h2>
@@ -295,7 +295,7 @@ export default function SavedFoodsPage() {
           <div className="skeleton h-24 w-full" />
         </div>
       ) : foods.length === 0 ? (
-        <div className="card text-center py-12">
+        <div className="glass-card text-center py-12">
           <Salad size={48} className="mx-auto mb-3 text-blue-200" />
           <p className="text-slate-500 mb-2">{t('savedFoods.noFoodsYet')}</p>
           <p className="text-slate-400 text-sm mb-4">{t('savedFoods.noFoodsDesc')}</p>
@@ -308,7 +308,7 @@ export default function SavedFoodsPage() {
       ) : (
         <div className="flex flex-col gap-3">
           {foods.map((food) => (
-            <div key={food.id} className="card">
+            <div key={food.id} className="glass-card">
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <h3 className="font-bold text-slate-800">{food.name}</h3>
@@ -334,8 +334,8 @@ export default function SavedFoodsPage() {
               <div className="flex gap-2 flex-wrap">
                 <span className="macro-chip bg-blue-100 text-blue-700">⚡ {food.calories} {t('savedFoods.caloriesUnit')}</span>
                 <span className="macro-chip bg-blue-50 text-blue-600">💪 {food.protein} {t('savedFoods.proteinUnit')}</span>
-                <span className="macro-chip bg-amber-50 text-amber-600">🌾 {food.carbs} {t('savedFoods.carbsUnit')}</span>
-                <span className="macro-chip bg-green-50 text-green-600">🥑 {food.fat} {t('savedFoods.fatUnit')}</span>
+                <span className="macro-chip bg-purple-50 text-purple-600">🌾 {food.carbs} {t('savedFoods.carbsUnit')}</span>
+                <span className="macro-chip bg-pink-50 text-pink-600">🥑 {food.fat} {t('savedFoods.fatUnit')}</span>
                 {food.fiber > 0 && <span className="macro-chip bg-slate-50 text-slate-500">{food.fiber} {t('savedFoods.fiberUnit')}</span>}
               </div>
             </div>

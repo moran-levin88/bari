@@ -5,7 +5,7 @@ import { useLocale } from '@/lib/i18n/context'
 export default function ShareToggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   const { t } = useLocale()
   return (
-    <div className="card">
+    <div className="glass-card">
       <div className="flex items-center justify-between">
         <div>
           <p className="font-medium text-slate-700">{t('common.shareToggleTitle')}</p>

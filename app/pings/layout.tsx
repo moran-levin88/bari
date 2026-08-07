@@ -6,7 +6,7 @@ export default async function PingsLayout({ children }: { children: React.ReactN
   const user = await getCurrentUser()
   if (!user) redirect('/login')
   return (
-    <div className="min-h-screen bg-blue-50">
+    <div className="min-h-screen app-bg">
       <Navigation userName={user.name} />
       <main className="max-w-2xl mx-auto p-4 md:p-6 pb-28 lg:pb-6">{children}</main>
     </div>

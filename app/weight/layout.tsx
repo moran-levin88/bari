@@ -7,7 +7,7 @@ export default async function WeightLayout({ children }: { children: React.React
   if (!user) redirect('/login')
 
   return (
-    <div className="min-h-screen bg-blue-50">
+    <div className="min-h-screen app-bg">
       <Navigation userName={user.name} />
       <main className="max-w-6xl mx-auto p-4 md:p-6 pb-28 lg:pb-6">{children}</main>
     </div>

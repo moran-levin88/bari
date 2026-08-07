@@ -130,7 +130,7 @@ export default function WeightPage() {
     <div>
       <h1 className="text-2xl font-bold text-blue-700 mb-6">{t('weight.title')}</h1>
 
-      <div className="card mb-6">
+      <div className="glass-card mb-6">
         <h2 className="font-bold text-slate-700 mb-4">{t('weight.addMeasurement')}</h2>
         <form onSubmit={save} className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
@@ -218,30 +218,38 @@ export default function WeightPage() {
           )}
 
           <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="card text-center py-3">
+            <div className="glass-card text-center py-3">
               <div className="text-xl font-bold text-blue-700">{latest ? latest.value.toFixed(1) : '—'}</div>
               <div className="text-xs text-slate-400 mt-1">{t('weight.current')} ({metricInfo.unit})</div>
             </div>
-            <div className="card text-center py-3">
+            <div className="glass-card text-center py-3">
               <div className={`text-xl font-bold ${totalChange === null ? 'text-slate-400' : totalChange < 0 ? 'text-green-600' : totalChange > 0 ? 'text-red-500' : 'text-slate-600'}`} dir="ltr">
                 {totalChange !== null ? `${totalChange > 0 ? '+' : ''}${totalChange.toFixed(1)}` : '—'}
               </div>
               <div className="text-xs text-slate-400 mt-1">{t('weight.totalChange')} ({metricInfo.unit})</div>
             </div>
-            <div className="card text-center py-3">
+            <div className="glass-card text-center py-3">
               <div className="text-xl font-bold text-blue-700">{minValue !== null ? minValue.toFixed(1) : '—'}</div>
               <div className="text-xs text-slate-400 mt-1">{t('weight.lowest')} ({metricInfo.unit})</div>
             </div>
           </div>
 
           {chartEntries.length >= 2 ? (
-            <div className="card mb-6">
+            <div className="glass-card mb-6">
               <h2 className="font-bold text-slate-700 mb-3">{metricInfo.label} — {t('weight.recentMeasurements')}</h2>
               <div dir="ltr">
                 <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full h-24">
-                  <polyline fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
+                  <defs>
+                    <linearGradient id="weightTrendGrad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0" stopColor="var(--primary)" />
+                      <stop offset="1" stopColor="var(--purple-500)" />
+                    </linearGradient>
+                  </defs>
+                  <polyline fill="none" stroke="url(#weightTrendGrad)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
                   {chartEntries.map((e, i) => (
-                    <circle key={e.log.id} cx={chartX(i)} cy={chartY(e.value)} r="3" fill="#2563eb" />
+                    <circle key={e.log.id} cx={chartX(i)} cy={chartY(e.value)}
+                      r={i === chartEntries.length - 1 ? 4.5 : 3}
+                      fill={i === chartEntries.length - 1 ? 'var(--purple-600)' : 'var(--primary)'} />
                   ))}
                 </svg>
                 <div className="flex justify-between text-xs text-slate-400 mt-1">
@@ -251,12 +259,12 @@ export default function WeightPage() {
               </div>
             </div>
           ) : activeMetric !== 'weight' && (
-            <div className="card mb-6 text-center py-6 text-slate-400 text-sm">
+            <div className="glass-card mb-6 text-center py-6 text-slate-400 text-sm">
               {t('weight.onlyOneMeasurement', { metric: metricInfo.label })}
             </div>
           )}
 
-          <div className="card">
+          <div className="glass-card">
             <h2 className="font-bold text-slate-700 mb-3">{t('weight.history')}</h2>
             <div className="flex flex-col gap-2">
               {[...logs].sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime()).map((log, i, arr) => {
@@ -301,7 +309,7 @@ export default function WeightPage() {
       )}
 
       {!loading && logs.length === 0 && (
-        <div className="card text-center py-10 text-slate-400">
+        <div className="glass-card text-center py-10 text-slate-400">
           <Scale size={44} className="mx-auto mb-3 text-blue-200" />
           <p>{t('weight.noMeasurementsYet')}</p>
           <p className="text-sm mt-1">{t('weight.addFirstMeasurement')}</p>

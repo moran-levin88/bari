@@ -59,7 +59,7 @@ export default function JoinGroupPage() {
 
   if (error && !group) return (
     <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
-      <div className="card max-w-sm w-full text-center">
+      <div className="glass-card max-w-sm w-full text-center">
         <div className="text-5xl mb-3">😕</div>
         <h2 className="text-xl font-bold text-slate-700 mb-2">{error}</h2>
         <p className="text-slate-400 mb-6 text-sm">{t('join.wrongLinkHint')}</p>
@@ -70,7 +70,7 @@ export default function JoinGroupPage() {
 
   if (joined) return (
     <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
-      <div className="card max-w-sm w-full text-center">
+      <div className="glass-card max-w-sm w-full text-center">
         <div className="text-6xl mb-3">🎉</div>
         <h2 className="text-2xl font-bold text-blue-700 mb-2">{t('join.welcome')}</h2>
         <p className="text-slate-600">{t('join.joinedInto')} <strong>{group?.name}</strong></p>
@@ -81,7 +81,7 @@ export default function JoinGroupPage() {
 
   return (
     <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
-      <div className="card max-w-sm w-full">
+      <div className="glass-card max-w-sm w-full">
         <div className="text-center mb-6">
           <div className="text-6xl mb-3">🤝</div>
           <h1 className="text-2xl font-bold text-blue-700 mb-1">{t('join.invitation')}</h1>

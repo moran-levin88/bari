@@ -49,7 +49,7 @@ export default function LogWaterPage() {
       <h1 className="text-2xl font-bold text-blue-700 mb-2">{t('water.title')}</h1>
       <p className="text-slate-400 text-sm mb-6">{t('water.subtitle')}</p>
 
-      <div className="card mb-4">
+      <div className="glass-card mb-4">
         <div className="mb-3">
           <label className="block text-sm font-medium text-slate-700 mb-1">{t('water.date')}</label>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
@@ -68,7 +68,7 @@ export default function LogWaterPage() {
         </div>
       </div>
 
-      <div className="card mb-4">
+      <div className="glass-card mb-4">
         <p className="text-sm font-medium text-slate-600 mb-2">{t('water.customAmount')}</p>
         <div className="flex gap-2">
           <input type="number" value={customAmount} onChange={(e) => setCustomAmount(e.target.value)}
@@ -80,7 +80,7 @@ export default function LogWaterPage() {
         </div>
       </div>
 
-      <div className="card">
+      <div className="glass-card">
         <h3 className="font-bold text-slate-700 mb-3">{t('water.whyDrink')}</h3>
         <ul className="text-sm text-slate-500 flex flex-col gap-2">
           <li>{t('water.fact1')}</li>
