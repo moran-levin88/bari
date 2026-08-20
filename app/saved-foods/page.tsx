@@ -383,10 +383,14 @@ export default function SavedFoodsPage() {
               <div className="flex flex-col gap-2 mb-3">
                 {recipeIngredients.map((ing, i) => (
                   <div key={i} className="flex items-center gap-2">
-                    <input value={ing.name} onChange={(e) => updateRecipeIngredient(i, 'name', e.target.value)}
-                      className="input text-sm py-2 flex-1" placeholder={t('savedFoods.recipeIngredientNamePlaceholder')} />
-                    <input value={ing.amount} onChange={(e) => updateRecipeIngredient(i, 'amount', e.target.value)}
-                      className="input text-sm py-2 w-24" placeholder={t('savedFoods.recipeIngredientAmountPlaceholder')} />
+                    <div className="flex-1 min-w-0">
+                      <input value={ing.name} onChange={(e) => updateRecipeIngredient(i, 'name', e.target.value)}
+                        className="input text-sm py-2" placeholder={t('savedFoods.recipeIngredientNamePlaceholder')} />
+                    </div>
+                    <div className="w-24 flex-shrink-0">
+                      <input value={ing.amount} onChange={(e) => updateRecipeIngredient(i, 'amount', e.target.value)}
+                        className="input text-sm py-2" placeholder={t('savedFoods.recipeIngredientAmountPlaceholder')} />
+                    </div>
                     <button type="button" onClick={() => removeRecipeIngredient(i)} disabled={recipeIngredients.length <= 1}
                       className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-red-400 disabled:opacity-0 transition-colors rounded-lg hover:bg-red-50 flex-shrink-0">
                       ✕
