@@ -27,8 +27,11 @@ const emptyForm = () => ({
   sugar: '',
 })
 
+type Mode = 'manual' | 'photo' | 'recipe'
+type RecipeIngredient = { name: string; amount: string }
+
 export default function SavedFoodsPage() {
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
   const [foods, setFoods] = useState<SavedFood[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -41,6 +44,16 @@ export default function SavedFoodsPage() {
   const [analyzedFromPhoto, setAnalyzedFromPhoto] = useState(false)
   const cameraRef = useRef<HTMLInputElement>(null)
   const galleryRef = useRef<HTMLInputElement>(null)
+
+  const [mode, setMode] = useState<Mode>('manual')
+  const [recipeName, setRecipeName] = useState('')
+  const [recipeIngredients, setRecipeIngredients] = useState<RecipeIngredient[]>([{ name: '', amount: '' }])
+  const [recipeServings, setRecipeServings] = useState('')
+  const [extractingRecipePhoto, setExtractingRecipePhoto] = useState(false)
+  const [recipePhotoExtracted, setRecipePhotoExtracted] = useState(false)
+  const [calculatingRecipe, setCalculatingRecipe] = useState(false)
+  const recipeCameraRef = useRef<HTMLInputElement>(null)
+  const recipeGalleryRef = useRef<HTMLInputElement>(null)
 
   const MACROS = [
     { key: 'calories', label: t('savedFoods.macroCalories'), unit: '', emoji: '⚡' },
@@ -86,6 +99,83 @@ export default function SavedFoodsPage() {
     }
   }
 
+  async function extractRecipePhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setExtractingRecipePhoto(true)
+    setRecipePhotoExtracted(false)
+    setError('')
+    try {
+      const fd = new FormData()
+      fd.append('image', file)
+      fd.append('locale', locale)
+      const res = await fetch('/api/analyze-recipe/photo', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        setError(data.error === 'NO_INGREDIENTS_FOUND' ? t('savedFoods.recipeNoIngredientsFound') : t('savedFoods.analysisFailed'))
+        return
+      }
+      if (data.name) setRecipeName(data.name)
+      setRecipeIngredients(data.ingredients.length ? data.ingredients : [{ name: '', amount: '' }])
+      setRecipePhotoExtracted(true)
+    } catch {
+      setError(t('savedFoods.analysisFailed'))
+    } finally {
+      setExtractingRecipePhoto(false)
+    }
+  }
+
+  function updateRecipeIngredient(index: number, field: keyof RecipeIngredient, value: string) {
+    setRecipeIngredients((prev) => prev.map((ing, i) => i === index ? { ...ing, [field]: value } : ing))
+  }
+
+  function addRecipeIngredient() {
+    setRecipeIngredients((prev) => [...prev, { name: '', amount: '' }])
+  }
+
+  function removeRecipeIngredient(index: number) {
+    setRecipeIngredients((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  async function calculateRecipe() {
+    const validIngredients = recipeIngredients.filter((i) => i.name.trim())
+    if (validIngredients.length === 0) { setError(t('savedFoods.recipeNoIngredients')); return }
+    const servingsNum = parseInt(recipeServings)
+    if (!servingsNum || servingsNum <= 0) { setError(t('savedFoods.recipeInvalidServings')); return }
+
+    setCalculatingRecipe(true)
+    setError('')
+    try {
+      const res = await fetch('/api/analyze-recipe/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: recipeName, ingredients: validIngredients, servings: servingsNum, locale }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        setError(t('savedFoods.recipeCalcFailed'))
+        return
+      }
+      const p = data.product
+      setForm({
+        name: p.name,
+        servingName: p.servingName,
+        calories: String(p.calories),
+        protein: String(p.protein),
+        carbs: String(p.carbs),
+        fat: String(p.fat),
+        fiber: String(p.fiber),
+        sugar: String(p.sugar),
+      })
+      setMode('manual')
+    } catch {
+      setError(t('savedFoods.recipeCalcFailed'))
+    } finally {
+      setCalculatingRecipe(false)
+    }
+  }
+
   async function load() {
     const res = await fetch('/api/saved-foods')
     const data = await res.json()
@@ -118,6 +208,11 @@ export default function SavedFoodsPage() {
     setForm(emptyForm())
     setError('')
     setAnalyzedFromPhoto(false)
+    setMode('manual')
+    setRecipeName('')
+    setRecipeIngredients([{ name: '', amount: '' }])
+    setRecipeServings('')
+    setRecipePhotoExtracted(false)
   }
 
   async function submit(e: React.FormEvent) {
@@ -192,6 +287,23 @@ export default function SavedFoodsPage() {
           </h2>
 
           {!editingId && (
+            <div className="flex gap-2 mb-4">
+              <button type="button" onClick={() => setMode('manual')}
+                className={`flex-1 py-2 px-2 rounded-xl border-2 text-xs font-medium transition-all ${mode === 'manual' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-blue-100 bg-white text-slate-600 hover:border-blue-300'}`}>
+                {t('savedFoods.modeManual')}
+              </button>
+              <button type="button" onClick={() => setMode('photo')}
+                className={`flex-1 py-2 px-2 rounded-xl border-2 text-xs font-medium transition-all ${mode === 'photo' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-blue-100 bg-white text-slate-600 hover:border-blue-300'}`}>
+                {t('savedFoods.modePhoto')}
+              </button>
+              <button type="button" onClick={() => setMode('recipe')}
+                className={`flex-1 py-2 px-2 rounded-xl border-2 text-xs font-medium transition-all ${mode === 'recipe' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-blue-100 bg-white text-slate-600 hover:border-blue-300'}`}>
+                {t('savedFoods.modeRecipe')}
+              </button>
+            </div>
+          )}
+
+          {!editingId && mode === 'photo' && (
             <div className={`rounded-xl border-2 border-dashed p-4 mb-4 text-center transition-all ${analyzedFromPhoto ? 'border-green-300 bg-green-50' : 'border-blue-300 bg-blue-50/50'}`}>
               {analyzing ? (
                 <div className="py-2">
@@ -226,6 +338,77 @@ export default function SavedFoodsPage() {
               )}
               <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={analyzeProductPhoto} />
               <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={analyzeProductPhoto} />
+            </div>
+          )}
+
+          {!editingId && mode === 'recipe' && (
+            <div className="rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/50 p-4 mb-4">
+              <div className="text-center mb-4">
+                {extractingRecipePhoto ? (
+                  <div className="py-2">
+                    <Sparkles size={26} className="mx-auto mb-2 text-blue-500 animate-pulse" />
+                    <p className="text-sm font-medium text-blue-700">{t('savedFoods.recipeExtracting')}</p>
+                  </div>
+                ) : recipePhotoExtracted ? (
+                  <div className="flex items-center justify-center gap-2 text-green-700 text-sm font-medium">
+                    <Sparkles size={16} />
+                    <span>{t('savedFoods.recipeExtracted')}</span>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-slate-700 mb-1">{t('savedFoods.recipePhotoHint')}</p>
+                    <div className="flex items-center justify-center gap-2 mt-2">
+                      <button type="button" onClick={() => recipeCameraRef.current?.click()}
+                        className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+                        <Camera size={15} /> {t('savedFoods.photo')}
+                      </button>
+                      <button type="button" onClick={() => recipeGalleryRef.current?.click()}
+                        className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-blue-300 text-blue-600 hover:bg-blue-50 transition-colors">
+                        <ImageIcon size={15} /> {t('savedFoods.fromGallery')}
+                      </button>
+                    </div>
+                  </>
+                )}
+                <input ref={recipeCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={extractRecipePhoto} />
+                <input ref={recipeGalleryRef} type="file" accept="image/*" className="hidden" onChange={extractRecipePhoto} />
+              </div>
+
+              <div className="mb-3">
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('savedFoods.recipeNameLabel')}</label>
+                <input value={recipeName} onChange={(e) => setRecipeName(e.target.value)}
+                  className="input text-sm" placeholder={t('savedFoods.recipeNamePlaceholder')} />
+              </div>
+
+              <label className="block text-sm font-medium text-slate-700 mb-2">{t('savedFoods.recipeIngredientsTitle')}</label>
+              <div className="flex flex-col gap-2 mb-3">
+                {recipeIngredients.map((ing, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input value={ing.name} onChange={(e) => updateRecipeIngredient(i, 'name', e.target.value)}
+                      className="input text-sm py-2 flex-1" placeholder={t('savedFoods.recipeIngredientNamePlaceholder')} />
+                    <input value={ing.amount} onChange={(e) => updateRecipeIngredient(i, 'amount', e.target.value)}
+                      className="input text-sm py-2 w-24" placeholder={t('savedFoods.recipeIngredientAmountPlaceholder')} />
+                    <button type="button" onClick={() => removeRecipeIngredient(i)} disabled={recipeIngredients.length <= 1}
+                      className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-red-400 disabled:opacity-0 transition-colors rounded-lg hover:bg-red-50 flex-shrink-0">
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button type="button" onClick={addRecipeIngredient}
+                className="w-full py-2 border-2 border-dashed border-blue-200 rounded-xl text-blue-500 text-sm hover:border-blue-400 hover:bg-blue-50 transition-all mb-3">
+                {t('savedFoods.recipeAddIngredient')}
+              </button>
+
+              <div className="mb-3">
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('savedFoods.recipeServingsLabel')}</label>
+                <input type="number" value={recipeServings} onChange={(e) => setRecipeServings(e.target.value)}
+                  className="input text-center text-lg font-bold" placeholder={t('savedFoods.recipeServingsPlaceholder')} min={1} />
+              </div>
+
+              <button type="button" onClick={calculateRecipe} disabled={calculatingRecipe}
+                className="btn-primary w-full py-2.5 text-sm disabled:opacity-50">
+                {calculatingRecipe ? t('savedFoods.recipeCalculating') : t('savedFoods.recipeCalculateButton')}
+              </button>
             </div>
           )}
 
