@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Pencil, Trash2, Salad, Camera, Image as ImageIcon, Sparkles, X } from 'lucide-react'
+import { Pencil, Trash2, Salad, Camera, Image as ImageIcon, Sparkles, X, Share2 } from 'lucide-react'
 import { useLocale } from '@/lib/i18n/context'
+import ShareFoodPicker from '@/components/ShareFoodPicker'
 
 type SavedFood = {
   id: string
@@ -54,6 +55,9 @@ export default function SavedFoodsPage() {
   const [calculatingRecipe, setCalculatingRecipe] = useState(false)
   const recipeCameraRef = useRef<HTMLInputElement>(null)
   const recipeGalleryRef = useRef<HTMLInputElement>(null)
+
+  const [justAddedFoodId, setJustAddedFoodId] = useState<string | null>(null)
+  const [sharingFoodId, setSharingFoodId] = useState<string | null>(null)
 
   const MACROS = [
     { key: 'calories', label: t('savedFoods.macroCalories'), unit: '', emoji: '⚡' },
@@ -252,6 +256,7 @@ export default function SavedFoodsPage() {
         const data = await res.json()
         if (!data.success) throw new Error(data.error)
         setFoods((prev) => [data.food, ...prev])
+        setJustAddedFoodId(data.food.id)
       }
       cancelForm()
     } catch (err: unknown) {
@@ -267,6 +272,8 @@ export default function SavedFoodsPage() {
     await fetch(`/api/saved-foods/${id}`, { method: 'DELETE' })
     setFoods((prev) => prev.filter((f) => f.id !== id))
     setDeletingId(null)
+    if (justAddedFoodId === id) setJustAddedFoodId(null)
+    if (sharingFoodId === id) setSharingFoodId(null)
   }
 
   return (
@@ -475,6 +482,18 @@ export default function SavedFoodsPage() {
         </div>
       )}
 
+      {justAddedFoodId && (
+        <div className="glass-card mb-4 border-blue-300">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-sm font-medium text-slate-700">{t('savedFoods.shareNewPrompt')}</p>
+            <button onClick={() => setJustAddedFoodId(null)} className="text-slate-300 hover:text-slate-500" aria-label={t('common.close')}>
+              <X size={16} />
+            </button>
+          </div>
+          <ShareFoodPicker foodId={justAddedFoodId} onDone={() => setJustAddedFoodId(null)} />
+        </div>
+      )}
+
       {loading ? (
         <div className="flex flex-col gap-3">
           <div className="skeleton h-24 w-full" />
@@ -503,6 +522,12 @@ export default function SavedFoodsPage() {
                 </div>
                 <div className="flex gap-1">
                   <button
+                    onClick={() => setSharingFoodId(sharingFoodId === food.id ? null : food.id)}
+                    className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+                  >
+                    <Share2 size={13} /> {t('savedFoods.share')}
+                  </button>
+                  <button
                     onClick={() => startEdit(food)}
                     className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
                   >
@@ -525,6 +550,11 @@ export default function SavedFoodsPage() {
                 <span className="macro-chip bg-pink-50 text-pink-600">🥑 {food.fat} {t('savedFoods.fatUnit')}</span>
                 {food.fiber > 0 && <span className="macro-chip bg-slate-50 text-slate-500">{food.fiber} {t('savedFoods.fiberUnit')}</span>}
               </div>
+              {sharingFoodId === food.id && (
+                <div className="mt-3 pt-3 border-t border-blue-100">
+                  <ShareFoodPicker foodId={food.id} onDone={() => setSharingFoodId(null)} />
+                </div>
+              )}
             </div>
           ))}
         </div>
