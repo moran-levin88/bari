@@ -172,9 +172,20 @@ function SavedFoodsPicker({
                   onClick={() => onUpdateServings(food.id, Math.max(0.1, Math.round((servings - 0.1) * 10) / 10))}
                   className="w-7 h-7 rounded-full bg-white border border-blue-200 text-blue-600 font-bold flex items-center justify-center text-sm hover:bg-blue-100 transition-colors"
                 >−</button>
-                <div className="text-center min-w-[40px]">
-                  <span className="font-bold text-blue-700 text-sm">{servings.toFixed(1)}</span>
-                  <span className="text-xs text-slate-400 block leading-none">{food.servingName}</span>
+                <div className="text-center">
+                  <input
+                    type="number"
+                    value={servings}
+                    onChange={(e) => {
+                      const v = Number(e.target.value)
+                      onUpdateServings(food.id, isFinite(v) && v > 0 ? v : 0.1)
+                    }}
+                    onFocus={(e) => e.target.select()}
+                    step={0.1}
+                    min={0.1}
+                    className="w-12 text-center font-bold text-blue-700 text-sm bg-white border border-blue-200 rounded-lg py-1"
+                  />
+                  <span className="text-xs text-slate-400 block leading-none mt-0.5">{food.servingName}</span>
                 </div>
                 <button
                   type="button"
@@ -182,10 +193,11 @@ function SavedFoodsPicker({
                   className="w-7 h-7 rounded-full bg-white border border-blue-200 text-blue-600 font-bold flex items-center justify-center text-sm hover:bg-blue-100 transition-colors"
                 >+</button>
               </div>
+              <div className="w-px h-6 bg-blue-200 flex-shrink-0" />
               <button
                 type="button"
                 onClick={() => onRemove(food.id)}
-                className="w-7 h-7 flex items-center justify-center text-slate-300 hover:text-red-400 transition-colors rounded-full hover:bg-red-50"
+                className="w-7 h-7 flex items-center justify-center text-slate-300 hover:text-red-400 transition-colors rounded-full hover:bg-red-50 flex-shrink-0"
               >✕</button>
             </div>
           ))}
