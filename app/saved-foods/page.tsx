@@ -58,6 +58,7 @@ export default function SavedFoodsPage() {
 
   const [justAddedFoodId, setJustAddedFoodId] = useState<string | null>(null)
   const [sharingFoodId, setSharingFoodId] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
 
   const MACROS = [
     { key: 'calories', label: t('savedFoods.macroCalories'), unit: '', emoji: '⚡' },
@@ -275,6 +276,10 @@ export default function SavedFoodsPage() {
     if (justAddedFoodId === id) setJustAddedFoodId(null)
     if (sharingFoodId === id) setSharingFoodId(null)
   }
+
+  const filteredFoods = search.trim()
+    ? foods.filter((f) => f.name.toLowerCase().includes(search.trim().toLowerCase()))
+    : foods
 
   return (
     <div>
@@ -494,6 +499,15 @@ export default function SavedFoodsPage() {
         </div>
       )}
 
+      {!loading && foods.length > 0 && (
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="input mb-4"
+          placeholder={t('savedFoods.searchPlaceholder')}
+        />
+      )}
+
       {loading ? (
         <div className="flex flex-col gap-3">
           <div className="skeleton h-24 w-full" />
@@ -511,9 +525,14 @@ export default function SavedFoodsPage() {
             </button>
           )}
         </div>
+      ) : filteredFoods.length === 0 ? (
+        <div className="glass-card text-center py-10">
+          <Salad size={40} className="mx-auto mb-3 text-blue-200" />
+          <p className="text-slate-500">{t('savedFoods.noSearchResults')}</p>
+        </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {foods.map((food) => (
+          {filteredFoods.map((food) => (
             <div key={food.id} className="glass-card">
               <div className="flex items-start justify-between mb-2">
                 <div>
