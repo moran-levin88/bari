@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Salad, ChevronLeft, HeartPulse, Sparkles, Languages, Watch, Copy, Check } from 'lucide-react'
-import { calculateDailyTargets } from '@/lib/nutrition'
+import { calculateDailyTargets, activityLevelToWorkoutsInput } from '@/lib/nutrition'
 import { useLocale } from '@/lib/i18n/context'
 import type { Locale } from '@/lib/i18n/dictionaries'
 
@@ -41,7 +41,7 @@ export default function ProfilePage() {
     height: '',
     gender: '',
     goal: 'maintain',
-    activityLevel: 'moderate',
+    activityLevel: '',
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -69,14 +69,6 @@ export default function ProfilePage() {
     { value: 'gain_muscle', label: t('profile.goalGain') },
   ]
 
-  const ACTIVITY_LEVELS = [
-    { value: 'sedentary', label: t('profile.activitySedentary') },
-    { value: 'light', label: t('profile.activityLight') },
-    { value: 'moderate', label: t('profile.activityModerate') },
-    { value: 'active', label: t('profile.activityActive') },
-    { value: 'very_active', label: t('profile.activityIntense') },
-  ]
-
   const targets = form.age && form.weight && form.height
     ? calculateDailyTargets({
         age: Number(form.age),
@@ -99,7 +91,7 @@ export default function ProfilePage() {
             height: data.user.height?.toString() || '',
             gender: data.user.gender || '',
             goal: data.user.goal || 'maintain',
-            activityLevel: data.user.activityLevel || 'moderate',
+            activityLevel: data.user.activityLevel ? activityLevelToWorkoutsInput(data.user.activityLevel) : '',
           })
         }
       })
@@ -249,14 +241,10 @@ export default function ProfilePage() {
 
         <div className="glass-card mb-4">
           <h2 className="font-bold text-slate-700 mb-3">{t('profile.activityLevel')}</h2>
-          <div className="flex flex-col gap-2">
-            {ACTIVITY_LEVELS.map((a) => (
-              <label key={a.value} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${form.activityLevel === a.value ? 'border-blue-500 bg-blue-50' : 'border-blue-100 hover:border-blue-300'}`}>
-                <input type="radio" name="activityLevel" value={a.value} checked={form.activityLevel === a.value} onChange={() => setForm({ ...form, activityLevel: a.value })} className="hidden" />
-                <span className="text-base">{a.label}</span>
-              </label>
-            ))}
-          </div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">{t('profile.activityWorkoutsLabel')}</label>
+          <input type="number" value={form.activityLevel} onChange={(e) => setForm({ ...form, activityLevel: e.target.value })}
+            className="input" placeholder={t('profile.activityWorkoutsPlaceholder')} min={0} max={14} />
+          <p className="text-xs text-slate-400 mt-2">{t('profile.activityWorkoutsHint')}</p>
         </div>
 
         {targets && (

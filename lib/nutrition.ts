@@ -1,3 +1,55 @@
+// Activity multiplier as a smooth function of weekly workout count, instead of
+// discrete buckets — piecewise-linear interpolation between the same anchor
+// points the old 5-category picker used (at each category's representative
+// weekly count), so a single extra/fewer workout shifts the target gradually
+// instead of jumping the whole week's calories at a bucket boundary.
+const ACTIVITY_ANCHORS: [workouts: number, multiplier: number][] = [
+  [0, 1.2], // sedentary
+  [2, 1.375], // light: 1-3x/week
+  [4, 1.55], // moderate: 3-5x/week
+  [6.5, 1.725], // active: 6-7x/week
+  [9, 1.9], // very active: athletes / physical work
+]
+
+// Old category picker values, kept so profiles saved before the switch to a
+// numeric "workouts per week" input keep producing the same targets.
+const LEGACY_ACTIVITY_WORKOUTS: Record<string, number> = {
+  sedentary: 0,
+  light: 2,
+  moderate: 4,
+  active: 6.5,
+  very_active: 9,
+}
+
+// Converts a saved activityLevel value (legacy category name, or an already
+// numeric "workouts per week" string) into what the numeric input expects.
+export function activityLevelToWorkoutsInput(value: string): string {
+  if (value in LEGACY_ACTIVITY_WORKOUTS) return String(LEGACY_ACTIVITY_WORKOUTS[value])
+  return value
+}
+
+function resolveWeeklyWorkouts(activityLevel: string): number {
+  if (activityLevel in LEGACY_ACTIVITY_WORKOUTS) return LEGACY_ACTIVITY_WORKOUTS[activityLevel]
+  const n = Number(activityLevel)
+  return Number.isFinite(n) ? n : LEGACY_ACTIVITY_WORKOUTS.moderate
+}
+
+function activityMultiplier(workouts: number): number {
+  const [minX, minY] = ACTIVITY_ANCHORS[0]
+  const [maxX, maxY] = ACTIVITY_ANCHORS[ACTIVITY_ANCHORS.length - 1]
+  if (workouts <= minX) return minY
+  if (workouts >= maxX) return maxY
+
+  for (let i = 0; i < ACTIVITY_ANCHORS.length - 1; i++) {
+    const [x0, y0] = ACTIVITY_ANCHORS[i]
+    const [x1, y1] = ACTIVITY_ANCHORS[i + 1]
+    if (workouts >= x0 && workouts <= x1) {
+      return y0 + ((workouts - x0) / (x1 - x0)) * (y1 - y0)
+    }
+  }
+  return maxY
+}
+
 // Daily nutrition targets based on age, weight, height, goal, and activity level
 export function calculateDailyTargets(params: {
   age: number
@@ -5,7 +57,7 @@ export function calculateDailyTargets(params: {
   height: number // cm
   gender?: string
   goal?: string
-  activityLevel?: string
+  activityLevel?: string // weekly workout count (e.g. "5"), or a legacy category name
 }) {
   const { age, weight, height, gender = 'other', goal = 'maintain', activityLevel = 'moderate' } = params
 
@@ -19,15 +71,8 @@ export function calculateDailyTargets(params: {
     bmr = 10 * weight + 6.25 * height - 5 * age - 78
   }
 
-  const activityMultipliers: Record<string, number> = {
-    sedentary: 1.2,
-    light: 1.375,
-    moderate: 1.55,
-    active: 1.725,
-    very_active: 1.9,
-  }
-
-  const tdee = bmr * (activityMultipliers[activityLevel] || 1.55)
+  const weeklyWorkouts = resolveWeeklyWorkouts(activityLevel)
+  const tdee = bmr * activityMultiplier(weeklyWorkouts)
 
   let calories: number
   switch (goal) {
@@ -47,7 +92,7 @@ export function calculateDailyTargets(params: {
   // Protein per kg body weight: higher for muscle building and for weight loss
   // (to preserve lean mass in a deficit), and bumped further for frequent training.
   let proteinPerKg = goal === 'lose_weight' || goal === 'gain_muscle' ? 2.2 : 1.8
-  if (activityLevel === 'active' || activityLevel === 'very_active') {
+  if (weeklyWorkouts >= 6) {
     proteinPerKg = Math.max(proteinPerKg, 2.2)
   }
   const protein = Math.round(weight * proteinPerKg)

@@ -25,14 +25,6 @@ export default function OnboardingPage() {
     { value: 'gain_muscle', label: t('onboarding.goalGainTitle'), desc: t('onboarding.goalGainDesc') },
   ]
 
-  const ACTIVITY_LEVELS = [
-    { value: 'sedentary', label: t('onboarding.activitySedentaryTitle'), desc: t('onboarding.activitySedentaryDesc') },
-    { value: 'light', label: t('onboarding.activityLightTitle'), desc: t('onboarding.activityLightDesc') },
-    { value: 'moderate', label: t('onboarding.activityModerateTitle'), desc: t('onboarding.activityModerateDesc') },
-    { value: 'active', label: t('onboarding.activityActiveTitle'), desc: t('onboarding.activityActiveDesc') },
-    { value: 'very_active', label: t('onboarding.activityIntenseTitle'), desc: t('onboarding.activityIntenseDesc') },
-  ]
-
   const STEPS = [
     t('onboarding.stepWelcome'), t('onboarding.stepWelcome'), t('onboarding.stepDetails'),
     t('onboarding.stepGender'), t('onboarding.stepGoal'), t('onboarding.stepActivity'),
@@ -168,14 +160,11 @@ export default function OnboardingPage() {
         <div>
           <h2 className="text-xl font-bold text-blue-700 mb-1">{t('onboarding.activityTitle')}</h2>
           <p className="text-slate-400 text-sm mb-6">{t('onboarding.activitySubtitle')}</p>
-          <div className="flex flex-col gap-2">
-            {ACTIVITY_LEVELS.map((a) => (
-              <button key={a.value} onClick={() => setForm({ ...form, activityLevel: a.value })}
-                className={`text-start p-3 rounded-xl border-2 transition-all ${form.activityLevel === a.value ? 'border-blue-500 bg-blue-50' : 'border-blue-100 hover:border-blue-300 bg-white'}`}>
-                <div className="font-bold text-slate-800">{a.label}</div>
-                <div className="text-xs text-slate-500">{a.desc}</div>
-              </button>
-            ))}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">{t('onboarding.activityWorkoutsLabel')}</label>
+            <input type="number" value={form.activityLevel} onChange={(e) => setForm({ ...form, activityLevel: e.target.value })}
+              className="input" placeholder={t('onboarding.activityWorkoutsPlaceholder')} min={0} max={14} />
+            <p className="text-xs text-slate-400 mt-2">{t('onboarding.activityWorkoutsHint')}</p>
           </div>
           {saveError && (
             <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg p-3 text-sm mt-4">
