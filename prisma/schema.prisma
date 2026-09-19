@@ -20,6 +20,7 @@ model User {
   goal          String?
   activityLevel String?
   approved      Boolean  @default(true)
+  tourSeen      Boolean  @default(true)
   locale        String   @default("he")
   stepsApiToken String?  @unique
   createdAt     DateTime @default(now())

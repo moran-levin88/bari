@@ -4,7 +4,9 @@ import Link from 'next/link'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { calculateDailyTargets, DEFAULT_TARGETS, isLegacyActivityLevel } from '@/lib/nutrition'
+import { isAdminEmail } from '@/lib/admin'
 import ActivityLegacyBanner from '@/components/ActivityLegacyBanner'
+import AppTour from '@/components/AppTour'
 import { format } from 'date-fns'
 import { he, enUS } from 'date-fns/locale'
 import { Sparkles, ChevronLeft } from 'lucide-react'
@@ -77,6 +79,10 @@ export default async function DashboardPage() {
 
   return (
     <div>
+      {/* Still in review with Moran — restricted to her account until approved,
+          even though tourSeen is already false for every new signup. */}
+      <AppTour show={!user.tourSeen && isAdminEmail(user.email)} />
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-blue-700">{t('nav.greeting')}, {user.name}! 👋</h1>

@@ -25,7 +25,7 @@ export async function signup(_state: AuthState, formData: FormData): Promise<Aut
 
   const hashed = await bcrypt.hash(password, 10)
   const user = await prisma.user.create({
-    data: { name, email, password: hashed, approved: isAdminEmail(email) },
+    data: { name, email, password: hashed, approved: isAdminEmail(email), tourSeen: false },
   })
 
   await createSession({ userId: user.id, email: user.email, name: user.name })
@@ -109,6 +109,7 @@ export async function getCurrentUser() {
         goal: true,
         activityLevel: true,
         approved: true,
+        tourSeen: true,
       },
     })
     if (!user) {
@@ -134,6 +135,7 @@ export async function getCurrentUser() {
       goal: null,
       activityLevel: null,
       approved: true,
+      tourSeen: true,
     }
   }
 }
