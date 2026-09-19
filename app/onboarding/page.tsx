@@ -10,6 +10,7 @@ export default function OnboardingPage() {
   const { t, locale, setLocale } = useLocale()
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(false)
   const [form, setForm] = useState({ age: '', weight: '', height: '', gender: '', goal: '', activityLevel: '' })
 
   const GENDERS = [
@@ -42,12 +43,19 @@ export default function OnboardingPage() {
 
   async function finish() {
     setSaving(true)
-    await fetch('/api/profile', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    })
-    router.push('/dashboard')
+    setSaveError(false)
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) throw new Error('save failed')
+      router.push('/dashboard')
+    } catch {
+      setSaveError(true)
+      setSaving(false)
+    }
   }
 
   return (
@@ -169,6 +177,11 @@ export default function OnboardingPage() {
               </button>
             ))}
           </div>
+          {saveError && (
+            <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg p-3 text-sm mt-4">
+              {t('onboarding.saveError')}
+            </div>
+          )}
           <div className="flex gap-2 mt-6">
             <button onClick={back} className="btn-secondary flex-1 py-3">{t('common.back')}</button>
             <button onClick={finish} disabled={!form.activityLevel || saving}

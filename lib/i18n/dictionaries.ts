@@ -142,6 +142,7 @@ export const dictionaries = {
       stepGender: 'מגדר',
       stepGoal: 'מטרה',
       stepActivity: 'פעילות',
+      saveError: 'שמירת הפרופיל נכשלה, נסה/י שוב',
     },
     dashboard: {
       dateFormat: 'EEEE, d בMMMM yyyy',
@@ -799,6 +800,7 @@ export const dictionaries = {
       stepGender: 'Gender',
       stepGoal: 'Goal',
       stepActivity: 'Activity',
+      saveError: 'Failed to save your profile, please try again',
     },
     dashboard: {
       dateFormat: 'EEEE, MMMM d, yyyy',

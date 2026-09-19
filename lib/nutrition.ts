@@ -44,9 +44,15 @@ export function calculateDailyTargets(params: {
   calories = Math.round(calories)
 
   // Macronutrient targets
-  const protein = Math.round(weight * 1.6) // 1.6g per kg
+  // Protein per kg body weight: higher for muscle building and for weight loss
+  // (to preserve lean mass in a deficit), and bumped further for frequent training.
+  let proteinPerKg = goal === 'lose_weight' || goal === 'gain_muscle' ? 2.2 : 1.8
+  if (activityLevel === 'active' || activityLevel === 'very_active') {
+    proteinPerKg = Math.max(proteinPerKg, 2.2)
+  }
+  const protein = Math.round(weight * proteinPerKg)
   const fat = Math.round((calories * 0.3) / 9) // 30% of calories
-  const carbs = Math.round((calories - protein * 4 - fat * 9) / 4) // remaining
+  const carbs = Math.max(0, Math.round((calories - protein * 4 - fat * 9) / 4)) // remaining
 
   // Water target: ~35ml per kg body weight
   const water = Math.round(weight * 35)

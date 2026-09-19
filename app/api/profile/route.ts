@@ -13,7 +13,7 @@ export async function PUT(request: NextRequest) {
     where: { id: session.userId },
     data: {
       name: name || undefined,
-      age: age ? Number(age) : undefined,
+      age: age ? Math.round(Number(age)) : undefined,
       weight: weight ? Number(weight) : undefined,
       height: height ? Number(height) : undefined,
       gender: gender || undefined,

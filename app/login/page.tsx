@@ -104,7 +104,7 @@ function LoginForm() {
           </div>
 
           <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input type="checkbox" name="rememberMe" className="w-4 h-4 accent-blue-600 rounded" />
+            <input type="checkbox" name="rememberMe" defaultChecked className="w-4 h-4 accent-blue-600 rounded" />
             <span className="text-sm text-slate-600">{t('auth.rememberMe')}</span>
           </label>
 

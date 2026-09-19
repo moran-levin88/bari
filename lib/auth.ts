@@ -68,6 +68,13 @@ export async function getCurrentUser() {
         activityLevel: true,
       },
     })
+    if (!user) {
+      // Session refers to a user that no longer exists (e.g. deleted, or a
+      // stale cookie from a reset dev DB) — clear it so the login/dashboard
+      // redirect doesn't loop forever.
+      await deleteSession()
+      return null
+    }
     return user
   } catch {
     // DB unreachable (e.g. Neon cold start) — return minimal user from session
