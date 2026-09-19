@@ -28,6 +28,13 @@ export function activityLevelToWorkoutsInput(value: string): string {
   return value
 }
 
+// True for a profile still holding a pre-migration category name (its target
+// is only ever the category's representative midpoint, never the user's
+// actual weekly count) — used to prompt them to enter the exact number.
+export function isLegacyActivityLevel(value: string): boolean {
+  return value in LEGACY_ACTIVITY_WORKOUTS
+}
+
 function resolveWeeklyWorkouts(activityLevel: string): number {
   if (activityLevel in LEGACY_ACTIVITY_WORKOUTS) return LEGACY_ACTIVITY_WORKOUTS[activityLevel]
   const n = Number(activityLevel)

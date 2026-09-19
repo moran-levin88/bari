@@ -3,7 +3,8 @@ import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { calculateDailyTargets, DEFAULT_TARGETS } from '@/lib/nutrition'
+import { calculateDailyTargets, DEFAULT_TARGETS, isLegacyActivityLevel } from '@/lib/nutrition'
+import ActivityLegacyBanner from '@/components/ActivityLegacyBanner'
 import { format } from 'date-fns'
 import { he, enUS } from 'date-fns/locale'
 import { Sparkles, ChevronLeft } from 'lucide-react'
@@ -86,6 +87,8 @@ export default async function DashboardPage() {
           <Link href="/log/water" className="btn-secondary text-sm hidden sm:inline-block">{t('dashboard.addWater')}</Link>
         </div>
       </div>
+
+      <ActivityLegacyBanner show={!!user.activityLevel && isLegacyActivityLevel(user.activityLevel)} />
 
       {/* AI review */}
       <Link href="/review"
