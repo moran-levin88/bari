@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { sendPushToGroupMates } from '@/lib/push'
@@ -39,6 +40,7 @@ export async function POST(request: NextRequest) {
       }).catch(() => {})
     }
 
+    revalidatePath('/dashboard')
     return Response.json({ success: true, meal })
   } catch (error) {
     console.error('Create meal error:', error)

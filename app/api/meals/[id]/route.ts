@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 
@@ -52,6 +53,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     },
   })
 
+  revalidatePath('/dashboard')
   return Response.json({ success: true, meal: updated })
 }
 
@@ -65,5 +67,6 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
   if (meal.userId !== session.userId) return Response.json({ error: 'אין הרשאה' }, { status: 403 })
 
   await prisma.meal.delete({ where: { id } })
+  revalidatePath('/dashboard')
   return Response.json({ success: true })
 }

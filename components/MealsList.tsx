@@ -33,6 +33,29 @@ function parseIngredients(aiAnalysis: string | null | undefined, name: string): 
   return parts.length > 1 ? parts : []
 }
 
+// The actual food detail entered for the meal — a short description, the
+// portion size, and a per-item calorie breakdown when there were multiple
+// foods — as opposed to just the aggregated nutrition totals.
+type MealDetail = { description: string | null; servingSize: string | null; breakdown: { name: string; calories: number }[] }
+
+function parseMealDetail(aiAnalysis: string | null | undefined): MealDetail {
+  const empty: MealDetail = { description: null, servingSize: null, breakdown: [] }
+  if (!aiAnalysis) return empty
+  try {
+    const parsed = JSON.parse(aiAnalysis)
+    return {
+      description: typeof parsed.description === 'string' && parsed.description.trim() ? parsed.description : null,
+      servingSize: typeof parsed.servingSize === 'string' && parsed.servingSize.trim() ? parsed.servingSize : null,
+      breakdown: Array.isArray(parsed.breakdown)
+        ? parsed.breakdown.filter((b: unknown): b is { name: string; calories: number } =>
+            !!b && typeof b === 'object' && typeof (b as { name?: unknown }).name === 'string')
+        : [],
+    }
+  } catch {
+    return empty
+  }
+}
+
 export default function MealsList({ meals }: { meals: Meal[] }) {
   const router = useRouter()
   const { t } = useLocale()
@@ -82,6 +105,8 @@ export default function MealsList({ meals }: { meals: Meal[] }) {
       {list.map((meal) => {
         const isOpen = expandedId === meal.id
         const ingredients = parseIngredients(meal.aiAnalysis, meal.name)
+        const detail = parseMealDetail(meal.aiAnalysis)
+        const description = meal.description || detail.description
         const typeLabel = mealTypeLabel(t, meal.mealType)
 
         return (
@@ -110,7 +135,27 @@ export default function MealsList({ meals }: { meals: Meal[] }) {
               <div className="px-3 pb-3 border-t border-blue-100 pt-3">
                 {typeLabel && <p className="text-xs text-slate-400 mb-2">{typeLabel}</p>}
 
-                {ingredients.length > 0 && (
+                {description && <p className="text-sm text-slate-700 mb-1.5">{description}</p>}
+                {detail.servingSize && (
+                  <p className="text-xs text-slate-400 mb-3">{t('mealsList.servingSize')}: {detail.servingSize}</p>
+                )}
+
+                {detail.breakdown.length > 0 ? (
+                  <div className="mb-3">
+                    <p className="text-xs font-semibold text-slate-500 mb-1.5">{t('mealsList.ingredients')}</p>
+                    <ul className="flex flex-col gap-1">
+                      {detail.breakdown.map((item, i) => (
+                        <li key={i} className="text-sm text-slate-700 flex items-center justify-between gap-2">
+                          <span className="flex items-center gap-1.5 min-w-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
+                            <span className="truncate">{item.name}</span>
+                          </span>
+                          <span className="text-slate-400 text-xs flex-shrink-0 tabular-nums">{Math.round(item.calories)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : ingredients.length > 0 && (
                   <div className="mb-3">
                     <p className="text-xs font-semibold text-slate-500 mb-1.5">{t('mealsList.ingredients')}</p>
                     <ul className="flex flex-col gap-1">
