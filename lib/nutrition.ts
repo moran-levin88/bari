@@ -1,3 +1,22 @@
+// Interpolates a value between anchor points [x, y], clamping to the first/last
+// y outside the anchor range. Used to turn weekly workout count into a smooth
+// multiplier/coefficient instead of a step function with hard jumps.
+function piecewiseLinear(anchors: [x: number, y: number][], x: number): number {
+  const [minX, minY] = anchors[0]
+  const [maxX, maxY] = anchors[anchors.length - 1]
+  if (x <= minX) return minY
+  if (x >= maxX) return maxY
+
+  for (let i = 0; i < anchors.length - 1; i++) {
+    const [x0, y0] = anchors[i]
+    const [x1, y1] = anchors[i + 1]
+    if (x >= x0 && x <= x1) {
+      return y0 + ((x - x0) / (x1 - x0)) * (y1 - y0)
+    }
+  }
+  return maxY
+}
+
 // Activity multiplier as a smooth function of weekly workout count, instead of
 // discrete buckets — piecewise-linear interpolation between the same anchor
 // points the old 5-category picker used (at each category's representative
@@ -9,6 +28,16 @@ const ACTIVITY_ANCHORS: [workouts: number, multiplier: number][] = [
   [4, 1.55], // moderate: 3-5x/week
   [6.5, 1.725], // active: 6-7x/week
   [9, 1.9], // very active: athletes / physical work
+]
+
+// Protein target (g per kg body weight) as a smooth function of weekly
+// workout count. Driven by training frequency alone, not by goal — more
+// training means more protein need to support and recover muscle, regardless
+// of whether the calorie target is a deficit, surplus, or maintenance.
+const PROTEIN_ANCHORS: [workouts: number, gramsPerKg: number][] = [
+  [0, 1.6],
+  [4, 1.8],
+  [6.5, 2.2],
 ]
 
 // Old category picker values, kept so profiles saved before the switch to a
@@ -42,19 +71,7 @@ function resolveWeeklyWorkouts(activityLevel: string): number {
 }
 
 function activityMultiplier(workouts: number): number {
-  const [minX, minY] = ACTIVITY_ANCHORS[0]
-  const [maxX, maxY] = ACTIVITY_ANCHORS[ACTIVITY_ANCHORS.length - 1]
-  if (workouts <= minX) return minY
-  if (workouts >= maxX) return maxY
-
-  for (let i = 0; i < ACTIVITY_ANCHORS.length - 1; i++) {
-    const [x0, y0] = ACTIVITY_ANCHORS[i]
-    const [x1, y1] = ACTIVITY_ANCHORS[i + 1]
-    if (workouts >= x0 && workouts <= x1) {
-      return y0 + ((workouts - x0) / (x1 - x0)) * (y1 - y0)
-    }
-  }
-  return maxY
+  return piecewiseLinear(ACTIVITY_ANCHORS, workouts)
 }
 
 // Daily nutrition targets based on age, weight, height, goal, and activity level
@@ -96,12 +113,7 @@ export function calculateDailyTargets(params: {
   calories = Math.round(calories)
 
   // Macronutrient targets
-  // Protein per kg body weight: higher for muscle building and for weight loss
-  // (to preserve lean mass in a deficit), and bumped further for frequent training.
-  let proteinPerKg = goal === 'lose_weight' || goal === 'gain_muscle' ? 2.2 : 1.8
-  if (weeklyWorkouts >= 6) {
-    proteinPerKg = Math.max(proteinPerKg, 2.2)
-  }
+  const proteinPerKg = piecewiseLinear(PROTEIN_ANCHORS, weeklyWorkouts)
   const protein = Math.round(weight * proteinPerKg)
   const fat = Math.round((calories * 0.3) / 9) // 30% of calories
   const carbs = Math.max(0, Math.round((calories - protein * 4 - fat * 9) / 4)) // remaining
