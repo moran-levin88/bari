@@ -19,6 +19,7 @@ model User {
   gender        String?
   goal          String?
   activityLevel String?
+  approved      Boolean  @default(true)
   locale        String   @default("he")
   stepsApiToken String?  @unique
   createdAt     DateTime @default(now())

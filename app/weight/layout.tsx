@@ -1,10 +1,8 @@
-import { redirect } from 'next/navigation'
-import { getCurrentUser } from '@/lib/auth'
+import { requireApprovedUser } from '@/lib/auth'
 import Navigation from '@/components/Navigation'
 
 export default async function WeightLayout({ children }: { children: React.ReactNode }) {
-  const user = await getCurrentUser()
-  if (!user) redirect('/login')
+  const user = await requireApprovedUser()
 
   return (
     <div className="min-h-screen app-bg">

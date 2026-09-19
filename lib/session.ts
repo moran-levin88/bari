@@ -74,3 +74,25 @@ export async function verifyRefreshToken(token: string): Promise<string | null> 
     return null
   }
 }
+
+// Password reset token — embeds a fingerprint of the password hash at the
+// time it was issued, so it self-invalidates the moment it's used: once the
+// password changes, the embedded fingerprint no longer matches the stored
+// one and the token stops verifying. No separate single-use tracking needed.
+export async function createPasswordResetToken(userId: string, passwordHash: string): Promise<string> {
+  return new SignJWT({ userId, type: 'password-reset', pwFingerprint: passwordHash })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('30m')
+    .sign(encodedKey)
+}
+
+export async function verifyPasswordResetToken(token: string): Promise<{ userId: string; pwFingerprint: string } | null> {
+  try {
+    const { payload } = await jwtVerify(token, encodedKey, { algorithms: ['HS256'] })
+    if (payload.type !== 'password-reset') return null
+    return { userId: payload.userId as string, pwFingerprint: payload.pwFingerprint as string }
+  } catch {
+    return null
+  }
+}

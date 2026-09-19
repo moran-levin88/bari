@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Salad, ChevronLeft, HeartPulse, Sparkles, Languages, Watch, Copy, Check } from 'lucide-react'
 import { calculateDailyTargets, activityLevelToWorkoutsInput } from '@/lib/nutrition'
+import AdminUsersPanel from '@/components/AdminUsersPanel'
 import { useLocale } from '@/lib/i18n/context'
 import type { Locale } from '@/lib/i18n/dictionaries'
 
@@ -164,6 +165,8 @@ export default function ProfilePage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-blue-700 mb-6">👤 {t('profile.title')}</h1>
+
+      <AdminUsersPanel />
 
       <div className="glass-card mb-4">
         <h2 className="font-bold text-slate-700 mb-3 flex items-center gap-2">

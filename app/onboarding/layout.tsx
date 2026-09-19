@@ -1,9 +1,8 @@
 import { redirect } from 'next/navigation'
-import { getCurrentUser } from '@/lib/auth'
+import { requireApprovedUser } from '@/lib/auth'
 
 export default async function OnboardingLayout({ children }: { children: React.ReactNode }) {
-  const user = await getCurrentUser()
-  if (!user) redirect('/login')
+  const user = await requireApprovedUser()
   if (user.age && user.weight && user.height) redirect('/dashboard')
 
   return (

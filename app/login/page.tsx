@@ -103,10 +103,13 @@ function LoginForm() {
             </div>
           </div>
 
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input type="checkbox" name="rememberMe" defaultChecked className="w-4 h-4 accent-blue-600 rounded" />
-            <span className="text-sm text-slate-600">{t('auth.rememberMe')}</span>
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" name="rememberMe" defaultChecked className="w-4 h-4 accent-blue-600 rounded" />
+              <span className="text-sm text-slate-600">{t('auth.rememberMe')}</span>
+            </label>
+            <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">{t('auth.forgotPassword')}</Link>
+          </div>
 
           {state?.error && (
             <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg p-3 text-sm">
