@@ -3,21 +3,23 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowRight, Mic, Square } from 'lucide-react'
+import { ArrowRight, Mic, Square, Loader2 } from 'lucide-react'
 import ShareToggle from '@/components/ShareToggle'
 import { useLocale } from '@/lib/i18n/context'
 
-// Minimal shape of the browser's SpeechRecognition API (not in lib.dom.d.ts)
-interface SpeechRecognitionLike extends EventTarget {
-  lang: string
-  continuous: boolean
-  interimResults: boolean
-  start: () => void
-  stop: () => void
-  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null
-  onerror: (() => void) | null
-  onend: (() => void) | null
+// Records actual audio and sends it to the server for transcription (via
+// Gemini, same pipeline as photo analysis) instead of relying on the
+// browser's native SpeechRecognition API — that API is unreliable or absent
+// in iOS Safari, especially when running as an installed home-screen PWA,
+// while getUserMedia/MediaRecorder are well supported there.
+const VOICE_MIME_CANDIDATES = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/aac', 'audio/ogg']
+
+function pickAudioMimeType(): string | undefined {
+  if (typeof MediaRecorder === 'undefined') return undefined
+  return VOICE_MIME_CANDIDATES.find((type) => MediaRecorder.isTypeSupported(type))
 }
+
+type VoiceState = 'idle' | 'recording' | 'transcribing'
 
 type InputMode = 'grams' | 'quantity'
 type Ingredient = { name: string; grams: string; quantity: string; inputMode: InputMode }
@@ -313,9 +315,13 @@ export default function MealForm({ mode, mealId, initialMeal }: MealFormProps) {
   })
   const [ingredients, setIngredients] = useState<Ingredient[]>([{ name: '', grams: '', quantity: '', inputMode: 'grams' }])
   const [mealFreeText, setMealFreeText] = useState('')
-  const [listening, setListening] = useState(false)
+  const [voiceState, setVoiceState] = useState<VoiceState>('idle')
   const [voiceSupported, setVoiceSupported] = useState(false)
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
+  const [voiceError, setVoiceError] = useState('')
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const streamRef = useRef<MediaStream | null>(null)
+  const voiceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [mealType, setMealType] = useState(initialMeal?.mealType ?? '')
   const [nutrition, setNutrition] = useState<NutritionData | null>(null)
   const [manualMode, setManualMode] = useState(mode === 'edit')
@@ -371,33 +377,67 @@ export default function MealForm({ mode, mealId, initialMeal }: MealFormProps) {
   }, [mode])
 
   useEffect(() => {
-    const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike }
-    setVoiceSupported(!!(w.SpeechRecognition || w.webkitSpeechRecognition))
+    setVoiceSupported(typeof window !== 'undefined' && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined')
   }, [])
 
-  function toggleVoiceInput() {
-    if (listening) {
-      recognitionRef.current?.stop()
+  function clearVoiceTimeout() {
+    if (voiceTimeoutRef.current) { clearTimeout(voiceTimeoutRef.current); voiceTimeoutRef.current = null }
+  }
+
+  function stopRecordingTracks() {
+    streamRef.current?.getTracks().forEach((track) => track.stop())
+    streamRef.current = null
+  }
+
+  async function toggleVoiceInput() {
+    if (voiceState === 'recording') {
+      mediaRecorderRef.current?.stop()
+      clearVoiceTimeout()
       return
     }
-    const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike }
-    const SpeechRecognitionCtor = w.SpeechRecognition || w.webkitSpeechRecognition
-    if (!SpeechRecognitionCtor) return
+    if (voiceState === 'transcribing') return
 
-    const recognition = new SpeechRecognitionCtor()
-    recognition.lang = locale === 'he' ? 'he-IL' : 'en-US'
-    recognition.continuous = false
-    recognition.interimResults = false
-    recognition.onresult = (event) => {
-      const transcript = event.results[event.results.length - 1][0].transcript
-      setMealFreeText((prev) => (prev.trim() ? `${prev.trim()} ${transcript}` : transcript))
-      setNutrition(null)
+    setVoiceError('')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+
+      const mimeType = pickAudioMimeType()
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
+      audioChunksRef.current = []
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data) }
+      recorder.onstop = async () => {
+        stopRecordingTracks()
+        setVoiceState('transcribing')
+        try {
+          const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || mimeType || 'audio/webm' })
+          const fd = new FormData()
+          fd.append('audio', blob, 'meal-voice')
+          const res = await fetch('/api/transcribe', { method: 'POST', body: fd })
+          const data = await res.json()
+          if (!res.ok || !data.success) throw new Error(data.error || 'failed')
+          const transcript = (data.transcript as string || '').trim()
+          if (transcript) {
+            setMealFreeText((prev) => (prev.trim() ? `${prev.trim()} ${transcript}` : transcript))
+            setNutrition(null)
+          } else {
+            setVoiceError(t('mealForm.voiceErrorGeneric'))
+          }
+        } catch {
+          setVoiceError(t('mealForm.voiceErrorGeneric'))
+        } finally {
+          setVoiceState('idle')
+        }
+      }
+      mediaRecorderRef.current = recorder
+      recorder.start()
+      setVoiceState('recording')
+      // Safety net: auto-stop a forgotten recording instead of letting it run forever.
+      voiceTimeoutRef.current = setTimeout(() => mediaRecorderRef.current?.stop(), 60000)
+    } catch {
+      setVoiceError(t('mealForm.voiceErrorPermission'))
+      setVoiceState('idle')
     }
-    recognition.onerror = () => setListening(false)
-    recognition.onend = () => setListening(false)
-    recognitionRef.current = recognition
-    recognition.start()
-    setListening(true)
   }
 
   async function logFromTemplate(id: string) {
@@ -677,13 +717,21 @@ export default function MealForm({ mode, mealId, initialMeal }: MealFormProps) {
             <button
               type="button"
               onClick={toggleVoiceInput}
-              aria-label={listening ? t('mealForm.stopVoiceInput') : t('mealForm.startVoiceInput')}
-              className={`absolute end-2 top-2 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${listening ? 'bg-red-500 text-white animate-pulse' : 'bg-blue-50 text-blue-500 hover:bg-blue-100'}`}
+              disabled={voiceState === 'transcribing'}
+              aria-label={voiceState === 'recording' ? t('mealForm.stopVoiceInput') : t('mealForm.startVoiceInput')}
+              className={`absolute end-2 top-2 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                voiceState === 'recording' ? 'bg-red-500 text-white animate-pulse'
+                : voiceState === 'transcribing' ? 'bg-blue-100 text-blue-400'
+                : 'bg-blue-50 text-blue-500 hover:bg-blue-100'
+              }`}
             >
-              {listening ? <Square size={14} /> : <Mic size={14} />}
+              {voiceState === 'recording' ? <Square size={14} />
+                : voiceState === 'transcribing' ? <Loader2 size={14} className="animate-spin" />
+                : <Mic size={14} />}
             </button>
           )}
         </div>
+        {voiceError && <p className="text-red-500 text-xs -mt-2 mb-3">{voiceError}</p>}
 
         {/* Saved foods — circular quick add */}
         <div className="mb-3">
