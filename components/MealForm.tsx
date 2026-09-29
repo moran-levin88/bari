@@ -3,9 +3,21 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Mic, Square } from 'lucide-react'
 import ShareToggle from '@/components/ShareToggle'
 import { useLocale } from '@/lib/i18n/context'
+
+// Minimal shape of the browser's SpeechRecognition API (not in lib.dom.d.ts)
+interface SpeechRecognitionLike extends EventTarget {
+  lang: string
+  continuous: boolean
+  interimResults: boolean
+  start: () => void
+  stop: () => void
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null
+  onerror: (() => void) | null
+  onend: (() => void) | null
+}
 
 type InputMode = 'grams' | 'quantity'
 type Ingredient = { name: string; grams: string; quantity: string; inputMode: InputMode }
@@ -301,6 +313,9 @@ export default function MealForm({ mode, mealId, initialMeal }: MealFormProps) {
   })
   const [ingredients, setIngredients] = useState<Ingredient[]>([{ name: '', grams: '', quantity: '', inputMode: 'grams' }])
   const [mealFreeText, setMealFreeText] = useState('')
+  const [listening, setListening] = useState(false)
+  const [voiceSupported, setVoiceSupported] = useState(false)
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const [mealType, setMealType] = useState(initialMeal?.mealType ?? '')
   const [nutrition, setNutrition] = useState<NutritionData | null>(null)
   const [manualMode, setManualMode] = useState(mode === 'edit')
@@ -354,6 +369,36 @@ export default function MealForm({ mode, mealId, initialMeal }: MealFormProps) {
         .catch(() => {})
     }
   }, [mode])
+
+  useEffect(() => {
+    const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike }
+    setVoiceSupported(!!(w.SpeechRecognition || w.webkitSpeechRecognition))
+  }, [])
+
+  function toggleVoiceInput() {
+    if (listening) {
+      recognitionRef.current?.stop()
+      return
+    }
+    const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike }
+    const SpeechRecognitionCtor = w.SpeechRecognition || w.webkitSpeechRecognition
+    if (!SpeechRecognitionCtor) return
+
+    const recognition = new SpeechRecognitionCtor()
+    recognition.lang = locale === 'he' ? 'he-IL' : 'en-US'
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.onresult = (event) => {
+      const transcript = event.results[event.results.length - 1][0].transcript
+      setMealFreeText((prev) => (prev.trim() ? `${prev.trim()} ${transcript}` : transcript))
+      setNutrition(null)
+    }
+    recognition.onerror = () => setListening(false)
+    recognition.onend = () => setListening(false)
+    recognitionRef.current = recognition
+    recognition.start()
+    setListening(true)
+  }
 
   async function logFromTemplate(id: string) {
     setLoggingTemplateId(id)
@@ -620,13 +665,25 @@ export default function MealForm({ mode, mealId, initialMeal }: MealFormProps) {
         <h2 className="font-bold text-slate-700 mb-3">{t('mealForm.whatDidYouEat')}</h2>
 
         {/* Primary: natural-language description */}
-        <textarea
-          value={mealFreeText}
-          onChange={(e) => { setMealFreeText(e.target.value); setNutrition(null) }}
-          className="input text-sm py-2.5 w-full resize-none mb-3"
-          rows={2}
-          placeholder={t('mealForm.fullMealPlaceholder')}
-        />
+        <div className="relative mb-3">
+          <textarea
+            value={mealFreeText}
+            onChange={(e) => { setMealFreeText(e.target.value); setNutrition(null) }}
+            className="input text-sm py-2.5 w-full resize-none pe-10"
+            rows={2}
+            placeholder={t('mealForm.fullMealPlaceholder')}
+          />
+          {voiceSupported && (
+            <button
+              type="button"
+              onClick={toggleVoiceInput}
+              aria-label={listening ? t('mealForm.stopVoiceInput') : t('mealForm.startVoiceInput')}
+              className={`absolute end-2 top-2 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${listening ? 'bg-red-500 text-white animate-pulse' : 'bg-blue-50 text-blue-500 hover:bg-blue-100'}`}
+            >
+              {listening ? <Square size={14} /> : <Mic size={14} />}
+            </button>
+          )}
+        </div>
 
         {/* Saved foods — circular quick add */}
         <div className="mb-3">
