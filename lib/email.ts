@@ -13,11 +13,15 @@ function getClient() {
 export async function sendPasswordResetEmail(to: string, name: string, resetUrl: string) {
   const client = getClient()
   if (!client) {
-    console.error('RESEND_API_KEY is not set — cannot send password reset email')
+    console.error('[email] RESEND_API_KEY is not set — cannot send password reset email')
     return
   }
 
-  await client.emails.send({
+  // The Resend SDK does NOT throw on a failed send — it resolves with
+  // { data: null, error } — so the result must be checked explicitly or a
+  // failure (e.g. the sandbox sender's one-recipient restriction) passes
+  // completely silently.
+  const { data, error } = await client.emails.send({
     from: FROM,
     to,
     subject: 'איפוס סיסמה ל-Bari',
@@ -30,4 +34,10 @@ export async function sendPasswordResetEmail(to: string, name: string, resetUrl:
       </div>
     `,
   })
+
+  if (error) {
+    console.error('[email] Resend failed to send password reset email:', JSON.stringify(error))
+    return
+  }
+  console.log('[email] Password reset email sent, Resend id:', data?.id)
 }

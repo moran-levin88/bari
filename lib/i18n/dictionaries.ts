@@ -349,6 +349,11 @@ export const dictionaries = {
       confirmReject: 'לדחות ולמחוק את המשתמש הזה?',
       confirmDelete: 'למחוק את המשתמש הזה לצמיתות? כל הנתונים שלו יימחקו.',
       joined: 'הצטרף/ה',
+      resetPassword: 'החלפת סיסמה',
+      confirmResetPassword: 'להגדיר סיסמה זמנית חדשה למשתמש הזה? הסיסמה הקיימת שלו תפסיק לעבוד מיד.',
+      resetPasswordResult: 'הסיסמה הזמנית החדשה היא:',
+      resetPasswordHint: 'אפשר להעתיק ולשלוח למשתמש/ת ישירות (למשל בוואטסאפ). היא תוכל להתחבר איתה ישר.',
+      resetPasswordFailed: 'החלפת הסיסמה נכשלה, נסה/י שוב',
     },
     water: {
       title: '💧 תיעוד מים',
@@ -1053,6 +1058,11 @@ export const dictionaries = {
       confirmReject: 'Reject and delete this user?',
       confirmDelete: 'Permanently delete this user? All their data will be deleted.',
       joined: 'Joined',
+      resetPassword: 'Reset password',
+      confirmResetPassword: "Set a new temporary password for this user? Their current password will stop working immediately.",
+      resetPasswordResult: 'The new temporary password is:',
+      resetPasswordHint: "You can copy it and send it to the user directly (e.g. via WhatsApp). They'll be able to log in with it right away.",
+      resetPasswordFailed: 'Failed to reset the password, please try again',
     },
     water: {
       title: '💧 Log Water',

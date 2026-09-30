@@ -45,6 +45,24 @@ export default function AdminUsersPanel() {
     setBusyId(null)
   }
 
+  async function resetPassword(id: string) {
+    if (!confirm(t('admin.confirmResetPassword'))) return
+    setBusyId(id)
+    try {
+      const res = await fetch(`/api/admin/users/${id}/reset-password`, { method: 'POST' })
+      const data = await res.json()
+      if (res.ok && data.password) {
+        alert(`${t('admin.resetPasswordResult')}\n\n${data.password}\n\n${t('admin.resetPasswordHint')}`)
+      } else {
+        alert(t('admin.resetPasswordFailed'))
+      }
+    } catch {
+      alert(t('admin.resetPasswordFailed'))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   return (
     <div className="glass-card mb-4">
       <h2 className="font-bold text-slate-700 mb-3">{t('admin.title')}</h2>
@@ -84,9 +102,14 @@ export default function AdminUsersPanel() {
                 {t('admin.joined')} {new Date(u.createdAt).toLocaleDateString(dateLocale)} · {u._count.meals} 🍽️
               </p>
             </div>
-            <button onClick={() => remove(u.id, t('admin.confirmDelete'))} disabled={busyId === u.id} className="btn-secondary text-xs py-1.5 px-3 disabled:opacity-40 flex-shrink-0">
-              {t('admin.delete')}
-            </button>
+            <div className="flex gap-2 flex-shrink-0">
+              <button onClick={() => resetPassword(u.id)} disabled={busyId === u.id} className="btn-secondary text-xs py-1.5 px-3 disabled:opacity-40">
+                {t('admin.resetPassword')}
+              </button>
+              <button onClick={() => remove(u.id, t('admin.confirmDelete'))} disabled={busyId === u.id} className="btn-secondary text-xs py-1.5 px-3 disabled:opacity-40">
+                {t('admin.delete')}
+              </button>
+            </div>
           </div>
         ))}
       </div>
