@@ -288,3 +288,20 @@ body {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+/* Printing a report: drop chrome (nav bars, FAB sheets) and the decorative
+   gradient/blur, which print engines render inconsistently anyway. */
+@media print {
+  nav, .bottom-nav {
+    display: none !important;
+  }
+  .app-bg {
+    background: #fff;
+  }
+  .glass-card {
+    background: #fff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+  }
+}

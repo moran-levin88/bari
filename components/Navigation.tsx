@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import {
   LayoutDashboard, Users, Utensils, GlassWater, Dumbbell, Footprints,
-  Scale, HeartHandshake, Salad, Megaphone, UserRound, LogOut, Plus, X, Menu, Sparkles, ChefHat,
+  Scale, HeartHandshake, Salad, Megaphone, UserRound, LogOut, Plus, X, Menu, Sparkles, ChefHat, FileText,
 } from 'lucide-react'
 import { logout } from '@/lib/auth'
 import { useLocale } from '@/lib/i18n/context'
@@ -21,6 +21,7 @@ function navItems(t: TranslateFn) {
     { href: '/log/steps', label: t('nav.steps'), Icon: Footprints },
     { href: '/weight', label: t('nav.weight'), Icon: Scale },
     { href: '/review', label: t('nav.review'), Icon: Sparkles },
+    { href: '/report', label: t('nav.report'), Icon: FileText },
     { href: '/groups', label: t('nav.groups'), Icon: HeartHandshake },
     { href: '/saved-foods', label: t('nav.savedFoods'), Icon: Salad },
     { href: '/recipes', label: t('nav.recipes'), Icon: ChefHat },
@@ -41,6 +42,7 @@ function quickLogItems(t: TranslateFn) {
 function moreItems(t: TranslateFn) {
   return [
     { href: '/review', label: t('nav.review'), Icon: Sparkles },
+    { href: '/report', label: t('nav.report'), Icon: FileText },
     { href: '/groups', label: t('nav.groups'), Icon: HeartHandshake },
     { href: '/saved-foods', label: t('nav.savedFoods'), Icon: Salad },
     { href: '/recipes', label: t('nav.recipes'), Icon: ChefHat },
