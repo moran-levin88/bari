@@ -7,7 +7,7 @@ export default async function ReportLayout({ children }: { children: React.React
   return (
     <div className="min-h-screen app-bg">
       <Navigation userName={user.name} />
-      <main className="max-w-4xl mx-auto p-4 md:p-6 pb-28 lg:pb-6 print:p-0 print:max-w-none">{children}</main>
+      <main className="max-w-4xl mx-auto p-4 md:p-6 pb-28 lg:pb-6">{children}</main>
     </div>
   )
 }
