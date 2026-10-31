@@ -158,9 +158,9 @@ function PingPanel({ userId, userName, onClose, t }: { userId: string; userName:
     { key: 'food', emoji: '🍽️', label: t('feed.foodTopic') },
   ]
   const PING_MESSAGES: Record<string, string[]> = {
-    water: ['💧', '💧', '💧'],
-    exercise: ['🏃', '🏃', '🏃', '🏃'],
-    food: ['🍽️', '🍽️', '🍽️'],
+    water: [t('feed.pingWaterMsg1'), t('feed.pingWaterMsg2'), t('feed.pingWaterMsg3')],
+    exercise: [t('feed.pingExerciseMsg1'), t('feed.pingExerciseMsg2'), t('feed.pingExerciseMsg3'), t('feed.pingExerciseMsg4')],
+    food: [t('feed.pingFoodMsg1'), t('feed.pingFoodMsg2'), t('feed.pingFoodMsg3')],
   }
   const [topic, setTopic] = useState('water')
   const [message, setMessage] = useState(PING_MESSAGES.water[0])
