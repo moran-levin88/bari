@@ -94,6 +94,35 @@ function buildMealDescription(ingredients: Ingredient[]): string {
     .join(', ')
 }
 
+// Vercel's serverless functions reject request bodies over 4.5MB — a single
+// full-res iPhone photo can exceed that on its own. Downscale/recompress
+// client-side before upload so analysis doesn't fail on ordinary photos.
+const MAX_UPLOAD_DIM = 1600
+const SKIP_COMPRESSION_UNDER_BYTES = 1.5 * 1024 * 1024
+
+async function compressImage(file: File): Promise<File> {
+  if (file.size <= SKIP_COMPRESSION_UNDER_BYTES) return file
+  try {
+    const bitmap = await createImageBitmap(file)
+    const scale = Math.min(1, MAX_UPLOAD_DIM / Math.max(bitmap.width, bitmap.height))
+    const width = Math.round(bitmap.width * scale)
+    const height = Math.round(bitmap.height * scale)
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return file
+    ctx.drawImage(bitmap, 0, 0, width, height)
+    const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.82))
+    if (!blob) return file
+    return new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' })
+  } catch {
+    // HEIC or another format the browser can't decode into a bitmap — fall
+    // back to the original file and let the server-side size check catch it.
+    return file
+  }
+}
+
 // ---- Saved foods picker component ----
 function SavedFoodsPicker({
   savedFoods,
@@ -520,20 +549,36 @@ export default function MealForm({ mode, mealId, initialMeal }: MealFormProps) {
     setAnalyzing(true)
     try {
       const fd = new FormData()
-      uploadedImages.forEach((img, i) => {
-        fd.append(i === 0 ? 'image' : `image${i + 1}`, img.file!)
+      for (const [i, img] of uploadedImages.entries()) {
+        const file = await compressImage(img.file!)
+        fd.append(i === 0 ? 'image' : `image${i + 1}`, file)
         if (img.portion.trim()) fd.append(i === 0 ? 'portion' : `portion${i + 1}`, img.portion.trim())
-      })
+      }
       if (mealDescription) fd.append('name', mealDescription)
       fd.append('locale', locale)
 
       const res = await fetch('/api/analyze-food', { method: 'POST', body: fd })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || t('mealForm.analysisFailed'))
-      setNutrition(data.nutrition)
+
+      // A non-JSON response (a gateway timeout page, a payload-too-large
+      // error, ...) makes res.json() throw a raw, untranslated parser error
+      // straight from the browser — catch that here and show a real message.
+      let data: { success?: boolean; nutrition?: NutritionData; error?: string }
+      try {
+        data = await res.json()
+      } catch {
+        throw new Error(t('mealForm.imageTooLarge'))
+      }
+
+      if (!res.ok) {
+        const message =
+          data.error === 'AI_QUOTA_EXCEEDED' ? t('mealForm.quotaExceeded') :
+          data.error === 'IMAGE_TOO_LARGE' ? t('mealForm.imageTooLarge') :
+          t('mealForm.analysisFailed')
+        throw new Error(message)
+      }
+      setNutrition(data.nutrition!)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : t('mealForm.unknownError')
-      setError(`${t('mealForm.analysisFailed')}: ${msg}`)
+      setError(err instanceof Error ? err.message : t('mealForm.unknownError'))
       const combined = combinedWithSF(emptyNutrition())
       setManualMode(true)
       setManualData({ ...emptyNutrition(), ...combined, name: mealDescription })
